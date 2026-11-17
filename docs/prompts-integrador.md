@@ -1,18 +1,18 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-17 14:54
-Carril integrador · dueño Fer (Claude Code) · misiones 2 · hechas 1 · siguiente **I0.1**
-Cola: ~~I0~~ → **I0.1** → (las siguientes se escriben en S001)
-siguiente: **I0.1**
-Última auditoría: I0 → Aprobado ([MEDIDO] en el contenedor de S000: lint 0, build OK, fronteras en rojo; y en la máquina de Fer: lint y build OK, 17-nov 14:16)
-Qué cambió por esa auditoría: I0.1 ya trae hechos los pasos 3, 4 y 6 (Supabase y Vercel conectados, `/salud` pública `base ok` · f84e398 · 17-nov 14:43); faltan 1, 2, 5 y 7
-Reescrituras de este documento: 3
-Siguiente con modelo: general (Sonnet) · esfuerzo medium (recomendado) · clasificación requiere pantalla
+## ESTADO · 2026-11-17 16:32
+Carril integrador · dueño Fer (Claude Code) · misiones 2 · hechas 2 · siguiente **NINGUNO**
+Cola: ~~I0~~ ~~I0.1~~ → (I1 se escribe en S001 con el reto)
+siguiente: **NINGUNO — BLOQUEADO hasta que S001 escriba I1** (lo libera Fer al elegir el reto)
+Última auditoría: I0.1 → Aprobado con anotaciones ([MEDIDO] /salud pública commit ec20083 · base ok 482 ms · 15:26; reflog d4cf46b→ec20083 sobre 5e8b0b1; `cn` existe en npm, de shadcn; candado PARO medido 16:32 por pierna 2 + contenido)
+Qué cambió por esa auditoría: S2 — shadcn reintrodujo `next/font/google` en layout.tsx (va a la misión de tema de Fer) · paso 5 (push de compañero) pasa a punto abierto · paso 7 completado con la salida PARO medida aquí
+Reescrituras de este documento: 4
+Siguiente con modelo: — (se fija en S001)
 Nota: plantilla previa decidida en S000; si a las 9:00 la prohíben, se declara en el pitch qué traía el repo.
 
 ---
 
-## I0.1 — shadcn, Supabase y Vercel conectados
+## I0.1 — shadcn, Supabase y Vercel conectados [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: main · tope: 30 min · clasificación: requiere pantalla · modelo: general · esfuerzo: medium`
 `cuándo: jueves o viernes; a más tardar el sábado 9:30`
@@ -73,3 +73,4 @@ Nota: plantilla previa decidida en S000; si a las 9:00 la prohíben, se declara 
 - 2026-11-17 13:20 · creado en S000 con I0.
 - 2026-11-17 13:55 · I0 hecha en S000 (plantilla previa); se agrega I0.1.
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, campos que lee `-Estado`); I0.1 gana el paso 7 (probar el candado en las dos direcciones).
+- 2026-11-17 16:32 · auditoría de I0.1 (Aprobado con anotaciones); candado probado en las dos direcciones: PARO a las 16:32 con el ESTADO viejo, liberado por esta reescritura.

@@ -522,7 +522,9 @@ if ($sucio) {
 
 # El mismo estado que vera el implementador con -Estado, para quien lanza.
 Write-Host ""
-Show-Estado | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor DarkGray }
+foreach ($c in @('integrador','ui','nucleo','datos')) {
+    Show-Estado $c | Where-Object { $_ -match '^(ESTADO-REMOTO|Sello|VEREDICTO)' } | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor DarkGray }
+}
 
 if ($SoloDiagnostico) {
     Write-Host ""
