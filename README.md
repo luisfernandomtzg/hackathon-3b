@@ -19,6 +19,8 @@ npm run dev          # http://localhost:3000 · salud en /salud
 npm run lint         # incluye las fronteras entre carriles
 npm run build
 ```
+
+Control remoto (máquina de Fer): `powershell -ExecutionPolicy Bypass -File .\remoto-hackathon-3b.ps1` · estado de los carriles sin lanzar nada: `... -Estado` (o `-Estado -Carril ui`).
 Sembrar datos y probar: se agregan cuando existan.
 
 ## Herramientas y librerías usadas

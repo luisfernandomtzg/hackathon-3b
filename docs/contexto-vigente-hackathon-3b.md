@@ -10,6 +10,10 @@
 - Antes del sábado hay tareas de Fer y del equipo en `checklist-previo.md`. Lo que no esté palomeado ahí, se pregunta al abrir.
 - Plan de horas en `plan-del-dia.md`. Arquitectura en `arquitectura-provisional.md`.
 
+## Relevo para S001
+
+Sin sesión del día todavía. Primera acción de S001: acuse + plantilla del reto (`PROMPT-APERTURA-S001.md`); si `I0.1` no tiene reporte, Fer la cierra a las 9:30 en paralelo con F1.
+
 ## Evento `[LEÍDO: láminas de 3B, captura 17-nov-2026]`
 
 Sábado 21-nov-2026 · registro 7:00 · retos, reglas y criterios 9:00 · desarrollo **9:30–17:00** · comida 13:30 · presentaciones 17:00 · premiación 19:00. Sede: `<<sin registrar>>`.
@@ -45,8 +49,8 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 | Qué | Valor |
 |---|---|
 | Repo GitHub | `luisfernandomtzg/hackathon-3b` · **público** (Vercel Hobby despliega commits de todos; sin secretos ni datos de 3B) |
-| Proyecto Supabase | `<<sin crear>>` |
-| Proyecto Vercel / URL de la demo | `<<sin crear>>` |
+| Proyecto Supabase | `hackathon-3b` (ref `pshtomfqgbobxheehoij`) en la org **Hackathon 3B**, plan gratuito, RLS automático. Pausa tras 7 días sin uso: abrirlo el viernes |
+| Proyecto Vercel / URL de la demo | `hackathon-3b` (equipo luisfernandomtzgDeploys, Hobby) · **https://hackathon-3b.vercel.app** · `/salud` `[MEDIDO 17-nov 14:43: commit f84e398, rama main, base ok 847 ms]` · push→Ready ≈ 27 s |
 | Llave de API de modelo | `<<sin crear>>` |
 | Modelos por escalón (rápido · general · fuerte) | `<<anotar los nombres vigentes al crear las cuentas>>` |
 
@@ -71,11 +75,12 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 ## Puntos abiertos
 
-- PA-000.2 · `I0.1`: shadcn, Supabase y Vercel conectados; un compañero hace push de prueba — Fer — jueves o viernes.
+- PA-000.2 · Resto de `I0.1`: shadcn y el push de prueba de un compañero (Supabase y Vercel ya conectados) — Fer — jueves o viernes.
+- PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
 - PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.
 
 ## No verificado
 
-- El andamiaje se midió en el contenedor de S000 (lint, build, rojo, `/salud` local), **no** en la máquina de Fer ni desplegado.
+- Lint y build pasaron en la máquina de Fer; `/salud` pública en verde. Sin probar todavía: push de un colaborador y vistas previas por rama.
 - Retos, criterios, entregables y reglas de la edición de noviembre: no publicados.

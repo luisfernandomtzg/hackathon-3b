@@ -1,11 +1,14 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-17 13:55
-Dueño del carril: **Fer** (Claude Code)
-Cola: ~~I0~~ (hecha en S000, ver `reportes/I0-andamiaje.md`) → **I0.1** → (las siguientes se escriben en S001)
+## ESTADO · 2026-11-17 14:54
+Carril integrador · dueño Fer (Claude Code) · misiones 2 · hechas 1 · siguiente **I0.1**
+Cola: ~~I0~~ → **I0.1** → (las siguientes se escriben en S001)
 siguiente: **I0.1**
-Última auditoría: I0 · medido en el contenedor de S000 (lint, build, rojo de fronteras, /salud local)
-Nota: se decidió llevar plantilla previa (S000): el uso de IA está permitido y nada en las reglas lo prohíbe. Si a las 9:00 dicen lo contrario, se declara en el pitch qué traía el repo.
+Última auditoría: I0 → Aprobado ([MEDIDO] en el contenedor de S000: lint 0, build OK, fronteras en rojo; y en la máquina de Fer: lint y build OK, 17-nov 14:16)
+Qué cambió por esa auditoría: I0.1 ya trae hechos los pasos 3, 4 y 6 (Supabase y Vercel conectados, `/salud` pública `base ok` · f84e398 · 17-nov 14:43); faltan 1, 2, 5 y 7
+Reescrituras de este documento: 3
+Siguiente con modelo: general (Sonnet) · esfuerzo medium (recomendado) · clasificación requiere pantalla
+Nota: plantilla previa decidida en S000; si a las 9:00 la prohíben, se declara en el pitch qué traía el repo.
 
 ---
 
@@ -23,7 +26,9 @@ Nota: se decidió llevar plantilla previa (S000): el uso de IA está permitido y
 5. Un compañero hace push de una rama `prueba/<nombre>` y se comprueba que Vercel genera su vista previa.
 6. Anota URL, proyecto de Supabase y tiempo push→URL en `docs/contexto-vigente-hackathon-3b.md` (sección Recursos).
 
-**Prueba de cierre:** captura de `/salud` pública con SHA y `base ok`, y el tiempo push→URL.
+7. **Probar el candado en las dos direcciones** (desde la raíz del repo): `powershell -NoProfile -ExecutionPolicy Bypass -File .\remoto-hackathon-3b.ps1 -Estado -Carril integrador` debe decir **SIGUE · I0.1**. Después de escribir y commitear el reporte `docs/reportes/I0.1-conexion.md`, la misma orden debe decir **PARO** (contenido: I0.1 ya tiene reporte; pierna 2). Pega las dos salidas en el reporte. Una corrida sin el `-Carril` muestra los cuatro carriles: UI, Núcleo y Datos deben decir NADA QUE EJECUTAR.
+
+**Prueba de cierre:** captura de `/salud` pública con SHA y `base ok`, y el tiempo push→URL. Más las dos salidas de `-Estado` del paso 7.
 **Reporte:** `docs/reportes/I0.1-conexion.md`. **Commit:** `chore: shadcn y conexión a Supabase/Vercel (I0.1)`
 
 ---
@@ -67,3 +72,4 @@ Nota: se decidió llevar plantilla previa (S000): el uso de IA está permitido y
 
 - 2026-11-17 13:20 · creado en S000 con I0.
 - 2026-11-17 13:55 · I0 hecha en S000 (plantilla previa); se agrega I0.1.
+- 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, campos que lee `-Estado`); I0.1 gana el paso 7 (probar el candado en las dos direcciones).
