@@ -1,0 +1,35 @@
+# dependencias y builds
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# secretos
+.env
+.env.*
+!.env.example
+
+# datos confidenciales de 3B: nunca al repo
+datos/privado/
+
+# python
+__pycache__/
+.venv/
+*.pyc
+
+# sistema y editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+npm-debug.log*
+*.pem
+/coverage
+/build
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
