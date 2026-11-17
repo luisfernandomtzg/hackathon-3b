@@ -1,18 +1,26 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-17 14:00 · cierre de S000 (segunda pasada: roles, plantilla y repo)** · Sesiones: S000 cerrada · siguiente **S001 (sábado 21-nov)**.
+> Última actualización: **2026-11-17 16:35 · cierre de S000** · Sesiones: S000 cerrada · siguiente **S001 (viernes 20-nov, corta: Supabase y tema base)** · el sábado es **S002**.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 
+- **Numeración:** S001 = viernes (sesión corta, `PROMPT-APERTURA-S001.md`); el sábado arranca en **S002** (`PROMPT-APERTURA-S002.md`). Donde las instrucciones digan «S001» para el sábado, léase S002.
 - Aún **no hay reto**: se conoce el sábado a las 9:00 y se elige por orden de llegada.
-- El repo trae **plantilla previa** (I0 hecha en S000: Next + fronteras de carril + `/salud`), sin código de producto. Lo siguiente es `I0.1` (shadcn + Supabase + Vercel): mirar en disco si ya tiene reporte.
+- El repo trae **plantilla previa** sin código de producto: I0 (Next + fronteras de carril + `/salud`) e I0.1 (shadcn, Supabase y Vercel) hechas y auditadas en S000. Los cuatro carriles están en `NINGUNO — BLOQUEADO` hasta que S001 escriba sus misiones 1.
 - Antes del sábado hay tareas de Fer y del equipo en `checklist-previo.md`. Lo que no esté palomeado ahí, se pregunta al abrir.
 - Plan de horas en `plan-del-dia.md`. Arquitectura en `arquitectura-provisional.md`.
 
 ## Relevo para S001
 
-Sin sesión del día todavía. Primera acción de S001: acuse + plantilla del reto (`PROMPT-APERTURA-S001.md`); si `I0.1` no tiene reporte, Fer la cierra a las 9:30 en paralelo con F1.
+Escrito al cerrar S000, 2026-11-17 16:35.
+- **Fase:** antes del evento. Reto: por elegir el sábado a las 9:00. S001 (viernes) es corta: Supabase despierto, misión `U0` (tema base) y puntos abiertos.
+- **Carriles** (`ESTADO` en `repo/docs/prompts-<carril>.md`): integrador sellado 16:32, ~~I0~~ ~~I0.1~~, `siguiente: NINGUNO — BLOQUEADO hasta I1`. UI, Núcleo y Datos sellados 14:54, `BLOQUEADO hasta U1/N1/D1`.
+- **Demo:** https://hackathon-3b.vercel.app · `/salud` `[MEDIDO 15:26: commit ec20083 · base ok 482 ms]`.
+- **Auditorías:** I0 → Aprobado. I0.1 → Aprobado con anotaciones: S2, `next/font/google` reintroducido por shadcn en `app/layout.tsx`, va a la misión de tema de Fer; el paso 5 queda en PA-000.2.
+- **Candado probado en las dos direcciones** con `remoto-hackathon-3b.ps1 -Estado`: SIGUE a las 14:58; PARO a las 16:32 (pierna 2 y contenido) con el `ESTADO` viejo; liberado por la reescritura de las 16:32.
+- **Cierre de S000:** `3506aa7` empujado (`prompts-integrador.md` y el script) `[MEDIDO en captura de Fer, 16:36]`. Después van los documentos de la renumeración y este contexto: por verificar en S001 que `origin/main` está en un commit posterior a `3506aa7` y que `git status` está limpio.
+- **Primera acción de S001 (viernes):** acuse, verificar el cierre de S000 y `/salud`; después escribir y correr `U0` (`PROMPT-APERTURA-S001.md`). **S002 (sábado):** acuse con la plantilla del reto (`PROMPT-APERTURA-S002.md`).
 
 ## Evento `[LEÍDO: láminas de 3B, captura 17-nov-2026]`
 
@@ -32,7 +40,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 **Riesgo aceptado:** Fer integra y diseña a la vez. Si a las 11:30 o a las 13:15 la integración se atrasa, el diseño cede: las pantallas pasan a Mau y Fer solo integra.
 
-### Política de cuota (rige en S001)
+### Política de cuota (rige el sábado)
 
 - Solo Fer tiene Claude de pago; los demás usan cuentas propias, posiblemente gratuitas. **La cuota es un recurso del día como el reloj.**
 - Este chat: Opus en esfuerzo **medio**; **alto** solo para el plan de F1 y para auditar el diferenciador. Respuestas cortas; no releer documentos ya leídos.
@@ -50,7 +58,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 |---|---|
 | Repo GitHub | `luisfernandomtzg/hackathon-3b` · **público** (Vercel Hobby despliega commits de todos; sin secretos ni datos de 3B) |
 | Proyecto Supabase | `hackathon-3b` (ref `pshtomfqgbobxheehoij`) en la org **Hackathon 3B**, plan gratuito, RLS automático. Pausa tras 7 días sin uso: abrirlo el viernes |
-| Proyecto Vercel / URL de la demo | `hackathon-3b` (equipo luisfernandomtzgDeploys, Hobby) · **https://hackathon-3b.vercel.app** · `/salud` `[MEDIDO 17-nov 14:43: commit f84e398, rama main, base ok 847 ms]` · push→Ready ≈ 27 s |
+| Proyecto Vercel / URL de la demo | `hackathon-3b` (equipo luisfernandomtzgDeploys, Hobby) · **https://hackathon-3b.vercel.app** · `/salud` `[MEDIDO 17-nov 15:26: commit ec20083, rama main, base ok 482 ms]` · push→Ready ≈ 27 s · control remoto: `repo/remoto-hackathon-3b.ps1` |
 | Llave de API de modelo | `<<sin crear>>` |
 | Modelos por escalón (rápido · general · fuerte) | `<<anotar los nombres vigentes al crear las cuentas>>` |
 
@@ -75,12 +83,13 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 ## Puntos abiertos
 
-- PA-000.2 · Resto de `I0.1`: shadcn y el push de prueba de un compañero (Supabase y Vercel ya conectados) — Fer — jueves o viernes.
+- PA-000.2 · Push de prueba de un compañero (`prueba/<nombre>`) y su vista previa en Vercel: cierra el paso 5 de I0.1 — Fer, al invitar a los cuatro — jueves.
+- PA-000.6 · Tema base neutro y quitar `next/font/google` de `app/layout.tsx` (S2 de I0.1; la demo sin conexión no debe depender de Google Fonts) — misión `U0` en S001 — viernes.
 - PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
 - PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.
 
 ## No verificado
 
-- Lint y build pasaron en la máquina de Fer; `/salud` pública en verde. Sin probar todavía: push de un colaborador y vistas previas por rama.
+- `/salud` pública en verde con shadcn incluido. Sin probar todavía: push de un colaborador y vistas previas por rama. El lint de I0.1 es `[REPORTADO]`.
 - Retos, criterios, entregables y reglas de la edición de noviembre: no publicados.
