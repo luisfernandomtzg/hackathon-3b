@@ -55,8 +55,8 @@ Cada quien usa el asistente que prefiera (Claude Code, Cursor, Copilot, Codex, G
 ## Al terminar
 
 1. Corre la **prueba de cierre** de la misión y pega su salida real.
-2. Commit en la rama que diga la misión (`carril/<carril>-<tema>`) y `git push`. No hagas merge a `main`: integra el orquestador.
-3. Escribe `docs/reportes/<id>-<tema>.md` **al final y de una sola vez** (un reporte a medias suelta la regla de paro antes de tiempo). Máximo 12 líneas. Commitéalo en tu misma rama.
+2. Commit en la rama que diga la misión (`carril/<carril>-sp<N>-<tema>`, que sale de un `main` recién actualizado), `git fetch` + `git rebase origin/main`, lint y build en verde, `git push` y **abre el PR hacia `main`** con la plantilla (`docs/pull_request_template.md`) dentro de la ventana de tu carril (`docs/KIT-EQUIPO.md` §6). No hagas merge: integra el orquestador después de auditar.
+3. Escribe `docs/reportes/<id>-<tema>.md` **al final y de una sola vez** (un reporte a medias suelta la regla de paro antes de tiempo). Máximo 12 líneas. Commitéalo en tu misma rama y pega el mismo texto en la descripción del PR.
 4. En `docs/reportes/` **solo** escriben las entregas de los implementadores: nada más va ahí.
 
 ```
@@ -68,6 +68,10 @@ Archivos fuera de mi carril que toqué: <ninguno | cuáles y por qué>
 ¿Tocó la base?: <no | qué tablas y cuántas filas>
 Necesito de otro carril: <nada | qué>
 ```
+
+## Compañeros con otro asistente
+
+El kit universal del equipo (reglas, instalación, sprints escalonados, git y PR, listón de auditoría) es `docs/KIT-EQUIPO.md`; el sábado cada quien recibe `docs/paquetes/<nombre>.md` (kit + su área). Este archivo y el kit dicen lo mismo; si chocan, avisa al orquestador.
 
 ## Dónde está el contexto
 

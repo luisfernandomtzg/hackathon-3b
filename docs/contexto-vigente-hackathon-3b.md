@@ -1,17 +1,27 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-17 16:35 · cierre de S000** · Sesiones: S000 cerrada · siguiente **S001 (viernes 20-nov, corta: Supabase y tema base)** · el sábado es **S002**.
+> Última actualización: **2026-11-18 17:10 · cierre de S001 (miércoles, adelantada: método de trabajo)** · siguiente **S001.5 (viernes 20-nov, corta: Supabase, U0 y ensayo)** · el sábado es **S002**.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 
-- **Numeración:** S001 = viernes (sesión corta, `PROMPT-APERTURA-S001.md`); el sábado arranca en **S002** (`PROMPT-APERTURA-S002.md`). Donde las instrucciones digan «S001» para el sábado, léase S002.
+- **Numeración:** S001 se adelantó al miércoles 18 (método); el viernes es **S001.5** (sesión corta, `PROMPT-APERTURA-S001.md`); el sábado arranca en **S002** (`PROMPT-APERTURA-S002.md`). Donde las instrucciones digan «S001» para el sábado, léase S002.
 - Aún **no hay reto**: se conoce el sábado a las 9:00 y se elige por orden de llegada.
-- El repo trae **plantilla previa** sin código de producto: I0 (Next + fronteras de carril + `/salud`) e I0.1 (shadcn, Supabase y Vercel) hechas y auditadas en S000. Los cuatro carriles están en `NINGUNO — BLOQUEADO` hasta que S001 escriba sus misiones 1.
+- El repo trae **plantilla previa** sin código de producto: I0 (Next + fronteras de carril + `/salud`) e I0.1 (shadcn, Supabase y Vercel) hechas y auditadas en S000. Los cuatro carriles están en `NINGUNO — BLOQUEADO` hasta que S002 (sábado) escriba sus misiones 1; el de UI se libera antes, en S001.5, para `U0`.
 - Antes del sábado hay tareas de Fer y del equipo en `checklist-previo.md`. Lo que no esté palomeado ahí, se pregunta al abrir.
 - Plan de horas en `plan-del-dia.md`. Arquitectura en `arquitectura-provisional.md`.
 
-## Relevo para S001
+## Relevo para S001.5 (viernes)
+
+Escrito al cerrar S001, 2026-11-18 17:10.
+- **S001 se adelantó al miércoles** y solo trató el método. La agenda de `PROMPT-APERTURA-S001.md` (Supabase despierto, misión `U0`, puntos abiertos) **sigue pendiente completa**: es S001.5, y abre con `S001.5 3B. Lee el prompt inicial` → lee `PROMPT-APERTURA-S001.md` + este relevo.
+- **Medido en S001:** `origin/main` = `5df6c6b`, desciende de `3506aa7` → cierre de S000 ✓ `[MEDIDO 17:01, git clone desde el chat]`. `git status` local no medido (sin shell). `/salud` no verificado (la lectura automática solo ve «Revisando…»: medir con navegador).
+- **Hallazgo que sube de severidad:** `npm run build` **falla** sin acceso a Google Fonts (`next/font/google` en `app/layout.tsx`) `[MEDIDO 17:03 en el contenedor del chat; npm ci 12 s y lint en verde]`. Vercel compila porque tiene internet, pero el chat no puede auditar ejecutando y una sede sin internet rompe el build local. **`U0` es lo primero del viernes.**
+- **Decisiones de S001 (Fer, 17:04):** ver «Método de trabajo del sábado» abajo.
+- **Escrito en S001:** `repo/docs/KIT-EQUIPO.md` (kit universal, Parte A + ensayo `E0`), `repo/docs/pull_request_template.md`, `CLAUDE.md` (paso de PR), `AGENTS.md` (apunta al kit), `plan-del-dia.md` (F3a con ventanas). **Por commitear** — bloque de git en el chat de S001; el viernes se verifica que `origin/main` los trae.
+- **Primera acción de S001.5:** acuse; verificar que el commit del kit está en `origin/main`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después `U0`.
+
+## Relevo anterior (S000 → S001), ya consumido
 
 Escrito al cerrar S000, 2026-11-17 16:35.
 - **Fase:** antes del evento. Reto: por elegir el sábado a las 9:00. S001 (viernes) es corta: Supabase despierto, misión `U0` (tema base) y puntos abiertos.
@@ -70,6 +80,15 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 - **Plantilla previa sí** (S000, 17-nov): la IA está permitida y nada lo prohíbe. Andamiaje sin producto. Si a las 9:00 lo prohíben, se declara qué traía el repo.
 - Roles asignados (ver tabla). Repo público.
 
+## Método de trabajo del sábado (decidido en S001, 18-nov)
+
+- **OpenSpec no se adopta** (lo propuso Mauski): duplica lo que ya hacen `prompts-<carril>.md` + `lib/contrato` + `CLAUDE.md`, agrega instalación y ceremonia por cambio, y choca con `ESTADO` y la regla de paro.
+- **Una rama por sprint, desde `main` fresco** (`carril/<area>-sp<N>-<tema>`), y **PR hacia `main`**; solo Fer hace merge, después de auditar. Plantilla en `docs/pull_request_template.md`; el reporte va también en `docs/reportes/`.
+- **Sprints de ~1 h, escalonados 15 min** (Datos :15 · Núcleo :30 · Mau :45 · Fer :00); ventanas exactas en `KIT-EQUIPO.md` §6. A las 15:30 se congela lo que haya: la cola de cada área va ordenada y lo de abajo se puede recortar.
+- **Listón de auditoría: exprés S0/S1/S2 (§9).** Fable u Opus en esfuerzo alto solo para el plan de F1 y para el diferenciador. El chat audita PRs clonando el repo público (`git fetch origin pull/<n>/head`); la API de PRs de GitHub no está habilitada desde el chat (habría que adjuntar el repo).
+- **Un kit universal para cualquier IA:** `docs/KIT-EQUIPO.md` (Parte A, escrita en S001). El sábado, F1 genera solo la Parte B por persona → `docs/paquetes/<nombre>.md` = kit + área, con detalle solo en SP0–SP1; el resto se recalibra tras cada auditoría.
+- **Ensayo `E0` jueves o viernes:** cada compañero instala, le da el kit a su IA, hace un PR `prueba/<nombre>` con `docs/equipo/<nombre>.md` (qué IA y de qué tipo) y comprueba la vista previa de Vercel. Cierra PA-000.2 y PA-000.3.
+
 ## Respuestas de los organizadores (`checklist-previo.md` §4)
 
 | Pregunta | Respuesta |
@@ -88,6 +107,8 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 - PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
 - PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.
+- PA-001.1 · Preguntar hoy a Mau, Mauski y Sergio qué IA usarán y si toca el repo o es chat web (planes gratuitos cambiaron en 2026: Gemini CLI → Antigravity para cuentas gratuitas; altas nuevas a Copilot de estudiante pausadas desde el 20-abr) — Fer — miércoles; se confirma en el ensayo `E0`.
+- PA-001.2 · Pasar `.env.local` en privado solo a Sergio (los demás trabajan con datos simulados) — Fer — viernes.
 
 ## No verificado
 

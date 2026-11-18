@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Las reglas de este repo para cualquier asistente de código están en [`CLAUDE.md`](./CLAUDE.md). Léelo completo antes de trabajar: carriles por carpeta, documento de misiones por carril en `docs/`, y formato del reporte de entrega.
+Las reglas de este repo para cualquier asistente de código están en [`CLAUDE.md`](./CLAUDE.md). Léelo completo antes de trabajar: carriles por carpeta, documento de misiones por carril en `docs/`, y formato del reporte de entrega. Si eres el asistente de un compañero del equipo, lee además `docs/KIT-EQUIPO.md` (o su `docs/paquetes/<nombre>.md` el sábado).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
