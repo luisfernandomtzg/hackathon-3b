@@ -18,8 +18,8 @@ Escrito al cerrar S001, 2026-11-18 17:10.
 - **Medido en S001:** `origin/main` = `5df6c6b`, desciende de `3506aa7` → cierre de S000 ✓ `[MEDIDO 17:01, git clone desde el chat]`. `git status` local no medido (sin shell). `/salud` no verificado (la lectura automática solo ve «Revisando…»: medir con navegador).
 - **Hallazgo que sube de severidad:** `npm run build` **falla** sin acceso a Google Fonts (`next/font/google` en `app/layout.tsx`) `[MEDIDO 17:03 en el contenedor del chat; npm ci 12 s y lint en verde]`. Vercel compila porque tiene internet, pero el chat no puede auditar ejecutando y una sede sin internet rompe el build local. **`U0` es lo primero del viernes.**
 - **Decisiones de S001 (Fer, 17:04):** ver «Método de trabajo del sábado» abajo.
-- **Escrito en S001:** `repo/docs/KIT-EQUIPO.md` (kit universal, Parte A + ensayo `E0`), `repo/docs/pull_request_template.md`, `CLAUDE.md` (paso de PR), `AGENTS.md` (apunta al kit), `plan-del-dia.md` (F3a con ventanas). **Por commitear** — bloque de git en el chat de S001; el viernes se verifica que `origin/main` los trae.
-- **Primera acción de S001.5:** acuse; verificar que el commit del kit está en `origin/main`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después `U0`.
+- **Escrito en S001:** `repo/docs/KIT-EQUIPO.md` (kit universal, Parte A + ensayo `E0`), `repo/docs/pull_request_template.md`, `CLAUDE.md` (paso de PR), `AGENTS.md` (apunta al kit), `plan-del-dia.md` (F3a con ventanas). **Empujado en `d05f4f4`** `[MEDIDO en captura de Fer, 17:20: 5df6c6b..d05f4f4 main -> main; git status vacío]`. Después, tabla de equipo con la IA de cada quien (commit siguiente: verificar el viernes que está en `origin/main`).
+- **Primera acción de S001.5:** acuse; verificar que el commit de la tabla de equipo está en `origin/main`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después `U0`.
 
 ## Relevo anterior (S000 → S001), ya consumido
 
@@ -40,11 +40,11 @@ Sábado 21-nov-2026 · registro 7:00 · retos, reglas y criterios 9:00 · desarr
 
 | Rol | Quién | Asistente / cuenta |
 |---|---|---|
-| Orquestador e integrador · **diseño y carril UI** | Fer | Claude de pago (este proyecto, Claude Code y Claude Design con las skills de diseño): **el que más cuota tiene** |
-| UI de apoyo y quien maneja la demo | Mau | el de su preferencia (`<<anotar>>`) |
-| Carril Núcleo | Mauski | el de su preferencia (`<<anotar>>`) |
-| Carril Datos e IA | Sergio (lo pidió) | el de su preferencia (`<<anotar>>`) |
-| Negocio y pitch | Alan | — |
+| Orquestador e integrador · **diseño y carril UI** | Fer | **Claude Max** (este proyecto, Claude Code y Claude Design con las skills de diseño): **el que más cuota tiene** |
+| UI de apoyo y quien maneja la demo | Mau | `<<por confirmar en el ensayo E0>>` |
+| Carril Núcleo | Mauski | **Claude Pro** → Claude Code (agente en el repo) `[dicho por Fer, 18-nov 17:26]` |
+| Carril Datos e IA | Sergio (lo pidió) | **Claude gratuito** → chat web en claude.ai, cuota corta: misiones chicas; lo pesado de Datos va al Claude Code de Fer `[dicho por Fer, 18-nov 17:20]` |
+| Negocio y pitch | Alan | Gemini de pago (no programa) |
 
 Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercambiar entre ellos. Fer tomó diseño y UI (17-nov 13:46): él fija la dirección visual y construye las pantallas del camino dorado; Mau construye estados vacío/cargando/error, responsive y pantallas secundarias **sobre el tema de Fer**, y maneja la demo en el pitch.
 
@@ -52,7 +52,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 ### Política de cuota (rige el sábado)
 
-- Solo Fer tiene Claude de pago; los demás usan cuentas propias, posiblemente gratuitas. **La cuota es un recurso del día como el reloj.**
+- Fer tiene Claude Max y Mauski Claude Pro (Claude Code); Sergio usa Claude gratuito y Mau está por confirmar. **La cuota es un recurso del día como el reloj.**
 - Este chat: Opus en esfuerzo **medio**; **alto** solo para el plan de F1 y para auditar el diferenciador. Respuestas cortas; no releer documentos ya leídos.
 - Misiones para Mau, Mauski y Sergio: **autocontenidas** (todo lo necesario va en el texto, sin «lee tal documento»), de 30–45 min, sin asumir qué asistente usan, pegables en cualquier chat.
 - Lo de escalón fuerte (el diferenciador, un arreglo devuelto una vez, algo que cruza carriles) va al **Claude Code de Fer**, no a un compañero.
@@ -107,7 +107,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 - PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
 - PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.
-- PA-001.1 · Preguntar hoy a Mau, Mauski y Sergio qué IA usarán y si toca el repo o es chat web (planes gratuitos cambiaron en 2026: Gemini CLI → Antigravity para cuentas gratuitas; altas nuevas a Copilot de estudiante pausadas desde el 20-abr) — Fer — miércoles; se confirma en el ensayo `E0`.
+- PA-001.1 · (Mauski, Sergio y Alan ya contestaron; **falta Mau**) Preguntar a Mau, Mauski y Sergio qué IA usarán y si toca el repo o es chat web (planes gratuitos cambiaron en 2026: Gemini CLI → Antigravity para cuentas gratuitas; altas nuevas a Copilot de estudiante pausadas desde el 20-abr) — Fer — miércoles; se confirma en el ensayo `E0`.
 - PA-001.2 · Pasar `.env.local` en privado solo a Sergio (los demás trabajan con datos simulados) — Fer — viernes.
 
 ## No verificado
