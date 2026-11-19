@@ -2,119 +2,191 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/*
+  Tema «Tarima» — sistema de diseño del equipo (ver DESIGN.md en la raíz).
+  Valores medidos en tiendas3b.com el 18-nov-2026 y verificados con WCAG AA (36 pares, 0 fallan).
+  Un solo tema, claro: no hay bloque .dark a propósito.
+  Regla: los hex viven SOLO en las primitivas de :root. Las pantallas usan clases semánticas
+  (bg-primary, text-foreground, text-text-tertiary…), nunca un valor.
+*/
+
 @custom-variant dark (&:is(.dark *));
+
+:root {
+  /* — Primitivas: rojo 3B (brand-500 medido) — */
+  --brand-50: #fef3f1;
+  --brand-100: #ffe4e0;
+  --brand-200: #fecbc4;
+  --brand-300: #fea196;
+  --brand-400: #fb6157;
+  --brand-500: #e31b23;
+  --brand-600: #c4101a;
+  --brand-700: #9d0812;
+  --brand-800: #76080d;
+  --brand-900: #4f0a0a;
+  /* — Primitivas: tinta 3B (ink-900 medido) y grises teñidos de tinta — */
+  --ink-25: #f9fafa;
+  --ink-50: #f4f6f6;
+  --ink-100: #eaeeed;
+  --ink-200: #dadfdf;
+  --ink-300: #bfc6c5;
+  --ink-400: #848f8d;
+  --ink-500: #667170;
+  --ink-600: #4c5857;
+  --ink-700: #31413f;
+  --ink-800: #1c2f2e;
+  --ink-900: #04211f;
+  --white: #ffffff;
+  --navy: #1c244b;      /* medido en tiendas3b.com */
+  --green-3b: #4bd811;  /* medido en tiendas3b.com: solo sobre tinta */
+
+  /* — Semánticos de Tarima — */
+  --bg-surface-2: var(--ink-25);
+  --bg-input: var(--ink-25);
+  --text-secondary: var(--ink-700);
+  --text-tertiary: var(--ink-600);
+  --text-muted: var(--ink-500);
+  --text-link: var(--brand-600);
+  --action-primary-hover: var(--brand-600);
+  --action-primary-active: var(--brand-700);
+  --status-success: #1f7a4d;
+  --status-success-bg: #e3f3ea;
+  --status-warning: #8a5a12;
+  --status-warning-bg: #fbf1dc;
+  --status-danger: var(--brand-700);
+  --status-danger-bg: var(--brand-50);
+  --status-info: var(--navy);
+  --status-info-bg: #e8ebf5;
+  --highlight: var(--green-3b);
+  --chart-focus: var(--brand-500);
+
+  /* — Puente a shadcn: los componentes de components/ui se tematizan solos — */
+  --background: var(--white);
+  --foreground: var(--ink-900);
+  --card: var(--white);
+  --card-foreground: var(--ink-900);
+  --popover: var(--white);
+  --popover-foreground: var(--ink-900);
+  --primary: var(--brand-500);
+  --primary-foreground: var(--white);
+  --secondary: var(--ink-25);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--ink-100);
+  --muted-foreground: var(--ink-700);
+  --accent: var(--ink-25);
+  --accent-foreground: var(--ink-900);
+  --destructive: var(--brand-700);
+  --border: rgba(4, 33, 31, 0.12);
+  --input: var(--ink-400);
+  --ring: var(--ink-900);
+  --chart-1: #1c244b;
+  --chart-2: #0e7c6b;
+  --chart-3: #b4690e;
+  --chart-4: #7a4e9c;
+  --chart-5: #667170;
+  --radius: 0.5rem;
+  --sidebar: var(--white);
+  --sidebar-foreground: var(--ink-900);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--white);
+  --sidebar-accent: var(--ink-25);
+  --sidebar-accent-foreground: var(--ink-900);
+  --sidebar-border: rgba(4, 33, 31, 0.12);
+  --sidebar-ring: var(--ink-900);
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* Extensiones de Tarima: text-text-tertiary, bg-success-bg, text-brand-600, bg-ink-900… */
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-ink-25: var(--ink-25);
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+  --color-surface-2: var(--bg-surface-2);
+  --color-input-bg: var(--bg-input);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-muted);
+  --color-link: var(--text-link);
+  --color-primary-hover: var(--action-primary-hover);
+  --color-primary-active: var(--action-primary-active);
+  --color-success: var(--status-success);
+  --color-success-bg: var(--status-success-bg);
+  --color-warning: var(--status-warning);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-danger: var(--status-danger);
+  --color-danger-bg: var(--status-danger-bg);
+  --color-info: var(--status-info);
+  --color-info-bg: var(--status-info-bg);
+  --color-highlight: var(--highlight);
+  --color-chart-focus: var(--chart-focus);
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Tipografía: Montserrat = voz de marca (títulos, cifras); Geist = trabajo; Geist Mono = claves */
+  --font-heading: var(--font-montserrat), system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radios de Tarima sobre los nombres que usan los componentes de shadcn:
+     control (botón, campo) = rounded-lg 6px · tarjeta = rounded-xl 8px · diálogo = rounded-2xl 12px */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 9999px;
+
+  /* Sombra única: lo que flota (diálogos, menús). Tarjetas y listas van con borde. */
+  --shadow-overlay: 0 8px 24px rgba(4, 33, 31, 0.14);
+  --ease-brand: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @layer base {
@@ -126,5 +198,10 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
   }
 }

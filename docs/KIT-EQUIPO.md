@@ -21,7 +21,8 @@
 Eres implementador en un equipo de 5 en un hackathon de un día. Te adjunto (o tienes en el repo)
 docs/paquetes/<MI-NOMBRE>.md. Léelo completo antes de hacer nada. Sigue sus reglas al pie de la letra,
 en especial: solo tocas las carpetas de mi área, no cambias lib/contrato, no agregas dependencias sin
-decirlo, y si algo no está claro PARAS y preguntas. Ejecuta solo la misión que yo te diga por su id.
+decirlo, y si algo no está claro PARAS y preguntas. Si vas a tocar una pantalla, primero lees DESIGN.md
+(raíz del repo) y usas solo sus tokens. Ejecuta solo la misión que yo te diga por su id.
 Antes de escribir código devuélveme el acuse de la sección 7 del kit.
 ```
 
@@ -49,7 +50,8 @@ Antes de escribir código devuélveme el acuse de la sección 7 del kit.
 10. **Dependencias nuevas:** solo si la misión las nombra. Si necesitas otra, avisa a Fer **antes**: `package.json` y su lockfile son el archivo donde más chocan los PRs.
 11. **Verifica antes de arreglar:** si lo que te piden ya está hecho, dilo y no lo toques. Si crees que la misión está mal planteada, dilo antes de programar.
 12. **Nada destructivo** (borrar datos, `--force` sobre `main`, reescribir historia ajena) sin que Fer lo apruebe.
-13. **Interfaz en español de México**, sin texto de relleno ni «Lorem ipsum»; productos, colonias y tiendas plausibles. **Sin logotipo de 3B** ni imitar su marca.
+13. **Interfaz en español de México**, sin texto de relleno ni «Lorem ipsum»; productos, colonias y tiendas plausibles. **Sin logotipo de 3B**: su nombre va en texto.
+14. **Diseño: `DESIGN.md` es la regla.** El sistema «Tarima» toma la paleta y la tipografía de 3B (rojo `#E31B23`, tinta `#04211F`, Montserrat) y las ordena para pantallas de trabajo. Todo color, tipografía, radio y espacio sale de ahí, con clases semánticas (`bg-primary`, `text-foreground`, `text-text-tertiary`). Nunca un hex, `bg-white` ni `text-gray-500`. Si algo no está, se pide a Fer; el tema (`app/globals.css`) solo lo cambia él.
 
 ## 3 · Equipo, áreas y carpetas
 
@@ -67,6 +69,7 @@ Dentro de `app/` y `components/` Fer y Mau se reparten **archivos**, no carpetas
 
 - Repo: **https://github.com/luisfernandomtzg/hackathon-3b** (público). Demo: **https://hackathon-3b.vercel.app** · `/salud` muestra qué commit está desplegado.
 - **Next.js 16.4 (App Router, TypeScript) · React 19 · Tailwind 4 · shadcn/ui (sobre Base UI) · Supabase (Postgres) · Vercel.**
+- **Sistema de diseño: `DESIGN.md`** en la raíz (tokens, componentes y reglas). Fuentes autoalojadas: Montserrat en títulos y cifras, Geist en texto, Geist Mono en claves. Un solo tema claro; no se usa modo oscuro.
 - ⚠️ **Next 16 trae cambios que tu IA probablemente no conoce.** Antes de escribir código de Next, la IA debe leer la guía de `node_modules/next/dist/docs/` (si toca el repo) o tú le pegas lo relevante. Si una API «no existe», no la inventes: revisa la documentación.
 - Componentes de shadcn ya instalados: button, card, input, table, badge, dialog, select, tabs, skeleton, sonner. Uno nuevo se agrega con `npx shadcn@latest add <nombre>` **y se avisa** (toca archivos compartidos).
 - Cliente de base **solo de servidor**: `lib/datos/servidor.ts`.

@@ -1,7 +1,7 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-18 17:10 · cierre de S001 (miércoles, adelantada: método de trabajo)** · siguiente **S001.5 (viernes 20-nov, corta: Supabase, U0 y ensayo)** · el sábado es **S002**.
+> Última actualización: **2026-11-18 18:30 · cierre de S001 (miércoles, adelantada: método de trabajo y sistema de diseño)** · siguiente **S001.5 (viernes 20-nov, corta: Supabase, U0 y ensayo)** · el sábado es **S002**.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 
@@ -19,7 +19,9 @@ Escrito al cerrar S001, 2026-11-18 17:10.
 - **Hallazgo que sube de severidad:** `npm run build` **falla** sin acceso a Google Fonts (`next/font/google` en `app/layout.tsx`) `[MEDIDO 17:03 en el contenedor del chat; npm ci 12 s y lint en verde]`. Vercel compila porque tiene internet, pero el chat no puede auditar ejecutando y una sede sin internet rompe el build local. **`U0` es lo primero del viernes.**
 - **Decisiones de S001 (Fer, 17:04):** ver «Método de trabajo del sábado» abajo.
 - **Escrito en S001:** `repo/docs/KIT-EQUIPO.md` (kit universal, Parte A + ensayo `E0`), `repo/docs/pull_request_template.md`, `CLAUDE.md` (paso de PR), `AGENTS.md` (apunta al kit), `plan-del-dia.md` (F3a con ventanas). **Empujado en `d05f4f4`** `[MEDIDO en captura de Fer, 17:20: 5df6c6b..d05f4f4 main -> main; git status vacío]`. Después, tabla de equipo con la IA de cada quien (commit siguiente: verificar el viernes que está en `origin/main`).
-- **Primera acción de S001.5:** acuse; verificar que el commit de la tabla de equipo está en `origin/main`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después `U0`.
+- **Sistema de diseño «Tarima» (aprobado por Fer, 18:16):** `DESIGN.md` en la raíz (formato Google, linter `@google/design.md` 0.4.0: 0 errores), tema en `app/globals.css`, Montserrat autoalojada en `app/fonts/` (OFL), Geist del paquete `geist`; `next/font/google` eliminado de `app/layout.tsx`. `npm run lint` y `npm run build` en verde en el contenedor del chat `[MEDIDO 18:25]`: **el build ya no depende de Google Fonts**. Referencia visual: https://claude.ai/artifact/APcRRFs9CSu2Mh7X3aJVwv (privada de Fer). Por commitear: bloque de git en el chat de S001.
+- **`U0` cambia:** ya no es «tema neutro» (lo sustituye Tarima). Ahora: botón y campo de shadcn a 44 px en celular, hover del primario a `primary-hover`, variante destructiva en contorno, y página `/tema` con todos los componentes; prueba de cierre: `/tema` en la URL pública vista en celular.
+- **Primera acción de S001.5:** acuse; verificar que el commit de Tarima está en `origin/main` y que `/salud` sigue `base ok`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después escribir y correr `U0`.
 
 ## Relevo anterior (S000 → S001), ya consumido
 
@@ -87,6 +89,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 - **Sprints de ~1 h, escalonados 15 min** (Datos :15 · Núcleo :30 · Mau :45 · Fer :00); ventanas exactas en `KIT-EQUIPO.md` §6. A las 15:30 se congela lo que haya: la cola de cada área va ordenada y lo de abajo se puede recortar.
 - **Listón de auditoría: exprés S0/S1/S2 (§9).** Fable u Opus en esfuerzo alto solo para el plan de F1 y para el diferenciador. El chat audita PRs clonando el repo público (`git fetch origin pull/<n>/head`); la API de PRs de GitHub no está habilitada desde el chat (habría que adjuntar el repo).
 - **Un kit universal para cualquier IA:** `docs/KIT-EQUIPO.md` (Parte A, escrita en S001). El sábado, F1 genera solo la Parte B por persona → `docs/paquetes/<nombre>.md` = kit + área, con detalle solo en SP0–SP1; el resto se recalibra tras cada auditoría.
+- **Sistema de diseño «Tarima» (18-nov 18:16, Fer):** se continúa la identidad pública de 3B (rojo `#E31B23`, tinta `#04211F`, Montserrat; medidos en tiendas3b.com) en vez de un tema neutro. Precisa la regla de §11 de las instrucciones: **sí** su paleta y tipografía; **no** su logotipo ni una imitación de él, ni sus banners. `DESIGN.md` manda sobre cualquier pantalla. Sin extractor instalado: los agentes evaluaron ~25 repos (dembrandt, designlang, brandmd, impeccable, design.md de Google…) y se adoptó solo el formato `DESIGN.md` de Google.
 - **Ensayo `E0` jueves o viernes:** cada compañero instala, le da el kit a su IA, hace un PR `prueba/<nombre>` con `docs/equipo/<nombre>.md` (qué IA y de qué tipo) y comprueba la vista previa de Vercel. Cierra PA-000.2 y PA-000.3.
 
 ## Respuestas de los organizadores (`checklist-previo.md` §4)
@@ -103,7 +106,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 ## Puntos abiertos
 
 - PA-000.2 · Push de prueba de un compañero (`prueba/<nombre>`) y su vista previa en Vercel: cierra el paso 5 de I0.1 — Fer, al invitar a los cuatro — jueves.
-- PA-000.6 · Tema base neutro y quitar `next/font/google` de `app/layout.tsx` (S2 de I0.1; la demo sin conexión no debe depender de Google Fonts) — misión `U0` en S001 — viernes.
+- ~~PA-000.6 · Quitar `next/font/google` de `app/layout.tsx`~~ — cerrado en S001 con Tarima (build en verde sin Google Fonts). Lo que queda de `U0` (componentes a 44 px, `/tema`) — viernes.
 - PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
 - PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.

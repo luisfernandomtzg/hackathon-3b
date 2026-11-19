@@ -37,6 +37,7 @@ Si el modelo no coincide y la misión lo marca `obligatorio`, te detienes. Si la
 - **Tu carril, tus carpetas.** UI (Fer diseña y lleva las pantallas del camino dorado; Mau, apoyo): `app/`, `components/`. El tema (`app/globals.css`) y la dirección visual son de Fer. Núcleo (Mauski): `lib/dominio/`. Datos e IA (Sergio): `supabase/`, `datos/`, `lib/datos/`, `lib/ia/`, `ml/`. Integrador (Fer): `lib/contrato/`, merges a `main`. Si necesitas algo de otro carril, **para y pídelo**; no lo edites.
 - **`lib/contrato/` solo lo edita el integrador.** Si el contrato no te alcanza, para y dilo.
 - **Datos solo desde servidor.** Ningún componente de cliente importa el cliente de Supabase ni llama a un modelo. `lib/dominio` no importa nada de Next ni de Supabase.
+- **Diseño: `DESIGN.md` (raíz) es la regla.** Léelo completo antes de crear o cambiar una pantalla. Todo color, tipografía, radio y espacio sale de ahí, con las clases semánticas del tema (`bg-primary`, `text-foreground`, `text-text-tertiary`…); nunca un hex, `bg-white` ni `text-gray-500`. Si algo no está, para y pídelo. El tema (`app/globals.css`) solo lo cambia Fer.
 - **Sin login, sin funciones fuera de la misión, sin refactor de paso.** Lo que no está en el camino dorado no existe hoy.
 - **Verifica antes de arreglar y antes de aplicar:** si lo que se pide ya está hecho, dilo y no lo toques. Si crees que la misión está mal planteada, dilo antes de programar.
 - **Si la misión es un arreglo (`<id>.1`) y al leer el código concluyes que el hallazgo es falso, dilo y no toques nada.**
