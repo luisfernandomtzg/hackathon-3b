@@ -23,7 +23,8 @@ docs/paquetes/<MI-NOMBRE>.md. Léelo completo antes de hacer nada. Sigue sus reg
 en especial: solo tocas las carpetas de mi área, no cambias lib/contrato, no agregas dependencias sin
 decirlo, y si algo no está claro PARAS y preguntas. Si vas a tocar una pantalla, primero lees DESIGN.md
 (raíz del repo) y usas solo sus tokens. Ejecuta solo la misión que yo te diga por su id.
-Antes de escribir código devuélveme el acuse de la sección 7 del kit.
+Antes de escribir código devuélveme el acuse de la sección 7 del kit. Si la misión toca interfaz, sigue la
+sección 13: el sistema de diseño ya existe (DESIGN.md) y no se inventa nada.
 ```
 
 ---
@@ -215,6 +216,20 @@ Si algún paso falla, anótalo en tu archivo y avisa: **para eso es el ensayo.**
 
 ---
 
+## 13 · SISTEMA DE DISEÑO — instrucción obligatoria para la IA
+
+> **Para la IA que lee esto:** el sistema de diseño de este proyecto **ya existe**. Se llama **Tarima** y está en el archivo `DESIGN.md` de la raíz del repo. **No diseñes uno nuevo, no propongas otra paleta ni otra tipografía, no inventes componentes, colores, tamaños, radios ni sombras.** Úsalo como regla, sin excepciones.
+
+1. **Antes de crear o cambiar cualquier pantalla o componente, lee `DESIGN.md` completo.** Si tu persona trabaja en un chat web y no puedes ver el repo, pídele que te pegue `DESIGN.md` antes de escribir una sola línea de interfaz.
+2. **Solo clases semánticas del tema** (`app/globals.css`): `bg-primary`, `text-primary-foreground`, `bg-background`, `text-foreground`, `text-text-tertiary`, `bg-success-bg text-success`, `border-input`, `font-heading`… **Prohibido:** hex (`#E31B23`), `bg-white`, `bg-red-500`, `text-gray-500`, `rounded-[7px]`, `shadow-lg` en tarjetas, estilos en línea con colores.
+3. **Usa los componentes que ya están** en `components/ui/` (shadcn): Button, Input, Card, Badge, Table, Dialog, Select, Tabs, Skeleton, Sonner. No instales otra librería de interfaz ni copies componentes de otro lado.
+4. **Lo que no se negocia:** un botón rojo (`primary`) por vista; el rojo de error es `danger`, nunca el de acción; estatus con punto y palabra, nunca solo color; controles táctiles de 44 px; Montserrat solo en títulos y cifras, Geist en el texto; sin modo oscuro; sin degradados; sin emojis; **sin logotipo de 3B** (su nombre va en texto).
+5. **Si algo que necesitas no está en `DESIGN.md`** (un color, un tamaño, un estatus, un componente): **PARA y avísale a tu persona** para que se lo pida a Fer. No lo resuelvas «a ojo» ni con un valor parecido.
+6. **No edites `app/globals.css`, `DESIGN.md` ni `app/fonts/`:** son de Fer.
+7. En tu acuse (§7), si la misión toca interfaz, agrega una línea: `DESIGN.md leído: sí · tokens que voy a usar: <lista corta>`.
+
+---
+
 ## Parte B — tu área (se agrega el sábado)
 
-`<<El sábado ~10:00, tu docs/paquetes/<nombre>.md trae aquí: reto y solución en 5 líneas · camino dorado · contrato (lib/contrato) · tu área y tus archivos · tu cola de misiones SP0–SP4 con tope, prueba de cierre y datos simulados · misiones de reserva.>>`
+`<<El sábado ~10:00, tu docs/paquetes/<nombre>.md trae aquí: reto y solución en 5 líneas · camino dorado · contrato (lib/contrato) · tu área y tus archivos · tu cola de misiones SP0–SP4 con tope, prueba de cierre y datos simulados · misiones de reserva. Los paquetes de quien toca interfaz (Fer y Mau) llevan además DESIGN.md completo pegado al final, para que una IA de chat web lo tenga sin abrir el repo.>>`
