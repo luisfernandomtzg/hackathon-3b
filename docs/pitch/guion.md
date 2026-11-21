@@ -29,7 +29,7 @@ Veamos tres capturas reales del lote de hoy:
 
 *(Mau cambia a la vista del marcador)*
 
-En las cien capturas de desarrollo, nuestro motor logró **cien por ciento de precisión en aprobadas en las 100 capturas de desarrollo** —dieciséis aprobadas, cero falsas, superando el noventa y siete por ciento obligatorio— y **cien por ciento de JSON válido**. El costo operativo quedó en **ochenta y cinco puntos** en el escenario pesimista y **veintiocho** en el optimista, frente a cien y sesenta y siete de mandar todo a revisión manual, resolviendo **cincuenta y cuatro de cien capturas** sin persona —proyectado a **seis mil cuatrocientas ochenta por semana**— con **unos tres mil cien tokens por captura** *(contra Rival 3B: `[[puntaje_rival_3b]]` · corte 14:30: `[[marcador_final_1430]]`)*.
+En las cien capturas de desarrollo, nuestro motor logró **cien por ciento de precisión en aprobadas en las 100 capturas de desarrollo** —dieciséis aprobadas, cero falsas, superando el noventa y siete por ciento obligatorio— y **cien por ciento de JSON válido**. El costo operativo quedó en **ochenta y cuatro puntos** en el escenario pesimista y **veintisiete** en el optimista, frente a cien y sesenta y siete de mandar todo a revisión manual, resolviendo **cincuenta y cinco de cien capturas** sin persona —proyectado a **seis mil seiscientas por semana**— con **unos tres mil doscientos tokens por captura** *(contra Rival 3B: `[[puntaje_rival_3b]]` · corte 14:30: `[[marcador_final_1430]]`)*.
 
 ---
 
