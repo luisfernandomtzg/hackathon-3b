@@ -1,9 +1,26 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 13:20 · S004 (relevo adelantado; se confirma a las 14:30)** · siguiente **S005 (set ciego, entrega y pitch)**.
+> Última actualización: **2026-11-21 13:43 · S005 (en curso)** · siguiente **S006 si hace falta (set ciego y pitch)**.
 
-## 🟢 Relevo para S005 — escrito en S004 (2026-11-21 13:20; se confirma al congelar, 14:30)
+## 🟢 S005 en curso — estado y relevo (escrito 2026-11-21 13:43; lo confirma S005 al cerrar)
+
+**Si abres sesión nueva:** `S006 3B. Lee el prompt inicial` → instrucciones → este bloque. Lo de abajo es historia.
+
+- **Regla de sesiones (Fer, 10:33 · rige todo el día):** **una sesión de claude.ai por sprint del equipo, no por tarea.** La sesión audita e integra las entregas de ese sprint y escribe la misión siguiente de Fer; cuando el sprint cierra se cierra con el **protocolo completo** de §4: relevo aquí (carpeta `documentacion/` + `repo/docs/` + copia del proyecto, verificado por contenido), `ESTADO` de cada carril tocado, bloque de git flanqueado por `git status --short` y la línea «Abre S00N+1 con: `S00N+1 3B. Lee el prompt inicial`». **Todo relevo nuevo copia esta regla tal cual.**
+- **Instrucción de Fer (13:27 y 13:39):** el equipo ya no trabaja; el arquitecto tiene carta libre para mejorar y Fer corre los comandos. **El chat no tiene terminal en la laptop ni endpoint**: escribe archivos en la carpeta y Fer (o su Code) hace git y corre el motor.
+- **PR #34 de Mau fusionado → `bb81810`** `[MEDIDO 13:34 en GitHub]` (U5.2: desborde de inputs de archivo, cifras de sp8 en la ficha, `docs/equipo/mau-viabilidad-propuestas.md`). Aprobado con anotaciones `[LEÍDO: diff completo; sin build]`. Sus módulos 5–7 **no entran**: el 5 (misiones GPS) falla el filtro 3B; 6 y 7 quedan como frase de «siguiente paso».
+- **N7 · regla 7a en `decidir.py`** (escrita por el arquitecto en `repo-docs`, **sin commitear hasta que Fer corra el bloque de git**): si el contenido leído es el «(total: NNNg)» del propio nombre esperado, o la misma cantidad con g↔ml, va a `revision_manual` con `PRODUCTO_NO_COINCIDE` en vez de rechazarse. Nunca aprueba. 4 pruebas nuevas (2 se ponen rojas sin el cambio); 51 pruebas en verde `[MEDIDO 13:37 en el contenedor del chat]`.
+- **sp9 = cifras vigentes** `[MEDIDO 13:38 con ml.validat3b.evaluar sobre salidas/sp9/resultados.json]`: **10 aprobadas · 0 falsas · 100 % · costo 92 pesimista / 35 optimista** (todo a revisión: 100 / 67) · **0 válidas rechazadas** (eran 2) · **44 de 100 sin persona** (eran 50) · JSON 100/100 · tokens sin cambio (**2,390 por captura**, medición de sp6: no hubo llamadas nuevas). Matriz real→decidido: aprob 10/0/23 · rech 0/22/12 · man 0/12/21. Cambiaron 6 capturas contra sp8 (2 aprobadas reales, 4 de revisión reales). sp9 se armó re-decidiendo las lecturas de sp8, **no** con `correr`: lo verifica I9.
+- **Documentos ya con sp9 (en `repo-docs`, sin commitear):** `docs/pitch/guion.md` (92/35, 44 de 100, 5,280 por semana, «sin rechazar ninguna captura válida», rechazada = CAP-563575), `docs/pitch/cifras.md`, `docs/pitch/laminas.md`. **La ficha** corregida (sp9 + comando de `evaluar` que estaba mal) está en `Claude outputs\ficha-tecnica.html`: se copia a `docs/entrega/` **después** del `git pull` que trae #34.
+- **Más aprobadas: medido y descartado** `[MEDIDO 13:36]`. Las dos falsas que el motor casi aprueba (CAP-489454, CAP-410562) las lee perfecto el modelo; el analista las rechazó por lejana/borrosa. Ni la nitidez local ni `capture_price == precio leído` (igual en 93 de 100) las distinguen. Cada aprobada extra vale 1 punto; una falsa cuesta 10 y descalifica. Único grupo limpio: 4 capturas en «zona gris» de descripción con todo lo demás claro (4 de 4 válidas), sin implementar.
+- **Motivo de rechazo (calidad del dato):** sigue 8 de 22; la nitidez local no separa «borrosa» de «lejana» `[MEDIDO 13:40]`. Depende de la lista oficial de las 15:00.
+- **Carriles:** Integrador sello **13:41**, siguiente **I9** (verificar sp9 desde caché, regenerar `pitch.html`, zip) → **I10** (consenso de 5 lecturas, aprobada por Fer; se corta si pasan las 14:25) → **I11** (set ciego, bloqueada hasta 15:00). Núcleo: BLOQUEADO hasta la lista oficial. UI, Datos, Pitch: cerrados; **Alan tiene que releer el guion: cambiaron 3 cifras y la rechazada.**
+- **Riesgo vivo (S0 si ocurre):** una lejana se cuela ~1 de 8 con consenso de 3; I10 lo baja a ~1 de 32 si se alcanza a medir.
+- **No verificado:** el bloque de git de S005 (lo primero que mide la sesión siguiente: `git log --oneline -3` en `repo-docs` debe mostrar el commit de N7 encima de `bb81810`) · `pitch.html` con sp9 · build de la consola tras #34 · I9/I10 · costo oficial cuando la real es revisión manual · precisión sobre el set ciego · video de respaldo.
+- **Primera acción al volver Fer:** correr el bloque de git de S005 → en Code: `/model sonnet`, `/effort low`, «ejecuta el siguiente prompt de integrador, sello 13:41» (I9) → I10 si es antes de las 14:25 → avisar a Alan → a las 15:00 pegar el set ciego y la lista oficial.
+
+## Relevo para S005 (histórico) — escrito en S004 (2026-11-21 13:20; se confirma al congelar, 14:30)
 
 **Abre con `S005 3B. Lee el prompt inicial`** → instrucciones del proyecto → `PROMPT-APERTURA-S003.md` (vale para S005 cambiando el número) → este relevo. Lo de abajo es historia.
 

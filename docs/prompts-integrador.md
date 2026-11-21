@@ -1,16 +1,83 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 13:15
-Carril integrador · dueño Fer (Claude Code) · misiones 11 · hechas 11 · siguiente **NINGUNO**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~
-siguiente: **NINGUNO — motor congelado; salidas-sp8.zip es el zip final de desarrollo.** La corrida del set ciego (15:00) se escribe en S005
-Última auditoría: I8 → Aprobado ([MEDIDO 13:03 por el arquitecto sobre salidas-sp8.zip: 0 decisiones y 0 códigos distintos de sp7, 23 explicaciones de la regla 7 idénticas a la re-decisión con N5, tokens.csv = sp6, 100/100 válidos] · PR #32 fusionado → 8a7ed01)
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 15
-Siguiente con modelo: —
-Main: 1e2dd6b [MEDIDO 13:15 en la terminal de Fer]
+## ESTADO · 2026-11-21 13:41
+Carril integrador · dueño Fer (Claude Code) · misiones 14 · hechas 11 · siguiente **I9**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~ → **I9** → I10 → I11
+siguiente: **I9**
+Última auditoría: I8 → Aprobado (PR #32 fusionado → 8a7ed01). S005: el arquitecto escribió la regla 7a en `decidir.py` (N7) directamente en el árbol de `..\repo-docs` por instrucción de Fer (13:39, «te dejo el proyecto en tus manos»); sp9 [MEDIDO 13:38 con `evaluar`]: 10 aprobadas · 0 falsas · 92/35 · JSON 100/100
+Qué cambió por esa auditoría: I9 verifica sp9 por el camino oficial (caché + `correr`) y regenera pitch y zip; I10 mide el consenso de 5; I11 es el set ciego
+Reescrituras de este documento: 16
+Siguiente con modelo: Sonnet 5.5 · esfuerzo low (recomendado) · clasificación autónoma
+Main: bb81810 (merge del PR #34 de Mau) [MEDIDO 13:34 en GitHub] + el commit de N7 que hace Fer con el bloque de git de S005
 
 ---
+
+## I11 — Correr el set ciego y dejar la entrega validada
+
+`carril: integrador · rama: carril/integrador-sp4-ciego desde origin/main · tope: 30 min · clasificación: requiere compuerta (BLOQUEADA hasta que Fer pegue el set ciego y la lista oficial de reason_code, 15:00–16:00) · modelo: Sonnet 5.5 · esfuerzo: medium`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con el sello vigente. **No corre** sin que Fer diga dónde quedó descomprimido el set ciego y sin que el PR del mapa de códigos de Mauski (`mapa_codigos.json`) esté fusionado. **Esto llama al endpoint: tokens reales.**
+
+**Qué hacer:**
+1. `.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta del set ciego> --salida entrega/` (si se corta: el mismo comando con `--reanudar`).
+2. Lee `entrega/resumen.txt` y pégalo completo en el reporte.
+3. **Para y pregunta** si: JSON válido < 100 %, alguna captura sin fila, más de 5 % en `SIN_LECTURA`, o más de 25 % de aprobadas (en desarrollo fueron 10 %: un salto así es señal de que algo cambió en los datos).
+
+**No se toca:** `decidir.py`, `consenso.py`, `compuerta.py`, el prompt de `extraer.py`. Nada de «ajustar» con el set ciego a la vista.
+
+**Prueba de cierre:** `entrega/resumen.txt` dice VALIDACIÓN OK; una fila por `capture_id` del CSV del set ciego; conteo de decisiones y de `reason_code` (todos de la lista oficial) en el reporte.
+
+**Entregable:** `entrega/` lista para el canal del comité + `docs/reportes/I11-ciego.md` (≤ 12 líneas, sin datos de 3B). **El contenido de `entrega/` no se commitea.**
+
+---
+
+## I10 — Medir el consenso de 5 lecturas para aprobar (baja el riesgo de descalificación)
+
+`carril: integrador · rama: carril/integrador-sp4-cinco desde origin/main (después del commit de N7) · tope: 20 min · clasificación: autónoma, aprobada por Fer 13:39 · llama al endpoint (≤ 25 llamadas, ~45 mil tokens) · modelo: Sonnet 5.5 · esfuerzo: medium`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con el sello vigente. **Si son más de las 14:25, no la corras: dilo y queda cortada** (el motor se congela 14:30 con consenso de 3).
+
+**Por qué:** `[MEDIDO S003]` el endpoint no acepta `temperature`; una lejana (CAP-489454) aprueba en ~1 de 2 lecturas, así que con 3 unánimes se cuela ~1 de 8 veces y con ~10 aprobadas una sola falsa descalifica (< 97 %). Con 5 unánimes baja a ~1 de 32. `[MEDIDO S005 13:36]` no hay señal local ni de metadatos que la distinga (nitidez de producto 285, precio igual al tecleado). El costo es tokens (10 % de la nota) y quizá 1–2 aprobadas válidas (1 punto cada una).
+
+**Qué hacer:**
+1. `ml/validat3b/consenso.py`: `LECTURAS_PARA_APROBAR = 5` (ya hay 4 variantes de caché). Ajusta `test_consenso.py` (hoy afirma 3) y agrega un caso: aprueban las lecturas 1–4 y la 5ª no → `revision_manual`.
+2. Copia `salidas/sp8/cache` a `salidas/sp10/cache` y corre el motor normal: `--datos datos/privado --salida salidas/sp10/resultados.json --hilos 4`. Solo deben salir llamadas nuevas para las lecturas 4 y 5 de las aprobadas. **Para y pregunta** si hay más de 25 filas `origen == "modelo"`.
+3. `python -m ml.validat3b.evaluar --resultados salidas/sp10/resultados.json`.
+
+**Regla de decisión (ya aprobada):** si quedan **≥ 8 aprobadas y 0 falsas**, el 5 se queda → PR. Si quedan menos de 8, o aparece una falsa, **no se fusiona**: reporta y el motor sigue con 3.
+
+**Prueba de cierre:** tabla sp9 → sp10: aprobadas · falsas · costo pesimista/optimista · llamadas nuevas · tokens nuevos · tokens por captura nuevos (= 2,390 + tokens nuevos ÷ 100). Pruebas en verde.
+
+**Entregable:** PR + `docs/reportes/I10-cinco.md` (≤ 10 líneas). El arquitecto actualiza guion, cifras, láminas y ficha con lo medido; **no los toques**.
+
+---
+
+## I9 — Verificar sp9 por el camino oficial, regenerar pitch.html y armar el zip
+
+`carril: integrador · rama: carril/integrador-sp4-sp9 desde origin/main (después del commit de N7 del bloque de git de S005) · tope: 10 min · clasificación: autónoma · 0 tokens · modelo: Sonnet 5.5 · esfuerzo: low`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con **sello `13:41`**; `ml/validat3b/decidir.py` de `origin/main` debe contener «7a. (S005)». Si no, **para**: falta el commit de N7.
+
+**Hechos que no puedes ver:**
+- `[MEDIDO 13:38 por el arquitecto]` `salidas/sp9/resultados.json` ya existe: lo armó el arquitecto re-decidiendo las lecturas de sp8 con la regla 7a, **sin** pasar por `correr`. Contra sp8 cambian exactamente 6 capturas, todas de `rechazada` a `revision_manual` con `PRODUCTO_NO_COINCIDE`: CAP-368433, CAP-635506, CAP-387384, CAP-847183, CAP-586021, CAP-659322. `evaluar`: 10 aprobadas · 0 falsas · 92 pesimista / 35 optimista · matriz aprob 10/0/23 · rech 0/22/12 · man 0/12/21.
+- `[MEDIDO S004]` `correr --desde-extracciones` no sirve con consenso: se regenera desde el caché del cliente.
+
+**Qué hacer:**
+1. Copia `salidas/sp8/cache` a `salidas/sp9r/cache` y corre el motor normal (`--datos datos/privado --salida salidas/sp9r/resultados.json --hilos 4`). **Para y pregunta** si aparece alguna fila `origen == "modelo"`.
+2. Compara `salidas/sp9r/resultados.json` contra `salidas/sp9/resultados.json`: **0 diferencias** en `decision`, `reason_code` y `explicacion`. **Para y pregunta** si hay alguna.
+3. `python -m ml.validat3b.visor --datos datos/privado --resultados salidas/sp9/resultados.json --salida salidas/sp9/visor.html --pitch CAP-434912,CAP-563575,CAP-350077`.
+4. Arma `..\salidas-sp9.zip` (resultados json y csv, extracciones, tokens; sin `cache/`).
+
+**No se toca:** código, `datos/`, `docs/pitch/`.
+
+**Prueba de cierre:** la tabla del paso 2 = 0 · 0 · 0; `evaluar` sobre sp9r = 92 / 35, 10 aprobadas, 0 falsas; `salidas/sp9/pitch.html` abre y su lámina de marcador dice 92/35 y 44 de 100.
+
+**Entregable:** `docs/reportes/I9-sp9.md` (≤ 8 líneas) + `..\salidas-sp9.zip`.
+
+Mensaje de commit sugerido: `docs: I9 sp9 verificado desde caché y pitch regenerado`
+
+---
+
 
 ## I8 [HECHA · Aprobado] — Repetir I7 sobre main con N5 (explicaciones nuevas), desde caché
 
@@ -450,3 +517,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 12:51 · S004 · I6 ya estaba fusionada (#25); se tacha. N4 y U5 fusionadas → I7 (regenerar desde caché con los códigos de N4; `--desde-extracciones` no sirve, medido). Se sube el sello.
 - 2026-11-21 12:58 · S004 · I7 aprobada y fusionada (#30 → 4bf23de; sp7 medido). N5 entró después → I8 repite el procedimiento con las explicaciones nuevas. Se sube el sello.
 - 2026-11-21 13:15 · S004 · I8 aprobada y fusionada (#32). Motor congelado.
+- 2026-11-21 13:41 · S005 · sin auditoría de carril: el arquitecto escribe N7 (regla 7a: contenido que explica el catálogo → revisión; sp9 medido 92/35, 10/0) y fusiona el PR #34 de Mau (bb81810). Se escriben I9 (verificar sp9 y regenerar pitch), I10 (consenso de 5, aprobada por Fer 13:39) e I11 (set ciego, bloqueada hasta las 15:00). Se sube el sello.

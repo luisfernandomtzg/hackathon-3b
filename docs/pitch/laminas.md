@@ -18,4 +18,4 @@
 
 ## Lámina 3 — El marcador (19 palabras)
 
-**En las 100 capturas de desarrollo: 100% precisión (0 falsas), 50/100 sin persona, costo 104/39, 2,390 tokens por captura.**
+**En las 100 capturas de desarrollo: 100% precisión (0 falsas), 44/100 sin persona, costo 92/35, 2,390 tokens por captura.**

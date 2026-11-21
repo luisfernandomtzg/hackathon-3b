@@ -10,7 +10,7 @@ from ml.validat3b.contrato import (
     RC_BORROSA, RC_LEJANA, RC_INCOMPLETA, RC_NO_COINCIDE, RC_NO_VISIBLE, RC_PANTALLA,
     RC_SIN_ETIQUETA, RC_ETIQUETA_AJENA, RC_PRECIO_RANGO, RC_SIN_LECTURA,
 )
-from ml.validat3b.normalizar import a_base, parecido
+from ml.validat3b.normalizar import a_base, parecido, pesos_del_nombre
 
 # Umbrales (constantes de decisión)
 UMBRAL_NO_COINCIDE = 0.4      # parecido < 0.4 → producto distinto
@@ -46,6 +46,18 @@ def _resultado(captura: Captura, x: Extraccion, decision: str, rc: Optional[str]
 
 def _vacio(s: Optional[str]) -> bool:
     return s is None or not s.strip()
+
+
+def _ambiguedad_de_contenido(leido: tuple, esperado: tuple, nombre: Optional[str]) -> Optional[str]:
+    """Frase si la diferencia de contenido es una ambigüedad del catálogo; None si es una diferencia real."""
+    for total in pesos_del_nombre(nombre):
+        if leido[1] == total[1] and total[0] > 0 and abs(leido[0] - total[0]) / total[0] <= TOLERANCIA_CONTENIDO:
+            return (f"En la foto se lee {leido[0]:g} {leido[1]}, que es el peso total que declara el nombre esperado "
+                    f"({nombre}), no el contenido neto ({esperado[0]:g} {esperado[1]}).")
+    if {leido[1], esperado[1]} == {"g", "ml"} and leido[0] == esperado[0]:
+        return (f"En la foto se lee {leido[0]:g} {leido[1]} y se esperaban {esperado[0]:g} {esperado[1]}: "
+                f"la misma cantidad con otra unidad.")
+    return None
 
 
 def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
@@ -96,6 +108,7 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
 
     contenido_distinto = False
     contenido_incomparable = False
+    contenido_ambiguo = None  # frase: el contenido leído difiere, pero por una ambigüedad del catálogo, no de la foto
     if esperado_tiene_contenido and p.contenido_cantidad is not None:
         leido = a_base(p.contenido_cantidad, p.contenido_unidad)
         # Se acepta el peso esperado o el «(total: NNNg)» del nombre, si lo trae.
@@ -113,6 +126,16 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
                     if mayor == 0 or abs(leido[0] - esperado[0]) / mayor <= TOLERANCIA_CONTENIDO:
                         coincide = True
             contenido_distinto = not coincide
+            if contenido_distinto:
+                contenido_ambiguo = _ambiguedad_de_contenido(leido, aceptados[0], captura.product_name)
+
+    # 7a. (S005) El contenido no coincide, pero la diferencia la explica el catálogo: se leyó el peso TOTAL que el
+    # propio nombre esperado declara («485g (total: 820g)»), o el mismo número con g en vez de ml. No es evidencia
+    # de mala foto ni de otro producto: decide una persona. Medido con salidas-sp8: 6 capturas (2 aprobadas reales,
+    # 4 de revisión reales, 0 rechazadas reales) dejaban de rechazarse. Nunca aprueba.
+    if contenido_ambiguo and (peor >= UMBRAL_NO_COINCIDE or "total" in contenido_ambiguo):
+        return _resultado(captura, x, "revision_manual", RC_NO_COINCIDE, CONF_REVISION, _val(producto="falla"),
+                          f"{contenido_ambiguo} No alcanza para rechazar ni para aprobar; pasa a revisión manual."), 7
 
     if contenido_distinto or peor < UMBRAL_NO_COINCIDE:
         return _resultado(

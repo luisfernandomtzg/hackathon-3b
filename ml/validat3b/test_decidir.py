@@ -165,6 +165,38 @@ class DecidirTest(unittest.TestCase):
         self.assertEqual(r.decision, "aprobada")
         self.assertIn("de oferta", r.explicacion)
 
+    # --- S005: diferencias de contenido que explica el catálogo → revisión, nunca rechazo ni aprobación ---
+    def test_19_peso_total_del_nombre_va_a_revision(self):
+        cap = captura(product_name="Mitades de durazno 485g (total: 820g)", capture_brand="Huerta",
+                      unit_product="gramo", unit_quantity_product=485.0)
+        x = extraccion(cap, producto=lectura_producto(marca="Huerta", descripcion="Mitades de durazno",
+                                                      contenido_cantidad=820.0, contenido_unidad="g"))
+        r = decidir(cap, x)
+        self.assertEqual((r.decision, r.reason_code), ("revision_manual", RC_NO_COINCIDE))
+        self.assertIn("peso total", r.explicacion)
+
+    def test_20_misma_cantidad_con_otra_unidad_va_a_revision(self):
+        cap = captura(product_name="Leche evaporada", capture_brand="Lactea",
+                      unit_product="ml", unit_quantity_product=360.0)
+        x = extraccion(cap, producto=lectura_producto(marca="Lactea", descripcion="Leche evaporada",
+                                                      contenido_cantidad=360.0, contenido_unidad="g"))
+        self.assertEqual(decidir(cap, x).decision, "revision_manual")
+
+    def test_21_contenido_realmente_distinto_se_sigue_rechazando(self):
+        cap = captura(product_name="Mitades de durazno 485g (total: 820g)", capture_brand="Huerta",
+                      unit_product="gramo", unit_quantity_product=485.0)
+        for cantidad, unidad in ((300.0, "g"), (820.0, "ml"), (380.0, "ml")):
+            x = extraccion(cap, producto=lectura_producto(marca="Huerta", descripcion="Mitades de durazno",
+                                                          contenido_cantidad=cantidad, contenido_unidad=unidad))
+            self.assertEqual(decidir(cap, x).decision, "rechazada", f"{cantidad} {unidad}")
+
+    def test_22_la_ambiguedad_nunca_aprueba(self):
+        cap = captura(product_name="Atún en agua 90g (total: 130g)", capture_brand="Mar",
+                      unit_product="gramo", unit_quantity_product=90.0)
+        x = extraccion(cap, producto=lectura_producto(marca="Mar", descripcion="Atún en agua",
+                                                      contenido_cantidad=130.0, contenido_unidad="g"))
+        self.assertNotEqual(decidir(cap, x).decision, "aprobada")
+
 
 if __name__ == "__main__":
     unittest.main()
