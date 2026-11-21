@@ -131,6 +131,18 @@ class DecidirTest(unittest.TestCase):
         self.assertEqual(r.codigo_barras_detectado, cap.capture_barcode)
         self.assertEqual(r.confidence_score, 0.95)
 
+    def test_15_coincidencia_de_etiqueta_media_va_a_revision(self):
+        # UMBRAL_ETIQUETA_AJENA = 0.6: el texto de la etiqueta coincide solo a medias (1 de 2 palabras)
+        cap = captura()
+        r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(texto_producto="Aceite Galleta")))
+        self.assertEqual((r.decision, r.reason_code), ("revision_manual", RC_ETIQUETA_AJENA))
+
+    def test_16_etiqueta_con_otros_precios_va_a_revision(self):
+        # Dos precios en la etiqueta y no se sabe cuál aplica → revisión (regla 11)
+        cap = captura()
+        r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(otros_precios=[22.0, 17.5])))
+        self.assertEqual((r.decision, r.reason_code), ("revision_manual", None))
+
 
 if __name__ == "__main__":
     unittest.main()
