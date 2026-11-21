@@ -1,8 +1,8 @@
-"""Visor local estático de capturas y modo pitch para Validat3B (U1 + U2).
+"""Visor local estático de capturas y modo pitch con identidad Tarima (U5).
 
 Uso:
     python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html
-    python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html --pitch CAP-645667,CAP-305088,CAP-350077
+    python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html --pitch CAP-434912,CAP-748989,CAP-350077
 """
 
 from __future__ import annotations
@@ -14,20 +14,42 @@ import os
 from pathlib import Path
 from typing import Any
 
+COSTO_PESIMISTA = {
+    "aprobada": {"aprobada": 0, "revision_manual": 1, "rechazada": 3},
+    "rechazada": {"aprobada": 10, "revision_manual": 1, "rechazada": 0},
+    "revision_manual": {"aprobada": 10, "revision_manual": 1, "rechazada": 3},
+}
+
+TARIMA_VARS = """
+    :root {
+      --primary: #E31B23;
+      --primary-hover: #C4101A;
+      --text: #04211F;
+      --text-sec: #31413F;
+      --bg: #FFFFFF;
+      --surface: #F9FAFA;
+      --border: #DADFDF;
+      --ok: #1F7A4D;
+      --ok-bg: #E3F3EA;
+      --warn: #8A5A12;
+      --warn-bg: #FBF1DC;
+      --danger: #9D0812;
+      --danger-bg: #FEF3F1;
+      --font: Montserrat, "Segoe UI", system-ui, sans-serif;
+    }
+"""
+
 
 def calcular_costo(decision_motor: str | None, decision_esperada: str) -> int | None:
-    """Calcula el costo operativo (0, 1, 3, 10) de una captura."""
+    """Calcula el costo operativo pesimista (0, 1, 3, 10) de una captura."""
     if not decision_motor:
         return None
+    fila = COSTO_PESIMISTA.get(decision_esperada)
+    if fila and decision_motor in fila:
+        return fila[decision_motor]
     if decision_motor == "revision_manual":
         return 1
-    if decision_motor == decision_esperada:
-        return 0
-    if decision_motor == "aprobada" and decision_esperada != "aprobada":
-        return 10
-    if decision_motor == "rechazada" and decision_esperada == "aprobada":
-        return 3
-    return 1
+    return 0 if decision_motor == decision_esperada else 10
 
 
 def _cargar_csv(path: Path) -> list[dict[str, Any]]:
@@ -84,8 +106,6 @@ def _construir_registros(
     manuales = 0
     tp = 0
     fp = 0
-    tokens_sum = 0
-    tokens_count = 0
 
     for row in capturas:
         cid = row["capture_id"]
@@ -110,12 +130,6 @@ def _construir_registros(
         elif dec_motor == "revision_manual":
             manuales += 1
 
-        t_in = ext.get("tokens_entrada") or 0
-        t_out = ext.get("tokens_salida") or 0
-        if t_in or t_out:
-            tokens_sum += int(t_in) + int(t_out)
-            tokens_count += 1
-
         prod_ext = ext.get("producto") or {}
         etiq_ext = ext.get("etiqueta") or {}
 
@@ -136,7 +150,7 @@ def _construir_registros(
                 "motivo_esperado": row.get("motivo_rechazo", ""),
                 "motor": dec_motor or "",
                 "confidence": res.get("confidence_score"),
-                "reason_code": res.get("reason_code", ""),
+                "reason_code": res.get("reason_code") or "",
                 "explicacion": res.get("explicacion", ""),
                 "precio_detectado": res.get("precio_detectado") if res.get("precio_detectado") is not None else etiq_ext.get("precio"),
                 "barcode_detectado": res.get("codigo_barras_detectado") or loc.get("codigo_barras_leido", ""),
@@ -156,12 +170,28 @@ def _construir_registros(
             }
         )
 
-    precision = (tp / (tp + fp)) if (tp + fp) > 0 else 1.0
-    tokens_prom = round(tokens_sum / tokens_count, 1) if tokens_count > 0 else None
-    if tokens_prom is None and tokens_rows:
-        vals = [float(r.get("tokens_totales", 0)) for r in tokens_rows if r.get("tokens_totales")]
+    precision = (tp / (tp + fp)) * 100.0 if (tp + fp) > 0 else 100.0
+
+    # Promedio de tokens desde tokens.csv (solo filas origen == "modelo")
+    tokens_prom: int | None = None
+    if tokens_rows:
+        modelo_rows = [r for r in tokens_rows if r.get("origen", "modelo") == "modelo"]
+        vals = [
+            int(float(r.get("tokens_entrada") or 0) + float(r.get("tokens_salida") or 0))
+            for r in modelo_rows
+            if r.get("tokens_entrada") or r.get("tokens_salida")
+        ]
         if vals:
-            tokens_prom = round(sum(vals) / len(vals), 1)
+            tokens_prom = round(sum(vals) / len(vals))
+
+    if tokens_prom is None and extracciones:
+        vals_ext = [
+            int(e.get("tokens_entrada") or 0) + int(e.get("tokens_salida") or 0)
+            for e in extracciones.values()
+            if e.get("origen", "modelo") == "modelo" and (e.get("tokens_entrada") or e.get("tokens_salida"))
+        ]
+        if vals_ext:
+            tokens_prom = round(sum(vals_ext) / len(vals_ext))
 
     marcador = {
         "tiene_resultados": bool(resultados),
@@ -169,16 +199,17 @@ def _construir_registros(
         "costo_total": costo_total,
         "costo_todo_manual": len(registros),
         "aprobadas": aprobadas,
+        "aprobadas_correctas": tp,
         "rechazadas": rechazadas,
         "manuales": manuales,
-        "precision": round(precision * 100, 1),
+        "precision": round(precision, 1),
         "tokens_promedio": tokens_prom,
     }
     return registros, marcador
 
 
 def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> tuple[int, int]:
-    """Genera el HTML estático del visor (U1 + U2)."""
+    """Genera el HTML estático del visor con tokens Tarima."""
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
     registros, marcador = _construir_registros(dir_datos, ruta_resultados, ruta_salida.parent.resolve())
 
@@ -192,42 +223,44 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Visor Validat3B</title>
   <style>
-    :root {{
-      --bg: #f6f7f6; --surface: #ffffff; --ink: #04211f; --muted: #4b5d5b;
-      --border: #d5dedc; --error: #e31b23; --error-bg: #fdebec;
-      --ok-bg: #e8f5ee; --ok-ink: #0e5a36; --warn-bg: #fff6e0; --warn-ink: #7a5200;
-    }}
+{TARIMA_VARS}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.4; }}
-    header {{ position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; }}
-    .top-row {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }}
-    h1 {{ margin: 0; font-size: 1.15rem; font-weight: 700; }}
-    .scoreboard {{ display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85rem; font-weight: 600; }}
-    .pill {{ background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }}
+    body {{ margin: 0; font-family: var(--font); background: var(--surface); color: var(--text); line-height: 1.4; }}
+    header {{ position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 2px solid var(--border); padding: 14px 20px; }}
+    .top-row {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }}
+    .brand-title {{ display: flex; align-items: center; gap: 10px; }}
+    .accent-bar {{ width: 4px; height: 22px; background: var(--primary); border-radius: 2px; }}
+    h1 {{ margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }}
+    .scoreboard {{ display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }}
+    .pill {{ background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; color: var(--text); }}
+    .pill.ok {{ background: var(--ok-bg); color: var(--ok); border-color: transparent; }}
     .filters {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
-    select, button, label.btn-check {{ min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 0.9rem; cursor: pointer; }}
+    select, button, label.btn-check {{ min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 0.88rem; font-weight: 600; cursor: pointer; }}
+    button:hover, select:hover {{ border-color: var(--text-sec); }}
+    button.primary {{ background: var(--primary); color: #FFFFFF; border-color: var(--primary); }}
+    button.primary:hover {{ background: var(--primary-hover); }}
     label.btn-check {{ display: inline-flex; align-items: center; gap: 6px; }}
-    button.active {{ border-color: var(--error); color: var(--error); font-weight: 700; }}
-    main {{ max-width: 1280px; margin: 16px auto; padding: 0 16px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 16px; }}
-    .card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }}
-    .card.is-error {{ border-color: var(--error); }}
+    button.active {{ border-color: var(--primary); color: var(--primary); background: var(--danger-bg); }}
+    main {{ max-width: 1320px; margin: 18px auto; padding: 0 16px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 16px; }}
+    .card {{ background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }}
+    .card.is-error {{ border-color: var(--primary); }}
     .card-head {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.9rem; }}
-    .cid {{ font-family: ui-monospace, monospace; font-weight: 700; }}
-    .costo-badge {{ padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; background: #eef2f1; }}
-    .costo-badge.high {{ background: var(--error-bg); color: var(--error); }}
+    .cid {{ font-family: ui-monospace, monospace; font-weight: 800; }}
+    .costo-badge {{ padding: 2px 10px; border-radius: 999px; font-weight: 800; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }}
+    .costo-badge.high {{ background: var(--danger-bg); color: var(--danger); border-color: transparent; }}
     .photos {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }}
-    .photos img {{ width: 100%; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; background: #eceeed; }}
+    .photos img {{ width: 100%; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; background: var(--surface); }}
     table.cmp {{ width: 100%; border-collapse: collapse; font-size: 0.82rem; }}
     table.cmp th, table.cmp td {{ border-bottom: 1px solid var(--border); padding: 4px 6px; text-align: left; }}
-    table.cmp th {{ color: var(--muted); font-weight: 600; }}
-    .mismatch {{ color: var(--error); font-weight: 700; }}
-    .decisions {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; background: var(--bg); padding: 8px; border-radius: 6px; }}
-    .tag {{ display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 600; font-size: 0.78rem; }}
-    .tag.aprobada {{ background: var(--ok-bg); color: var(--ok-ink); }}
-    .tag.rechazada {{ background: var(--error-bg); color: var(--error); }}
-    .tag.revision_manual {{ background: var(--warn-bg); color: var(--warn-ink); }}
-    .extra {{ font-size: 0.82rem; color: var(--muted); }}
-    #modal {{ display: none; position: fixed; inset: 0; background: rgba(4, 33, 31, 0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }}
+    table.cmp th {{ color: var(--text-sec); font-weight: 700; }}
+    .mismatch {{ color: var(--danger); font-weight: 700; }}
+    .decisions {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; background: var(--surface); padding: 8px; border-radius: 6px; }}
+    .tag {{ display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; }}
+    .tag.aprobada {{ background: var(--ok-bg); color: var(--ok); }}
+    .tag.rechazada {{ background: var(--danger-bg); color: var(--danger); }}
+    .tag.revision_manual {{ background: var(--warn-bg); color: var(--warn); }}
+    .extra {{ font-size: 0.82rem; color: var(--text-sec); }}
+    #modal {{ display: none; position: fixed; inset: 0; background: rgba(4, 33, 31, 0.88); z-index: 100; align-items: center; justify-content: center; padding: 20px; }}
     #modal.open {{ display: flex; }}
     #modal img {{ max-width: 95vw; max-height: 90vh; border-radius: 8px; background: #fff; }}
     #modal-close {{ position: fixed; top: 16px; right: 16px; min-height: 44px; min-width: 44px; font-weight: 700; }}
@@ -236,7 +269,10 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
 <body>
   <header>
     <div class="top-row">
-      <h1>Visor local · Validat3B</h1>
+      <div class="brand-title">
+        <span class="accent-bar"></span>
+        <h1>Validat3B · Visor de auditoría</h1>
+      </div>
       <div class="scoreboard" id="scoreboard"></div>
     </div>
     <div class="filters">
@@ -260,7 +296,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
         <option value="costo-desc">Mayor costo primero</option>
         <option value="costo-asc">Menor costo primero</option>
       </select>
-      <button type="button" id="btn-export">Exportar CSV</button>
+      <button type="button" class="primary" id="btn-export">Exportar CSV</button>
       <button type="button" id="btn-reset">Limpiar</button>
     </div>
   </header>
@@ -281,6 +317,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     const btnFp = document.getElementById("btn-fp");
     const btnFn = document.getElementById("btn-fn");
     let soloFp = false, soloFn = false;
+    let currentItems = [];
 
     function esc(s) {{
       return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
@@ -292,17 +329,16 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     }}
 
     function renderScoreboard(count) {{
-      const tok = M.tokens_promedio !== null ? `${{M.tokens_promedio}} tok/cap` : "— tok/cap";
+      const tok = M.tokens_promedio !== null ? `${{Number(M.tokens_promedio).toLocaleString("en-US")}} tok/cap` : "— tok/cap";
+      const precTxt = Number.isInteger(M.precision) ? `${{M.precision}}%` : `${{M.precision}}%`;
       sb.innerHTML = M.tiene_resultados
         ? `<span class="pill">${{count}}/${{M.total}}</span>
-           <span class="pill">Costo: ${{M.costo_total}} pts (todo manual: ${{M.costo_todo_manual}})</span>
+           <span class="pill">Costo: ${{M.costo_total}} vs ${{M.costo_todo_manual}}</span>
            <span class="pill">Aprob: ${{M.aprobadas}} · Rech: ${{M.rechazadas}} · Man: ${{M.manuales}}</span>
-           <span class="pill">Precisión aprob: ${{M.precision}}%</span>
+           <span class="pill ok">Precisión aprob: ${{precTxt}}</span>
            <span class="pill">${{tok}}</span>`
         : `<span class="pill">${{count}}/${{M.total}} tarjetas (sin resultados.json)</span>`;
     }}
-
-    let currentItems = [];
 
     function render() {{
       const esp = fEsperada.value, mot = fMotor.value, err = fErrores.checked, ord = fOrden.value;
@@ -386,70 +422,319 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
 
 
 def generar_pitch(dir_datos: Path, ruta_resultados: Path, ruta_pitch: Path, ids: list[str]) -> int:
-    """Genera salidas/pitch.html a pantalla completa navegable con flechas."""
+    """Genera salidas/pitch.html con identidad Tarima: lámina 0 (marcador) + 1 por captura."""
     ruta_pitch.parent.mkdir(parents=True, exist_ok=True)
-    registros, _ = _construir_registros(dir_datos, ruta_resultados, ruta_pitch.parent.resolve())
+    registros, marcador = _construir_registros(dir_datos, ruta_resultados, ruta_pitch.parent.resolve())
     mapa = {r["capture_id"]: r for r in registros}
     seleccion = [mapa[cid] for cid in ids if cid in mapa]
+
     datos_json = json.dumps(seleccion, ensure_ascii=False)
+    marcador_json = json.dumps(marcador, ensure_ascii=False)
 
     html_pitch = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pitch · Validat3B</title>
   <style>
-    :root {{ --bg: #f6f7f6; --ink: #04211f; --error: #e31b23; --ok: #0e5a36; --border: #cfd8d6; }}
+{TARIMA_VARS}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); height: 100vh; display: flex; flex-direction: column; }}
-    .slide {{ flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; padding: 28px 36px; align-items: center; }}
-    .photos {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
-    .photos img {{ width: 100%; height: 38vh; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); background: #fff; }}
-    .photos img:first-child {{ grid-column: span 2; height: 42vh; }}
-    .panel {{ background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 16px; }}
-    .cid {{ font-family: ui-monospace, monospace; font-size: 1.2rem; font-weight: 700; }}
-    .dec {{ font-size: 2.2rem; font-weight: 800; text-transform: uppercase; }}
-    .dec.aprobada {{ color: var(--ok); }}
-    .dec.rechazada {{ color: var(--error); }}
-    .dec.revision_manual {{ color: #7a5200; }}
-    .info {{ font-size: 1.15rem; line-height: 1.5; }}
-    footer {{ padding: 10px 36px; display: flex; justify-content: space-between; font-size: 0.95rem; border-top: 1px solid var(--border); background: #fff; }}
+    body {{
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }}
+    .topbar {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 40px;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg);
+    }}
+    .brand {{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }}
+    .brand-bar {{
+      width: 5px;
+      height: 22px;
+      background: var(--primary);
+      border-radius: 2px;
+    }}
+    .slide-tag {{
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-sec);
+    }}
+    main {{
+      flex: 1;
+      padding: 28px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+    }}
+    .hero-grid {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }}
+    .hero-card {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 5px solid var(--primary);
+      border-radius: 12px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }}
+    .hero-card.ok {{ border-top-color: var(--ok); }}
+    .hero-num {{
+      font-size: 4rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.05;
+      color: var(--text);
+    }}
+    .hero-title {{
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }}
+    .hero-sub {{
+      font-size: 1rem;
+      color: var(--text-sec);
+    }}
+    .cap-wrap {{
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }}
+    .photos-row {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }}
+    .photo-box {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }}
+    .photo-box span {{
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-sec);
+    }}
+    .photo-box img {{
+      width: 100%;
+      height: 34vh;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #fff;
+    }}
+    .cap-bottom {{
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 20px;
+      align-items: start;
+    }}
+    .verdict-box {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }}
+    .cid-line {{
+      font-family: ui-monospace, monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-sec);
+    }}
+    .chip-row {{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }}
+    .chip {{
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }}
+    .chip.aprobada {{ background: var(--ok-bg); color: var(--ok); }}
+    .chip.rechazada {{ background: var(--danger-bg); color: var(--danger); }}
+    .chip.revision_manual {{ background: var(--warn-bg); color: var(--warn); }}
+    .rc-pill {{
+      font-family: ui-monospace, monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 999px;
+    }}
+    .exp {{
+      font-size: 1.1rem;
+      color: var(--text);
+      line-height: 1.45;
+    }}
+    table.cmp {{
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 1rem;
+    }}
+    table.cmp th, table.cmp td {{
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }}
+    table.cmp th {{
+      background: var(--surface);
+      color: var(--text-sec);
+      font-weight: 700;
+    }}
+    .mismatch {{ color: var(--danger); font-weight: 700; }}
+    footer {{
+      padding: 10px 40px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      color: var(--text-sec);
+      font-weight: 600;
+    }}
   </style>
 </head>
 <body>
-  <div class="slide" id="slide"></div>
+  <div class="topbar">
+    <div class="brand"><span class="brand-bar"></span><span>Validat3B · Demo en vivo</span></div>
+    <span class="slide-tag" id="slide-tag">Marcador oficial</span>
+  </div>
+  <main id="stage"></main>
   <footer>
     <span id="counter"></span>
-    <span>Usa ← / → del teclado para navegar</span>
+    <span>← / → navegar · F pantalla completa</span>
   </footer>
   <script>
     const ITEMS = {datos_json};
+    const M = {marcador_json};
+    const TOTAL_SLIDES = 1 + ITEMS.length;
     let idx = 0;
-    const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
-    function draw() {{
-      if (!ITEMS.length) {{ document.getElementById("slide").innerHTML = "<h2>Sin capturas seleccionadas</h2>"; return; }}
-      const d = ITEMS[idx];
-      const dec = d.motor || d.esperada;
-      document.getElementById("slide").innerHTML = `
-        <div class="photos">
-          <img src="${{esc(d.img_product)}}" alt="Producto" />
-          <img src="${{esc(d.img_shelf)}}" alt="Etiqueta" />
-          <img src="${{esc(d.img_facade)}}" alt="Fachada" />
-        </div>
-        <div class="panel">
-          <div class="cid">${{esc(d.capture_id)}} · ${{esc(d.store)}}</div>
-          <div class="dec ${{esc(dec)}}">${{esc(dec)}}</div>
-          <div class="info">
-            <strong>Esperado:</strong> ${{esc(d.brand)}} — ${{esc(d.product_name)}} (${{esc(d.qty)}} ${{esc(d.unit)}})<br/>
-            <strong>Motivo / Código:</strong> ${{esc(d.reason_code || d.motivo_esperado || "Sin motivo")}}<br/>
-            <strong>Explicación:</strong> ${{esc(d.explicacion || "Validación visual en visor")}}
-          </div>
-        </div>`;
-      document.getElementById("counter").textContent = `Captura ${{idx + 1}} de ${{ITEMS.length}}`;
+
+    function esc(s) {{
+      return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
     }}
+    function diffCls(a, b) {{
+      if (!b) return "";
+      return String(a).trim().toLowerCase() !== String(b).trim().toLowerCase() ? "mismatch" : "";
+    }}
+
+    function draw() {{
+      const stage = document.getElementById("stage");
+      const tag = document.getElementById("slide-tag");
+      const counter = document.getElementById("counter");
+
+      if (idx === 0) {{
+        tag.textContent = "Marcador sobre 100 capturas de desarrollo";
+        const prec = Number.isInteger(M.precision) ? `${{M.precision}} %` : `${{M.precision}} %`;
+        const tok = M.tokens_promedio !== null ? Number(M.tokens_promedio).toLocaleString("en-US") : "—";
+        stage.innerHTML = `
+          <div class="hero-grid">
+            <div class="hero-card ok">
+              <div class="hero-num">${{prec}}</div>
+              <div class="hero-title">Precisión en aprobadas</div>
+              <div class="hero-sub">${{M.aprobadas_correctas}} de ${{M.aprobadas}} aprobadas sin errores (mínimo oficial 97 %)</div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-num">${{M.costo_total}} vs ${{M.costo_todo_manual}}</div>
+              <div class="hero-title">Costo operativo pesimista</div>
+              <div class="hero-sub">Contra revisar todo a mano (100 pts) · ${{M.aprobadas + M.rechazadas}} resueltas sin persona</div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-num">${{tok}}</div>
+              <div class="hero-title">Tokens por captura</div>
+              <div class="hero-sub">Una sola llamada a claude-haiku-5-5 con señales locales a 0 tokens</div>
+            </div>
+          </div>`;
+      }} else {{
+        const d = ITEMS[idx - 1];
+        const dec = d.motor || d.esperada;
+        const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+        tag.textContent = `Caso ${{idx}} de ${{ITEMS.length}} · ${{d.capture_id}}`;
+        stage.innerHTML = `
+          <div class="cap-wrap">
+            <div class="photos-row">
+              <div class="photo-box"><span>Fachada</span><img src="${{esc(d.img_facade)}}" alt="Fachada" /></div>
+              <div class="photo-box"><span>Producto</span><img src="${{esc(d.img_product)}}" alt="Producto" /></div>
+              <div class="photo-box"><span>Etiqueta</span><img src="${{esc(d.img_shelf)}}" alt="Etiqueta" /></div>
+            </div>
+            <div class="cap-bottom">
+              <div class="verdict-box">
+                <div class="cid-line">${{esc(d.capture_id)}} · ${{esc(d.store)}}</div>
+                <div class="chip-row">
+                  <span class="chip ${{esc(dec)}}">${{esc(dec)}}</span>
+                  ${{d.reason_code ? `<span class="rc-pill">${{esc(d.reason_code)}}</span>` : ""}}
+                </div>
+                <div class="exp">${{esc(d.explicacion || "Validación auditada en visor")}}</div>
+              </div>
+              <table class="cmp">
+                <thead><tr><th>Campo</th><th>Esperado</th><th>Leído por el modelo</th></tr></thead>
+                <tbody>
+                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                  <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
+                  <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }}
+      counter.textContent = `Lámina ${{idx + 1}} de ${{TOTAL_SLIDES}}`;
+    }}
+
     window.addEventListener("keydown", e => {{
-      if (e.key === "ArrowRight" && idx < ITEMS.length - 1) {{ idx++; draw(); }}
-      if (e.key === "ArrowLeft" && idx > 0) {{ idx--; draw(); }}
+      if (e.key === "ArrowRight" && idx < TOTAL_SLIDES - 1) {{ idx++; draw(); }}
+      else if (e.key === "ArrowLeft" && idx > 0) {{ idx--; draw(); }}
+      else if (e.key === "f" || e.key === "F") {{
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }}
     }});
     draw();
   </script>
