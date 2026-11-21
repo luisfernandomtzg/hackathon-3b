@@ -1,0 +1,7 @@
+anthropic
+pydantic>=2
+pandas
+pillow
+numpy
+python-dotenv
+zxing-cpp

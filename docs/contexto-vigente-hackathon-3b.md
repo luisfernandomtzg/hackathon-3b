@@ -1,7 +1,22 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-20 21:00 · cierre de S001.5 (viernes)** · siguiente **S002 (sábado 21-nov, el día del hackatón)**.
+> Última actualización: **2026-11-21 09:55 · S002, cierre de F1** · siguiente **S002 (sábado 21-nov, el día del hackatón)**.
+
+## 🟢 S002 en curso — estado al 2026-11-21 09:55 (lee esto primero; lo de abajo anterior al sábado es historia)
+
+- **Reto asignado: Reto 2 · Validat3B** (motor que decide `aprobada / rechazada / revision_manual` por captura de precio). Página: hackaton3b.com/validat3b.html.
+- **Giro (compuerta de Fer, 09:16):** competencia por lotes, no app. Producto = **Python local en `ml/validat3b/`**. Supabase y Vercel fuera del producto. Repo **privado** desde 09:35 (los datos estuvieron en `main` público de 09:11 a ~09:35 por error; sacados en `1403ab0`, siguen en el historial).
+- **Calificación:** costo operativo 50 % (acierto 0 · manual 1 · rechazar válida 3 · aprobar inválida 10) · calidad del dato 15 % · tokens 10 % · pitch 25 % (3 min). Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, entrega tarde.
+- **Endpoint:** Azure AI Foundry, SDK `anthropic` (`AnthropicFoundry`), modelo único `claude-haiku-5-5`, llave en `FOUNDRY_API_KEY` (`.env.local`). Sin kit de arranque: cargador, esquema y script de costo son nuestros.
+- **Datos `[MEDIDO 09:16]`:** 100 capturas (34/33/33), 300 imágenes, en `datos/privado/`. Metadatos sin señal (código y rango de precio coinciden en las 100). Motivos: lejanas 18, borrosas 11, descripción incompleta 5.
+- **Negocio (Alfredo, `[REPORTADO]`):** válida = se leen marca, descripción y contenido en el producto, precio en la etiqueta, y la etiqueta es de ese producto. Foto por foto. ~800 capturistas, ~12,000 capturas/semana. Prefieren menos aprobadas con error casi cero.
+- **Arquitectura:** modelo **lee** campos (`extraer`) → código **decide** (`decidir`, reglas puras) → `evaluar` mide costo. Contrato en `ml/validat3b/contrato.py`.
+- **Carriles (sello 09:55):** Integrador **I1** (Code de Fer) · Núcleo **N1** (Mauski) · Datos **D1** (Sergio) · UI **U1** visor (Mau) · Pitch **P1** señales locales (Alan). Pitch P2 arranca 15:00: Alan narra, Mau maneja, Sergio números; Fer y Mauski cierran motor y corrida ciega.
+- **Reloj del reto:** 10:45 primer JSON válido · 11:30 primer costo medido con modelo · 13:15 costo < «todo manual» con precisión ≥ 97 % · **14:30 congelar** + corrida cronometrada · **set ciego entre 15:00 y 16:00** («cuando la mayoría termine», comité 09:50), con la lista oficial de `reason_code`.
+- **Comité (09:50, `[REPORTADO]`):** los asistentes sí pueden leer los datos de desarrollo para construir; la solución final debe correr sola; el criterio de las tres decisiones lo diseñamos nosotros. **Sin responder:** costo cuando la real es `revision_manual` · plazo y tamaño del set ciego · si la llave es compartida.
+- **Propuestas de Mau y Mauski, integradas:** aprobar «todo o nada» · filtros locales sin tokens (P1) y puerta local antes del modelo (I2, solo si el arnés lo respalda) · explicaciones por plantilla sin tokens · clasificador tabular sobre las señales (D2, validado por visita) · export CSV para analistas. **Fuera de alcance, van al pitch como siguiente paso:** PWA sin conexión con pre-validación al capturar, capa analítica DuckDB/Parquet, embeddings CLIP. **Descartado:** decisión binaria sin revisión manual (rechazar una válida cuesta 3; revisar, 1) y «sin modelo por imagen» (con 100 ejemplos y 6 horas, leer con el modelo es lo preciso).
+- **No verificado:** `/salud` (ya irrelevante hoy) · endpoint probado con una llamada real · puntaje de Rival 3B.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 

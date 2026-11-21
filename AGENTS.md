@@ -1,5 +1,7 @@
 # AGENTS.md
 
+**Regla 0 (sábado 21-nov):** antes de cualquier cosa, `git fetch origin` y `git pull --rebase origin main`. Hoy el producto es Python en `ml/validat3b/` (Reto 2 · Validat3B); tu misión está en `docs/prompts-<carril>.md`. Nunca `git add datos/` ni `salidas/`.
+
 Las reglas de este repo para cualquier asistente de código están en [`CLAUDE.md`](./CLAUDE.md). Léelo completo antes de trabajar: carriles por carpeta, documento de misiones por carril en `docs/`, y formato del reporte de entrega. Si eres el asistente de un compañero del equipo, lee además `docs/KIT-EQUIPO.md` (o su `docs/paquetes/<nombre>.md` el sábado). Antes de tocar cualquier pantalla, lee [`DESIGN.md`](./DESIGN.md): es el sistema de diseño obligatorio.
 
 <!-- BEGIN:nextjs-agent-rules -->

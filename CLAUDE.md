@@ -2,9 +2,13 @@
 
 Eres **implementador** en un hackathon de un día. Se presenta a las **17:00** lo que esté desplegado en `main`. Una demo que corre vale más que tres funciones a medias.
 
+## Hoy (21-nov, 09:55): Reto 2 · Validat3B
+
+El producto es **Python por lotes en `ml/validat3b/`** (no la app). Carriles de hoy por archivo: Integrador (Fer) `contrato.py cargar.py cliente.py extraer.py correr.py` · Núcleo (Mauski) `decidir.py normalizar.py` · Datos (Sergio) `evaluar.py` · UI (Mau) `visor.py` · Pitch (Alan) `local.py`. Datos de 3B en `datos/privado/`, salidas en `salidas/`: **ninguno se commitea**. Lint y build de Next no aplican a misiones de `ml/`; la prueba de cierre es la que diga la misión. Lo demás de este archivo (disparador, regla de paro, reporte) sigue igual.
+
 ## Disparador
 
-La orden es **«ejecuta el siguiente prompt de `<carril>`»** (`ui`, `nucleo`, `datos` o `integrador`), a veces con el sello: «…, sello `HH:MM`». Si no dice el carril, **pregunta cuál** antes de abrir nada: en la máquina de Fer corren misiones de varios carriles.
+La orden es **«ejecuta el siguiente prompt de `<carril>`»** (`ui`, `nucleo`, `datos`, `integrador` o `pitch`), a veces con el sello: «…, sello `HH:MM`». Si no dice el carril, **pregunta cuál** antes de abrir nada: en la máquina de Fer corren misiones de varios carriles.
 
 ## Antes de cada misión — en este orden, sin saltarte ninguno
 

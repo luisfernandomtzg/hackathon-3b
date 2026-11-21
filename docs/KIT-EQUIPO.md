@@ -1,5 +1,12 @@
 # KIT DEL EQUIPO — Hackathon Tiendas 3B · sábado 21-nov-2026
 
+> ## REGLA 0 DEL SÁBADO (2026-11-21 09:55) — para toda persona y todo agente, sin excepción
+> 1. **Antes de leer o tocar nada: `git fetch origin` y `git pull --rebase origin main`.** Tu rama sale de ese `main`. Antes de cada push: `git fetch origin` + `git rebase origin/main`. Si el pull falla, para y avisa; no descartes cambios.
+> 2. **Reto 2 · Validat3B: el producto es Python local en `ml/validat3b/`.** Lo que este kit dice de Next.js, Supabase, Vercel y `lib/contrato` no aplica hoy; el contrato es `ml/validat3b/contrato.py` (dueño: Fer).
+> 3. **Cada quien es dueño de sus archivos** (Fer: `cargar/cliente/extraer/correr` · Mauski: `decidir/normalizar` · Sergio: `evaluar` · Mau: `visor` · Alan: `local`). Nadie edita lo de otro.
+> 4. **Datos de 3B:** tu asistente puede leerlos para construir; **jamás `git add datos/` ni `salidas/`**; la solución solo llama al endpoint asignado; el set ciego no se decide a mano.
+> 5. Tu misión está en `docs/prompts-<carril>.md` (`integrador`, `nucleo`, `datos`, `ui`, `pitch`). Congelamos a las **14:30**; el set ciego llega entre 15:00 y 16:00.
+
 > **v1.0 · 2026-11-18 17:05 · S001.** Es el mismo kit para las cinco personas y para cualquier IA (Claude, ChatGPT, Gemini, Copilot, Cursor, Codex, Antigravity…).
 > **Parte A** (este archivo) no depende del reto y se escribió antes del evento. **Parte B** (tu área y tus misiones) se genera el sábado a las ~10:00 y llega como `docs/paquetes/<tu-nombre>.md`, que ya trae esta Parte A adentro: **ese único archivo es el que le das a tu IA.**
 > Si algo de aquí contradice `docs/contexto-vigente-hackathon-3b.md`, manda el contexto vigente.

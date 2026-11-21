@@ -14,6 +14,8 @@ next-env.d.ts
 
 # datos confidenciales de 3B: nunca al repo
 datos/privado/
+# salidas del motor (derivadas de datos de 3B): nunca al repo
+salidas/
 
 # python
 __pycache__/

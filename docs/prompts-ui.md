@@ -1,13 +1,47 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-20 20:59
-Carril ui · dueño Fer (diseño, tema y pantallas del camino dorado) · apoyo Mau · misiones 1 · hechas 1 · siguiente **NINGUNO**
-Cola: ~~U0~~ → (U1 se escribe en S002, ~10:00 del sábado, con el reto)
-siguiente: **NINGUNO — BLOQUEADO hasta que S002 escriba U1** (lo libera Fer al elegir el reto)
-Última auditoría: U0 → Aprobado con anotaciones ([MEDIDO 20:51] PR #1 `7ca3494` sobre `2a6606a`; npm ci, lint y build en verde en el contenedor del chat; grep de colores fuera del tema vacío; vista previa: `/salud` 7ca3494 · base ok 669 ms; `/tema` en Chrome de escritorio: 12 botones a 44 px, 3 campos a 44 px y 16 px) · integrada en `main` como `c366e8d` (merge del PR #1, 20:58)
-Qué cambió por esa auditoría: S2 — `app/tema/page.tsx` usa `text-[13px]` (mono) y `text-[35px]` (figure): valores iguales a los tokens de DESIGN.md pero sin clase de utilidad; si U1 los necesita, se agregan clases `text-mono`/`text-figure` al tema. Pendiente de Fer: ver `/tema` en su celular (clasificación requiere pantalla).
-Reescrituras de este documento: 4
-Siguiente con modelo: — (se fija en S002)
+## ESTADO · 2026-11-21 09:55
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 2 · hechas 1 · siguiente **U1**
+Cola: ~~U0~~ → **U1** → U2 (ficha técnica de una página y lámina de marcador, con Alan)
+siguiente: **U1**
+Última auditoría: U0 → Aprobado con anotaciones (20-nov 20:51; integrada como `c366e8d`)
+Qué cambió por esa auditoría: nada
+Reescrituras de este documento: 5
+Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
+
+---
+
+## U1 — Visor local de capturas (herramienta de análisis de errores y apoyo del pitch)
+
+`carril: ui · dueño de la misión: Mau (Antigravity, agente en el repo) · rama: carril/ui-sp1-visor desde main fresco · cuelga de: 1403ab0 · tope: 45 min · clasificación: requiere pantalla · modelo: el de tu asistente`
+
+**Paso 0, obligatorio y automático para tu agente, antes de leer o tocar nada:** `git fetch origin` y `git pull --rebase origin main`; luego crea tu rama desde ese `main`. Si el pull falla por cambios locales, **para y muéstralos**; no los descartes. Antes de cada push: `git fetch origin` + `git rebase origin/main`. Cada quien es dueño de sus archivos: **no edites archivos de otra persona**; si necesitas algo, pídelo.
+
+**Antes de empezar, Mau:** `git pull origin main` (Fer sacó los datos del repo en `1403ab0`). Los datos viven en `datos/privado/` y **no se vuelven a agregar a git**. El repo ya es privado. 
+
+**Hechos del reto que no puedes ver** (todos `[MEDIDO o LEÍDO por el arquitecto, 21-nov 09:16–09:36]`):
+- Reto 2 · Validat3B: por cada captura (foto de fachada, foto de producto, foto de etiqueta + metadatos) se decide `aprobada`, `rechazada` o `revision_manual`. Entregable: un JSON con un `Resultado` por captura.
+- Puntos de costo (gana el menor): acierto 0 · mandar a revisión manual 1 · rechazar una válida 3 · **aprobar una inválida 10**. Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, o entregar tarde.
+- Datos de desarrollo: 100 capturas (34 rechazadas, 33 aprobadas, 33 revisión manual) en `datos/privado/metadatos/capturas.csv` y `catalogo_productos.csv`; 300 imágenes en `datos/privado/imagenes/imagenes/`. Motivos de rechazo presentes: «Capturas lejanas» 18, «Capturas borrosas» 11, «Descripción de producto incompleta» 5.
+- **Los metadatos no deciden nada:** en las 100, `capture_barcode == product_barcode` y `capture_price` cae en `[min_product_price, max_product_price]`. Todo está en las fotos.
+- Negocio (Alfredo, 3B): una captura vale solo si de la foto de producto se leen **marca, descripción y contenido** (g/ml), de la etiqueta se lee el **precio**, y la etiqueta **es de ese producto**. Si no se alcanza a leer el contenido, es lejana/incompleta. Se juzga foto por foto. Prefieren aprobar menos con error casi cero.
+- **Datos de 3B (respuesta del comité, 09:50):** tu asistente **sí puede leer** las imágenes y los metadatos de desarrollo para construir y afinar (prompts, umbrales, pruebas). Lo que **no** se vale: commitearlos (viven solo en `datos/privado/`, ignorado), usarlos fuera del reto, llamar a una IA externa **dentro de la solución** (solo el endpoint asignado), ni decidir el set ciego a mano.
+- **El criterio de aprobar / rechazar / revisión manual lo diseñamos nosotros** (comité, 09:50). El set ciego, la lista oficial de `reason_code` y el esquema se liberan entre 15:00 y 16:00: los códigos de hoy son provisionales y se cambian por un mapa, sin tocar reglas.
+- **Principio de decisión (todo o nada):** solo se aprueba con evidencia completa y clara; ante duda nunca se aprueba. Aprobar mal cuesta 10 y puede descalificar; mandar a revisión cuesta 1.
+
+**Formato de `salidas/resultados.json`:** lista de objetos con `capture_id`, `decision`, `confidence_score`, `reason_code`, `validaciones` (`tienda_fachada`, `producto`, `codigo_barras`, `evidencia_precio` en `ok|falla`), `precio_detectado`, `codigo_barras_detectado`, `explicacion`. **`salidas/extracciones.json`** (opcional): lista con `capture_id`, `producto` {marca, descripcion, contenido_cantidad, contenido_unidad, nitidez, encuadre}, `etiqueta` {texto_producto, precio, tipo_precio, legible}, `tokens_entrada`, `tokens_salida`.
+
+**Qué construir** — `ml/validat3b/visor.py`: `python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html` genera **un HTML estático** (sin servidor, sin CDN, sin dependencias; CSS y JS dentro del archivo) que referencia las imágenes por ruta relativa:
+- Una tarjeta por captura: las tres fotos (clic para ampliar), producto esperado (marca, nombre, contenido), lo leído por el modelo, decisión esperada **junto a** decisión del motor, `reason_code`, explicación, confianza y costo en puntos (0/1/3/10).
+- Filtros arriba: por decisión esperada, por decisión del motor, «solo errores», y orden por costo. Contador de costo total visible.
+- Si falta `resultados.json`, muestra solo lo esperado (sirve desde ya para estudiar los datos).
+- Estilo sobrio: fondo claro, tinta `#04211F`, acento `#E31B23` solo para errores, tipografía del sistema, botones de 44 px. Sin logotipo de 3B.
+
+**Lo que NO se toca:** nada fuera de `ml/validat3b/visor.py`; `salidas/` no se commitea (I1 lo agrega al `.gitignore`; si aún no está, **no hagas `git add salidas`**).
+
+**Prueba de cierre:** el comando genera `salidas/visor.html`; al abrirlo se ven 100 tarjetas con sus fotos y el filtro «revision_manual» deja 33. `git status --short` no muestra `datos/` ni `salidas/`.
+
+**Entregable:** push + PR + `docs/reportes/U1-visor.md`. Commit: `feat(ml): visor local de capturas`.
 
 ---
 
@@ -63,3 +97,4 @@ Siguiente con modelo: — (se fija en S002)
 - 2026-11-20 19:21 · S001.5: se escribe `U0` (agenda de `PROMPT-APERTURA-S001.md` §3) y se libera el carril; sin auditoría previa.
 - 2026-11-20 20:51 · S001.5: auditoría de U0 (PR #1) → Aprobado con anotaciones; carril bloqueado hasta U1.
 - 2026-11-20 20:59 · S001.5: resellado después del merge de U0 (`c366e8d`).
+- 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
