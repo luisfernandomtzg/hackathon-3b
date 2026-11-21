@@ -1,17 +1,35 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 11:47
-Carril nucleo · dueño Mauski (chat web) · misiones 3 · hechas 2 · siguiente **N3**
-Cola: ~~N1~~ ~~N2~~ → **N3** (códigos oficiales, tipo de precio y explicación)
-siguiente: **N3**
-Última auditoría: N2 → Aprobado con anotaciones ([MEDIDO 11:40: con sus dos cambios sobre lecturas v2, 11/11 = 100 %, 103/36; con compuertas, 10/10, 99/38] · PR #16 fusionado 11:41)
-Qué cambió por esa auditoría: las compuertas de I3.1 quedan como segundo candado; N3 no las duplica
-Reescrituras de este documento: 4
+## ESTADO · 2026-11-21 12:26
+Carril nucleo · dueño Mauski (chat web) · misiones 4 · hechas 3 · siguiente **N4**
+Cola: ~~N1~~ ~~N2~~ ~~N3~~ → **N4** (reason_code de las rechazadas)
+siguiente: **N4**
+Última auditoría: N3 → Aprobado con anotaciones (PR #19 fusionado 12:06; `traducir()` duplica lo que ya hace `correr --mapa-codigos`)
+Qué cambió por esa auditoría: N4 ataca la calidad del dato (15 %) y quita `traducir()`
+Reescrituras de este documento: 5
 Siguiente con modelo: el del asistente de Mauski · clasificación autónoma
 
 ---
 
-## N3 — Códigos oficiales, tipo de precio y explicación
+## N4 — Que las rechazadas traigan el motivo correcto
+
+`rama: carril/nucleo-sp3-motivo desde main fresco · tope: 40 min · clasificación: autónoma`
+
+**Hechos medidos** (`[MEDIDO 12:00 por el arquitecto sobre salidas-sp4.zip]`): de las 23 capturas rechazadas correctamente, **solo 2** traen el `reason_code` que corresponde a su `motivo_rechazo` real (sección 7 de `evaluar.py`: 2/34). En desarrollo solo existen tres motivos: «Capturas lejanas» 18, «Capturas borrosas» 11, «Descripción de producto incompleta» 5. Hoy la mayoría sale como `PRODUCTO_NO_COINCIDE` (regla 7), que **no aparece nunca** en los datos de 3B. Con `CAPTURA_LEJANA` por omisión en las rechazadas se pasaría de 2 a ~12. La calidad del dato vale 15 % de la calificación.
+
+**Qué hacer:**
+1. Mide primero, con `calibrar.py` + `evaluar.py` sección 7 sobre `salidas-sp5.zip` (renombra `sp5_resultados.json`→`resultados.json` y `sp5_extracciones.json`→`extracciones.json`): por cada regla que rechaza, qué código emite y qué motivo real tienen esas capturas.
+2. Ajusta **solo el `reason_code` de las rechazadas** (no la decisión): cuando la regla que rechaza no tenga un motivo claro de los tres de 3B, emite el de mayor acierto medido (probablemente `CAPTURA_LEJANA`). No cambies ninguna decisión; la precisión y el costo deben quedar idénticos (compruébalo: 11 aprobadas, 0 falsas, costo 103/38 con lecturas sp5).
+3. Quita `traducir()` de `decidir.py` (duplica `correr --mapa-codigos`) y su prueba.
+4. Una prueba por cada código que cambies.
+
+**No se toca:** las decisiones, el contrato, `correr.py`, `compuerta.py`, `consenso.py`.
+
+**Prueba de cierre:** pruebas en verde; sección 7 de `evaluar.py` antes y después (de 2/34 a lo que dé); costo y precisión sin cambio. PR + reporte de 12 líneas.
+
+---
+
+## N3 [HECHA · Aprobado con anotaciones] — Códigos oficiales, tipo de precio y explicación
 
 `rama: carril/nucleo-sp3-codigos · tope: 40 min`
 
@@ -164,3 +182,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · N1 auditada (79 % sobre lecturas reales v1) → se escribe N2 con los hechos de v2 y se sube el sello.
 - 2026-11-21 11:47 · S003 · N2 auditada y fusionada (#16) → se escribe N3 y se sube el sello.
+- 2026-11-21 12:26 · S003 · N3 fusionada (#19) → N4 (reason_code de las rechazadas; quitar traducir). Se sube el sello.

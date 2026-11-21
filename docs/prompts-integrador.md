@@ -1,17 +1,40 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 12:10
-Carril integrador · dueño Fer (Claude Code) · misiones 8 · hechas 6 · siguiente **I5**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ → **I5** (estabilidad de la lectura)
-siguiente: **I5**
-Última auditoría: I4 → Aprobado con anotaciones ([LEÍDO 12:09: validación de una por capture_id con prueba que se pone roja; ensayo sin etiquetas en otra estructura; corte y --reanudar medidos] · PR #20 fusionado 12:09)
-Qué cambió por esa auditoría: **S0 para el set ciego** ([REPORTADO por I4]): con 100 lecturas NUEVAS el motor dio 13 aprobadas, 12 correctas, 1 falsa = 92.3 % (descalifica), costo 111/46, contra 10/10 con las lecturas del caché. La calibración está hecha sobre un solo sorteo de lecturas
-Reescrituras de este documento: 11
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (obligatorio: S0) · clasificación autónoma
+## ESTADO · 2026-11-21 12:25
+Carril integrador · dueño Fer (Claude Code) · misiones 9 · hechas 7 · siguiente **I6**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ → **I6** (consenso unánime de 3)
+siguiente: **I6**
+Última auditoría: I5 → Aprobado con anotaciones ([REPORTADO por Code 12:22; MEDIDO por el arquitecto sobre salidas-sp5.zip: 11 aprobadas, 0 falsas, costo 103/38] · PR #23 fusionado 12:24). temperature no la acepta el endpoint (400)
+Qué cambió por esa auditoría: 489454 (lejana) se aprueba en una de cada dos lecturas: con 2 lecturas unánimes se cuela ~1 de cada 4; Fer decide (12:24) subir a 3 lecturas unánimes
+Reescrituras de este documento: 12
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
 
 ---
 
-## I5 — Estabilidad: que el 97 % aguante lecturas nuevas
+## I6 — Consenso unánime de tres lecturas para aprobar
+
+`carril: integrador · rama: carril/integrador-sp3-tres desde origin/main (git switch -c carril/integrador-sp3-tres origin/main) · tope: 25 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con **sello `12:25`**. Si ya está hecho, dilo y no lo toques.
+
+**Por qué** (decisión de Fer, 12:24): la falsa CAP-489454 (real «Capturas lejanas») se aprueba en una de cada dos lecturas y ninguna señal local la distingue. Con 2 lecturas unánimes pasa ~1 de cada 4 veces; con 3, ~1 de cada 8. Con ~11 aprobadas, una falsa = 91 % y descalifica. **«2 de 3» NO sirve**: es más permisivo que lo actual; tienen que aprobar las tres.
+
+**Qué construir:**
+1. En `consenso.py`, el número de lecturas que deben aprobar es una constante (`LECTURAS_PARA_APROBAR = 3`); la tercera lectura solo se pide si las dos primeras aprueban (si la segunda ya no aprueba, cero llamadas extra). Cada lectura con su propia versión de caché.
+2. Corrida C nueva (caché frío para la tercera lectura; reusa A y B): mide con `evaluar.py` el motor completo (lectura + `decidir()` + compuertas + consenso de 3).
+3. `test_consenso.py`: una de tres que no aprueba → revisión manual; la tercera no se llama si la segunda no aprueba (se pone roja si la llamas siempre).
+
+**No se toca:** `decidir.py`, `normalizar.py`, `mapa_codigos.json`.
+
+**Prueba de cierre:** pruebas en verde; tabla en el reporte (consenso de 2 · consenso de 3 → aprobadas, falsas, precisión, costo pesimista/optimista, tokens por captura); **0 falsas**. **Para y pregunta** si bajan más de 3 válidas frente al consenso de 2 o si los tokens por captura pasan de 2,600. `entregar --datos salidas/ensayo` sigue dando VALIDACIÓN: OK.
+
+**Entregable:** push + PR + `docs/reportes/I6-tres.md` (12 líneas) y `..\salidas-sp6.zip` con **nombres sin prefijo** (`resultados.json`, `extracciones.json`, `tokens.csv`, `locales.csv`): el visor busca `extracciones.json` junto a `resultados.json`.
+
+Mensaje de commit sugerido: `feat(ml): consenso unánime de tres lecturas para aprobar (I6)`
+
+---
+
+## I5 — Estabilidad: que el 97 % aguante lecturas nuevas [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: carril/integrador-sp3-estable desde origin/main (git switch -c carril/integrador-sp3-estable origin/main; main la tiene ..\repo-docs) · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high (obligatorio)`
 
@@ -367,3 +390,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 11:28 · S003 · I3 devuelto (85.7 %, 8 válidas bajadas, +19 % tokens; Code paró bien) → I3.1 cambia el verificador por compuertas locales medidas: 13/13 = 100 %, costo 96/35.
 - 2026-11-21 11:54 · S003 · I3.1 aprobada y fusionada (#17; sp4 medido 10/10, 99/38) → se escribe I4 (ensayo del set ciego).
 - 2026-11-21 12:10 · S003 · I4 aprobada y fusionada (#20); su hallazgo (92.3 % con lecturas nuevas) es S0 → I5 (temperatura 0 + consenso).
+- 2026-11-21 12:25 · S003 · I5 aprobada y fusionada (#23; consenso de 2, 0 falsas, 103/38) → I6 (3 lecturas unánimes, decisión de Fer).
