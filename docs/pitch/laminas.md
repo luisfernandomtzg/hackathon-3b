@@ -16,6 +16,6 @@
 
 ---
 
-## Lámina 3 — El marcador (18 palabras)
+## Lámina 3 — El marcador (19 palabras)
 
-**100 % precisión en aprobadas (0 falsas), 59 % resuelto sin persona, costo 99/38 puntos y 1,921 tokens por captura.**
+**En las 100 capturas de desarrollo: 100% precisión (0 falsas), 49/100 sin persona, costo 99/38, 1,921 tokens por captura.**
