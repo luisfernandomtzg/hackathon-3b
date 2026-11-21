@@ -1,17 +1,17 @@
 # Misiones — carril PITCH Y SEÑALES LOCALES (Alan)
 
-## ESTADO · 2026-11-21 11:23
-Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 3 · hechas 1 · siguiente **P2**
-Cola: ~~P1~~ → **P2** (puerta local) → P3 (pitch de 3 minutos; antes «P2», se renombró porque el paquete de Alan llama P2 a la puerta)
-siguiente: **P2**
-Última auditoría: P1 → Aprobado con anotaciones ([LEÍDO código; REPORTADO 3 pruebas OK y corrida de las 100] · PR #9 fusionado 10:49)
-Qué cambió por esa auditoría: P2 usa el `locales.csv` de `salidas-sp2.zip` o lo genera con P1
-Reescrituras de este documento: 2
+## ESTADO · 2026-11-21 11:47
+Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 3 · hechas 2 · siguiente **P3**
+Cola: ~~P1~~ ~~P2~~ → **P3** (pitch de 3 minutos)
+siguiente: **P3**
+Última auditoría: P2 → Aprobado con anotaciones ([MEDIDO 11:35: 16 capturas bajo 84/82, 0 aprobadas reales] · PR #14 fusionado; **no se conecta al motor**: margen de 1.5 contra 970141)
+Qué cambió por esa auditoría: cifras provisionales del pitch: 100 % de precisión, costo 99 / 38, 1,921 tokens por captura; se confirman con `salidas-sp4.zip` y el marcador de D3.1
+Reescrituras de este documento: 3
 Siguiente con modelo: el del asistente de Alan · clasificación autónoma
 
 ---
 
-## P2 — Puerta local: qué capturas se pueden resolver sin gastar tokens
+## P2 [HECHA · Aprobado con anotaciones] — Puerta local: qué capturas se pueden resolver sin gastar tokens
 
 `rama: carril/pitch-sp2-puerta · tope: 60 min`
 
@@ -77,3 +77,4 @@ Se escribe completa a las 14:45 con el marcador real. Desde ya, Alan guarda en `
 
 - 2026-11-21 09:55 · S002: creado con P1 (Alan pide tareas de programación) y P2 en espera.
 - 2026-11-21 11:23 · S003 · P1 auditada → se escribe P2 (puerta local, del paquete de Alan); el pitch pasa a P3. Se sube el sello.
+- 2026-11-21 11:47 · S003 · P2 fusionada (#14), no conectada → P3 (pitch). Se sube el sello.

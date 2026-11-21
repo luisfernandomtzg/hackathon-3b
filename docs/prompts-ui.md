@@ -1,17 +1,17 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-21 11:23
-Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 5 · hechas 4 · siguiente **U4**
-Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ → **U4**
-siguiente: **U4**
-Última auditoría: U1 → Aprobado con anotaciones ([MEDIDO 10:44: 100 tarjetas, costo 100 con las decisiones provisionales]) · U2 (#7) y U3 (#10) → Aprobado con anotaciones ([LEÍDO; REPORTADO]; fusionados 10:51)
-Qué cambió por esa auditoría: con v2, las capturas del pitch 645667 y 305088 salen en revisión manual → U4 elige aciertos reales
-Reescrituras de este documento: 6
+## ESTADO · 2026-11-21 11:47
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 5 · hechas 5 · siguiente **NINGUNO**
+Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ → (U5: pitch.html con Tarima, si Fer elige la opción A)
+siguiente: **NINGUNO — BLOQUEADO hasta que Fer decida A/B sobre la pantalla del pitch** (lo libera Fer)
+Última auditoría: U4 → Aprobado con anotaciones ([MEDIDO 11:35: sus 6 candidatas son aciertos con N1+compuertas]; con N2, 763258 y 726347 pasan a revisión → la aprobada del pitch es 434912 o 487774) · PR #13 fusionado
+Qué cambió por esa auditoría: el costo del pitch sale de `evaluar.py`, no del marcador del visor
+Reescrituras de este documento: 7
 Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
 
 ---
 
-## U4 — El pitch con datos reales
+## U4 [HECHA · Aprobado con anotaciones] — El pitch con datos reales
 
 `rama: carril/ui-sp2-pitch-real (solo si cambias código) · tope: 40 min`
 
@@ -112,3 +112,4 @@ Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación re
 - 2026-11-20 20:59 · S001.5: resellado después del merge de U0 (`c366e8d`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · U1, U2 y U3 auditadas y fusionadas → se escribe U4 (pitch con datos reales) y se sube el sello.
+- 2026-11-21 11:47 · S003 · U4 fusionada (#13) → carril en espera de la decisión A/B (pantalla del pitch con Tarima).

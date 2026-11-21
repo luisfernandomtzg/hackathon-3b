@@ -1,17 +1,30 @@
 # Misiones — carril DATOS E IA
 
-## ESTADO · 2026-11-21 11:23
-Carril datos · dueño Sergio (chat web) · misiones 2 · hechas 1 · siguiente **D2**
-Cola: ~~D1~~ → **D2** → D3 (el marcador para el pitch)
-siguiente: **D2**
-Última auditoría: D1 → Aprobado con anotaciones ([REPORTADO 7 pruebas OK; MEDIDO por el arquitecto: líneas base 100/67 coinciden] · PR #11 fusionado 10:50)
-Qué cambió por esa auditoría: D2 usa `salidas-sp2.zip`; la pregunta más valiosa es qué distingue a las 33 capturas de revisión manual
-Reescrituras de este documento: 3
+## ESTADO · 2026-11-21 11:47
+Carril datos · dueño Sergio (chat web) · misiones 4 · hechas 2 · siguiente **D3.1**
+Cola: ~~D1~~ ~~D2~~ ~~D3~~ (hecho · Devuelto → D3.1) → **D3.1**
+siguiente: **D3.1**
+Última auditoría: D2 → Aprobado con anotaciones (PR #15, fusionado) · D3 → Devuelto ([LEÍDO 11:46]: re-decide sin compuertas; tokens mal sumados; 59 % fijo)
+Qué cambió por esa auditoría: se inserta D3.1 en la misma rama
+Reescrituras de este documento: 4
 Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
 
 ---
 
-## D2 — Dónde perdemos puntos, y si un clasificador le gana a las reglas
+## D3.1 — Arreglo del marcador (misma rama `carril/datos-sp3-marcador`, tope 20 min)
+
+**Hallazgo de la auditoría de D3 (PR #18, S1: el jurado lo ve)** `[LEÍDO 11:46 por el arquitecto]`:
+1. `marcador.py` re-decide con `decidir()` y se salta las compuertas de I3.1 (lee `resultados.json` pero no lo usa): da 87.5 % y 118 cuando el motor real da 100 % y 99.
+2. `tokens.csv` tiene varias filas por captura (las de caché valen 0) y el diccionario por `capture_id` se queda con la última: el total puede salir en ceros o a medias.
+3. «(59 %)» está escrito a mano en el texto.
+
+**Qué hacer:** usa las decisiones de `resultados.json` tal cual (sin volver a decidir); suma **todas** las filas de `tokens.csv` cuyo `origen` no termine en `cache`; usa el porcentaje calculado. **Si al leer el código concluyes que el hallazgo es falso, dilo y no toques nada.**
+
+**Prueba de cierre:** con `salidas-sp4.zip`, el marcador dice **10 aprobadas, 0 falsas, 100 %, costo pesimista 99**, y los tokens por captura coinciden con lo que imprime `correr`. Esta prueba se pone roja con el código de hoy (que daría 87.5 %). Push a la misma rama; el PR #18 se actualiza solo.
+
+---
+
+## D2 [HECHA · Aprobado con anotaciones] — Dónde perdemos puntos, y si un clasificador le gana a las reglas
 
 `rama: carril/datos-sp2-analisis · tope: 60 min`
 
@@ -81,3 +94,4 @@ Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, `BLOQUEADO hasta`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · D1 auditada → se escribe D2 con los hechos de v2 y se sube el sello.
+- 2026-11-21 11:47 · S003 · D2 fusionada (#15); D3 (#18) devuelta → D3.1. Se sube el sello.

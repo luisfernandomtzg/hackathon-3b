@@ -1,17 +1,31 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 11:23
-Carril nucleo · dueño Mauski (chat web) · misiones 2 · hechas 1 · siguiente **N2**
-Cola: ~~N1~~ → **N2** → N3 (códigos oficiales y tipo de precio)
-siguiente: **N2**
-Última auditoría: N1 → Aprobado con anotaciones ([MEDIDO 10:44: 14 pruebas en verde en el contenedor del arquitecto; sobre las 100 lecturas reales v1 aprobó 19, 15 correctas = 79 %] · PR #8 fusionado 10:49)
-Qué cambió por esa auditoría: N2 se calibra con lecturas v2 (`salidas-sp2.zip`) y con los casos medidos de abajo
-Reescrituras de este documento: 3
+## ESTADO · 2026-11-21 11:47
+Carril nucleo · dueño Mauski (chat web) · misiones 3 · hechas 2 · siguiente **N3**
+Cola: ~~N1~~ ~~N2~~ → **N3** (códigos oficiales, tipo de precio y explicación)
+siguiente: **N3**
+Última auditoría: N2 → Aprobado con anotaciones ([MEDIDO 11:40: con sus dos cambios sobre lecturas v2, 11/11 = 100 %, 103/36; con compuertas, 10/10, 99/38] · PR #16 fusionado 11:41)
+Qué cambió por esa auditoría: las compuertas de I3.1 quedan como segundo candado; N3 no las duplica
+Reescrituras de este documento: 4
 Siguiente con modelo: el del asistente de Mauski · clasificación autónoma
 
 ---
 
-## N2 — Calibrar `decidir()` contra las lecturas reales
+## N3 — Códigos oficiales, tipo de precio y explicación
+
+`rama: carril/nucleo-sp3-codigos · tope: 40 min`
+
+1. `ml/validat3b/mapa_codigos.json`: diccionario `{"CODIGO_PROVISIONAL": "CODIGO_OFICIAL"}` con los 11 códigos del contrato mapeados a sí mismos. Cuando el comité libere la lista oficial (15:00–16:00) solo se edita este archivo. Incluye en `test_decidir.py` una prueba de que todo código que emite `decidir()` es llave del mapa.
+2. **Precio y tipo de precio** (cuenta en el 15 % de calidad): si la etiqueta trae `otros_precios`, `precio_detectado` es el precio unitario **vigente** que leyó el modelo; si `tipo_precio` es `oferta` o `volumen`, dilo en la `explicacion` («Precio de oferta $24; regular $28»). Si hay dos precios y no se sabe cuál aplica → `revision_manual`.
+3. Repasa las 12 `explicacion`: una frase, en español, que cite lo leído y lo esperado. Sin tecnicismos: la va a leer un analista de precios.
+
+**Prueba de cierre:** pruebas en verde y `calibrar` sin cambios de costo a peor.
+
+**Hechos nuevos** (`[MEDIDO 11:40 por el arquitecto]`): con tu N2 + las compuertas de Fer (I3.1, en `main` desde 11:49) el motor da **10 aprobadas, 10 correctas, 100 %, costo 99 / 38**. Después de `decidir()` corre `compuerta.py` (de Fer): código de barras que no coincide → revisión manual, y aprobada con nitidez de etiqueta < 100 → revisión. **No lo dupliques en `decidir.py`.** Las compuertas emiten `reason_code=None`: el mapa de códigos no necesita entrada para ellas. Usa `python -m ml.validat3b.correr --desde-extracciones salidas/extracciones.json ...` para medir sin gastar tokens (llega en `salidas-sp4.zip`).
+
+---
+
+## N2 [HECHA · Aprobado con anotaciones] — Calibrar `decidir()` contra las lecturas reales
 
 `rama: carril/nucleo-sp2-calibrar · tope: 60 min`
 
@@ -149,3 +163,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, `BLOQUEADO hasta`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · N1 auditada (79 % sobre lecturas reales v1) → se escribe N2 con los hechos de v2 y se sube el sello.
+- 2026-11-21 11:47 · S003 · N2 auditada y fusionada (#16) → se escribe N3 y se sube el sello.
