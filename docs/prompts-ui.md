@@ -1,17 +1,17 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-21 12:47
-Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 7 · hechas 6 · siguiente **U5.1**
-Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ ~~U5~~ → **U5.1**
-siguiente: **U5.1**
-Última auditoría: U5 → Aprobado con anotaciones ([MEDIDO 12:43: pitch.html con sp6 a 1920×1080, 4 láminas, 0 peticiones de red, sin logotipo; tokens 1,927 por llamada en vez de 2,390 por captura] · PR #26 fusionado 12:44 → 92603b8)
-Qué cambió por esa auditoría: U5.1 corrige tokens y reordena el marcador (decisión de Fer 12:46: abrir con 0 falsas y 50 sin persona; costo como rango pesimista/optimista)
-Reescrituras de este documento: 9
-Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
+## ESTADO · 2026-11-21 13:15
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 7 · hechas 7 · siguiente **NINGUNO**
+Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ ~~U5~~ ~~U5.1~~
+siguiente: **NINGUNO — congelado; Mau ensaya la demo** (`--pitch CAP-434912,CAP-563575,CAP-350077` con `salidas-sp8.zip`)
+Última auditoría: U5.1 → Aprobado con anotaciones ([MEDIDO 13:11 por el arquitecto con sp8 a 1920×1080: lámina 1 = 0 · 50 de 100 · 104/39 contra 100/67 · 2,390; aprobada sin rojo, 800 g, $23.50; rechazada CAP-563575 CAPTURA_LEJANA; 0 peticiones de red] · PR #31 fusionado → 1e2dd6b). S2: consola Next.js y 4 módulos del visor fuera de alcance, no van en la demo; «220.0 g» / «121.0 gramo» en la explicación
+Qué cambió por esa auditoría: la rechazada del pitch pasa de CAP-748989 (lejana real que N4 codifica como DESCRIPCION_INCOMPLETA) a CAP-563575
+Reescrituras de este documento: 10
+Siguiente con modelo: —
 
 ---
 
-## U5.1 — Marcador honesto en `pitch.html` (arreglo de U5)
+## U5.1 [HECHA · Aprobado con anotaciones] — Marcador honesto en `pitch.html` (arreglo de U5)
 
 `rama: carril/ui-sp3-marcador desde main fresco (aa85b57 o posterior) · tope: 25 min · clasificación: requiere pantalla · cifras: salidas-sp6.zip · decisión de Fer 12:46`
 
@@ -166,3 +166,4 @@ Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación re
 - 2026-11-21 11:47 · S003 · U4 fusionada (#13) → carril en espera de la decisión A/B (pantalla del pitch con Tarima).
 - 2026-11-21 11:54 · S003 · Fer elige A → U5 (pantalla del pitch con Tarima). Se sube el sello.
 - 2026-11-21 12:47 · S004 · U5 auditada y fusionada (#26 → 92603b8; el PR traía un force-push a 1efb827 que se verificó después del merge: mismos blobs). Se escribe U5.1 con la decisión de Fer (12:46) y se sube el sello.
+- 2026-11-21 13:15 · S004 · U5.1 aprobada y fusionada (#31 → 1e2dd6b). Carril congelado.

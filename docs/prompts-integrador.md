@@ -1,18 +1,18 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 12:58
-Carril integrador · dueño Fer (Claude Code) · misiones 11 · hechas 9 · siguiente **I8**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ → **I8** (repetir I7 con N5)
-siguiente: **I8**
-Última auditoría: I7 → Aprobado ([MEDIDO 12:56 por el arquitecto sobre salidas-sp7.zip: 0 decisiones distintas, mismas 10 aprobadas, códigos idénticos a la re-decisión con N4, 8 motivos correctos, tokens.csv = sp6] · PR #30 fusionado 12:57 → 4bf23de)
-Qué cambió por esa auditoría: I7 corrió antes de N5 (#29, fusionada 12:56): las explicaciones de la regla 7 en sp7 siguen diciendo «no coincide». I8 repite I7 sobre main con N5 para que la rechazada del pitch diga «No se distingue con claridad…»
-Reescrituras de este documento: 14
-Siguiente con modelo: Sonnet 5.5 · esfuerzo low (recomendado) · clasificación autónoma
-Main: 4bf23de [MEDIDO 12:57 en GitHub]
+## ESTADO · 2026-11-21 13:15
+Carril integrador · dueño Fer (Claude Code) · misiones 11 · hechas 11 · siguiente **NINGUNO**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~
+siguiente: **NINGUNO — motor congelado; salidas-sp8.zip es el zip final de desarrollo.** La corrida del set ciego (15:00) se escribe en S005
+Última auditoría: I8 → Aprobado ([MEDIDO 13:03 por el arquitecto sobre salidas-sp8.zip: 0 decisiones y 0 códigos distintos de sp7, 23 explicaciones de la regla 7 idénticas a la re-decisión con N5, tokens.csv = sp6, 100/100 válidos] · PR #32 fusionado → 8a7ed01)
+Qué cambió por esa auditoría: nada
+Reescrituras de este documento: 15
+Siguiente con modelo: —
+Main: 1e2dd6b [MEDIDO 13:15 en la terminal de Fer]
 
 ---
 
-## I8 — Repetir I7 sobre main con N5 (explicaciones nuevas), desde caché
+## I8 [HECHA · Aprobado] — Repetir I7 sobre main con N5 (explicaciones nuevas), desde caché
 
 `carril: integrador · rama: carril/integrador-sp3-n5 desde origin/main (git fetch origin && git switch -c carril/integrador-sp3-n5 origin/main) · cuelga de 4bf23de · tope: 10 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: low`
 
@@ -449,3 +449,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 12:25 · S003 · I5 aprobada y fusionada (#23; consenso de 2, 0 falsas, 103/38) → I6 (3 lecturas unánimes, decisión de Fer).
 - 2026-11-21 12:51 · S004 · I6 ya estaba fusionada (#25); se tacha. N4 y U5 fusionadas → I7 (regenerar desde caché con los códigos de N4; `--desde-extracciones` no sirve, medido). Se sube el sello.
 - 2026-11-21 12:58 · S004 · I7 aprobada y fusionada (#30 → 4bf23de; sp7 medido). N5 entró después → I8 repite el procedimiento con las explicaciones nuevas. Se sube el sello.
+- 2026-11-21 13:15 · S004 · I8 aprobada y fusionada (#32). Motor congelado.

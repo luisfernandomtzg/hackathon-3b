@@ -1,17 +1,17 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 13:01
-Carril nucleo · dueño Mauski (chat web) · misiones 6 · hechas 5 · siguiente **N6**
-Cola: ~~N1~~ ~~N2~~ ~~N3~~ ~~N4~~ ~~N5~~ → **N6** (dejar listo el cambio a la lista oficial de reason_code)
-siguiente: **N6**
-Última auditoría: N5 → Aprobado ([MEDIDO 12:55: 70 pruebas en verde; test_20 sale roja con el texto viejo; 0 decisiones y 0 códigos distintos en las 100] · PR #29 fusionado 12:56)
-Qué cambió por esa auditoría: nada en el motor. Lo que sigue en Núcleo es el cambio de 15:00–16:00: el comité publica la lista oficial de reason_code y hay que mapearla en minutos
-Reescrituras de este documento: 7
-Siguiente con modelo: el del asistente de Mauski · clasificación autónoma (docs) · a las 15:00, requiere compuerta (el mapa lo aprueba Fer)
+## ESTADO · 2026-11-21 13:15
+Carril nucleo · dueño Mauski (chat web) · misiones 6 · hechas 6 · siguiente **NINGUNO**
+Cola: ~~N1~~ ~~N2~~ ~~N3~~ ~~N4~~ ~~N5~~ ~~N6~~ (parte de 15:00 pendiente)
+siguiente: **NINGUNO — BLOQUEADO hasta que el comité publique la lista oficial de reason_code (15:00–16:00)** (la libera Fer al pegarla; entonces Mauski llena `docs/entrega/codigos.md` y edita `mapa_codigos.json`, PR que aprueba Fer)
+Última auditoría: N6 → Aprobado ([LEÍDO 13:11: solo docs; decidir.py y mapa idénticos a main; 11 códigos con su regla] · PR #33 fusionado → 96fa65f). Conteos en sp8 [MEDIDO 13:11]: CAPTURA_LEJANA 21 · DESCRIPCION_INCOMPLETA 17 · PRODUCTO_NO_COINCIDE 12 (revisión) · ETIQUETA_NO_CORRESPONDE 6 (revisión) · CAPTURA_BORROSA 1 · SIN_ETIQUETA_PRECIO 1 · resto 0
+Qué cambió por esa auditoría: nada en el motor
+Reescrituras de este documento: 8
+Siguiente con modelo: el del asistente de Mauski · requiere compuerta
 
 ---
 
-## N6 — Dejar listo el cambio a la lista oficial de `reason_code`
+## N6 [HECHA (parte 1) · Aprobado] — Dejar listo el cambio a la lista oficial de `reason_code`
 
 `rama: carril/nucleo-sp3-codigos-oficiales desde main fresco (f39f48a o posterior) · tope: 20 min ahora + 10 min a las 15:00 · clasificación: autónoma ahora; requiere compuerta a las 15:00`
 
@@ -223,3 +223,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 12:26 · S003 · N3 fusionada (#19) → N4 (reason_code de las rechazadas; quitar traducir). Se sube el sello.
 - 2026-11-21 12:48 · S004 · N4 auditada y fusionada (#27 → aa85b57; decisiones idénticas, motivo 2/22 → 8/22) → N5 (explicación de la regla 7). Se sube el sello.
 - 2026-11-21 13:01 · S004 · N5 aprobada y fusionada (#29) → N6 (preparar el mapa a la lista oficial de reason_code de las 15:00). Se sube el sello.
+- 2026-11-21 13:15 · S004 · N6 aprobada y fusionada (#33). Carril bloqueado hasta la lista oficial.
