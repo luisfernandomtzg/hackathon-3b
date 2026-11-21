@@ -1,4 +1,4 @@
-"""PROVISIONAL (Integrador): todo a revisión manual. Núcleo lo reemplaza en N1."""
+"""PROVISIONAL (Integrador): todo a revisión manual. Núcleo entrega decidir.py en N1 y correr.py lo prefiere."""
 from .contrato import RC_SIN_LECTURA, Captura, Extraccion, Resultado, Validaciones
 
 

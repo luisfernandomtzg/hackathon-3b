@@ -71,7 +71,7 @@ class Cliente:
         ultimo = None
         for intento in range(5):
             try:
-                r = api.messages.create(model=MODELO, max_tokens=max_tokens,
+                r = api.messages.create(model=MODELO, max_tokens=max_tokens, thinking={"type": "disabled"},
                                         messages=[{"role": "user", "content": contenido}])
                 texto = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
                 t_in, t_out = r.usage.input_tokens, r.usage.output_tokens

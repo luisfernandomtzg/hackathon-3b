@@ -9,7 +9,10 @@ from pathlib import Path
 from .cargar import cargar_capturas
 from .cliente import Cliente
 from .contrato import RC_SIN_LECTURA, Captura, Extraccion, Resultado, Validaciones
-from .decidir import decidir
+try:
+    from .decidir import decidir
+except ImportError:  # Núcleo aún no entrega decidir.py
+    from .decidir_provisional import decidir
 from .extraer import extraer, sin_modelo
 
 COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda_fachada", "producto",
