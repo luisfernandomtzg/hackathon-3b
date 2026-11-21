@@ -1,17 +1,37 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 12:48
-Carril nucleo · dueño Mauski (chat web) · misiones 5 · hechas 4 · siguiente **N5**
-Cola: ~~N1~~ ~~N2~~ ~~N3~~ ~~N4~~ → **N5** (explicación de la regla 7)
-siguiente: **N5**
-Última auditoría: N4 → Aprobado con anotaciones ([MEDIDO 12:41: re-decidido sobre las extracciones de sp6, decisiones idénticas a main; motivo correcto en rechazadas 2/22 → 8/22; 69 pruebas en verde] · PR #27 fusionado 12:45 → aa85b57)
-Qué cambió por esa auditoría: N5 alinea la explicación de la regla 7 con su código nuevo. La nitidez local NO separa las borrosas (medido: borrosas con 88–483 de nitidez de producto, lejanas con 152–2181), así que no se agrega regla de BORROSA
-Reescrituras de este documento: 6
-Siguiente con modelo: el del asistente de Mauski · clasificación autónoma
+## ESTADO · 2026-11-21 13:01
+Carril nucleo · dueño Mauski (chat web) · misiones 6 · hechas 5 · siguiente **N6**
+Cola: ~~N1~~ ~~N2~~ ~~N3~~ ~~N4~~ ~~N5~~ → **N6** (dejar listo el cambio a la lista oficial de reason_code)
+siguiente: **N6**
+Última auditoría: N5 → Aprobado ([MEDIDO 12:55: 70 pruebas en verde; test_20 sale roja con el texto viejo; 0 decisiones y 0 códigos distintos en las 100] · PR #29 fusionado 12:56)
+Qué cambió por esa auditoría: nada en el motor. Lo que sigue en Núcleo es el cambio de 15:00–16:00: el comité publica la lista oficial de reason_code y hay que mapearla en minutos
+Reescrituras de este documento: 7
+Siguiente con modelo: el del asistente de Mauski · clasificación autónoma (docs) · a las 15:00, requiere compuerta (el mapa lo aprueba Fer)
 
 ---
 
-## N5 — Que la explicación de la regla 7 diga lo mismo que su código
+## N6 — Dejar listo el cambio a la lista oficial de `reason_code`
+
+`rama: carril/nucleo-sp3-codigos-oficiales desde main fresco (f39f48a o posterior) · tope: 20 min ahora + 10 min a las 15:00 · clasificación: autónoma ahora; requiere compuerta a las 15:00`
+
+**Por qué:** entre 15:00 y 16:00 el comité publica la **lista oficial de `reason_code`** junto con el set ciego (comité, 09:50). La entrega aplica `ml/validat3b/mapa_codigos.json` (`entregar` lo carga si existe). Ese mapa se cambia en esa hora y con el reloj encima. Lo que se pueda decidir antes, se decide ahora.
+
+**Hechos que no puedes ver** `[LEÍDO decidir.py y mapa_codigos.json en main, 13:00]`: el motor emite 11 códigos internos: `CAPTURA_BORROSA`, `CAPTURA_LEJANA`, `DESCRIPCION_INCOMPLETA`, `PRODUCTO_NO_COINCIDE`, `PRODUCTO_NO_VISIBLE`, `FOTO_DE_PANTALLA`, `SIN_ETIQUETA_PRECIO`, `ETIQUETA_NO_CORRESPONDE`, `PRECIO_FUERA_DE_RANGO`, `FACHADA_INCORRECTA`, `SIN_LECTURA`. Hoy el mapa los deja iguales (identidad). `reason_code` es `null` en aprobadas y en revisión manual. Los motivos reales del set de desarrollo son solo tres: lejanas 18, borrosas 11, descripción incompleta 5.
+
+**Qué construir ahora (solo documentación):** `docs/entrega/codigos.md`, una página con una tabla de los 11 códigos: **qué regla de `decidir.py` (o `compuerta.py`) lo emite** · **qué significa en palabras de 3B** · **cuántas veces sale en sp7** (si no lo puedes medir, escribe «sin medir») · **con qué código oficial probable se empata** (columna vacía, para las 15:00). Abajo: el procedimiento de 15:00 en 4 pasos (editar el mapa, correr la prueba de `entregar`, PR, avisar a Fer). Agrega la regla: **un código oficial que no tenga equivalente claro va al más cercano y se anota; nunca se inventa uno que no esté en la lista**.
+
+**A las 15:00 (con la lista en mano):** llenas la columna, editas `mapa_codigos.json` (solo los valores) y abres un PR. Fer lo aprueba antes de correr el set ciego.
+
+**No se toca ahora:** código, `mapa_codigos.json`, reglas.
+
+**Prueba de cierre ahora:** la tabla tiene los 11 códigos y cada uno nombra la regla que lo emite; `git diff --stat` muestra solo `docs/`. PR + reporte `docs/reportes/N6-codigos.md` (≤ 8 líneas).
+
+**Commit sugerido:** `docs: tabla de reason_code internos y procedimiento para la lista oficial (N6)`
+
+---
+
+## N5 [HECHA · Aprobado] — Que la explicación de la regla 7 diga lo mismo que su código
 
 `rama: carril/nucleo-sp3-explicacion desde main fresco (aa85b57 o posterior) · tope: 15 min · clasificación: autónoma · solo ml/validat3b/decidir.py y test_decidir.py`
 
@@ -202,3 +222,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 11:47 · S003 · N2 auditada y fusionada (#16) → se escribe N3 y se sube el sello.
 - 2026-11-21 12:26 · S003 · N3 fusionada (#19) → N4 (reason_code de las rechazadas; quitar traducir). Se sube el sello.
 - 2026-11-21 12:48 · S004 · N4 auditada y fusionada (#27 → aa85b57; decisiones idénticas, motivo 2/22 → 8/22) → N5 (explicación de la regla 7). Se sube el sello.
+- 2026-11-21 13:01 · S004 · N5 aprobada y fusionada (#29) → N6 (preparar el mapa a la lista oficial de reason_code de las 15:00). Se sube el sello.
