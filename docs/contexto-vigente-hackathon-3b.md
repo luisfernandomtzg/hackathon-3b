@@ -1,9 +1,26 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 12:36 · cierre de S003** · siguiente **S004 (sprint 3)**.
+> Última actualización: **2026-11-21 13:20 · S004 (relevo adelantado; se confirma a las 14:30)** · siguiente **S005 (set ciego, entrega y pitch)**.
 
-## 🟢 Relevo para S004 — escrito al cerrar S003 (2026-11-21 12:36)
+## 🟢 Relevo para S005 — escrito en S004 (2026-11-21 13:20; se confirma al congelar, 14:30)
+
+**Abre con `S005 3B. Lee el prompt inicial`** → instrucciones del proyecto → `PROMPT-APERTURA-S003.md` (vale para S005 cambiando el número) → este relevo. Lo de abajo es historia.
+
+- **Regla de sesiones (Fer, 10:33 · rige todo el día):** **una sesión de claude.ai por sprint del equipo, no por tarea.** La sesión audita e integra las entregas de ese sprint y escribe la misión siguiente de Fer; cuando el sprint cierra se cierra con el **protocolo completo** de §4: relevo aquí (carpeta `documentacion/` + `repo/docs/` + copia del proyecto, verificado por contenido), `ESTADO` de cada carril tocado, bloque de git flanqueado por `git status --short` y la línea «Abre S00N+1 con: `S00N+1 3B. Lee el prompt inicial`». Mapa: S004 = sprint 3 (congelar 14:30) · S005 = set ciego, entrega y pitch (15:00–17:00). **Todo relevo nuevo copia esta regla tal cual.**
+- **Fase:** F3 cerrándose → F4/F5. Motor **congelado**. Reto 2 · Validat3B, Python local en `ml/validat3b/`; demo = `pitch.html` en la laptop de Fer, sin internet.
+- **`main` = `8d1fd10`** `[MEDIDO 13:18 en la terminal de Fer]` (encima: #31 U5.1 → `1e2dd6b`, #33 N6, #32 I8, #30 I7, #29 N5, #28 P3.2, #27 N4, #26 U5). Árbol de `repo-docs` limpio.
+- **Zip final de desarrollo: `..\salidas-sp8.zip`** `[MEDIDO 13:03 por el arquitecto]`: 10 aprobadas · 0 falsas · 100 % · costo **104 / 39** contra **100 / 67** de revisar todo · **50 de 100 sin persona** · **2,390 tokens por captura** (238,959 de 124 llamadas reales ÷ 100; criterio oficial del equipo, confirmado a Sergio 13:15) · JSON válido 100/100 · motivo correcto en 8 de 22 rechazadas correctas (antes 2; N4). Conteo de códigos: CAPTURA_LEJANA 21 · DESCRIPCION_INCOMPLETA 17 · PRODUCTO_NO_COINCIDE 12 (rev.) · ETIQUETA_NO_CORRESPONDE 6 (rev.) · CAPTURA_BORROSA 1 · SIN_ETIQUETA_PRECIO 1.
+- **Pitch:** `pitch.html` con `--pitch CAP-434912,CAP-563575,CAP-350077` y sp8 `[MEDIDO 13:11, 1920×1080]`: lámina 1 = **0 falsas · 50 de 100 · 104/39 contra 100/67 · 2,390** (decisión de Fer 12:46). La rechazada es **CAP-563575** (Jalapeños La Costeña en Bara, `CAPTURA_LEJANA`); CAP-748989 ya no se usa (lejana real que N4 codifica como incompleta). Guion de Alan fusionado (#28) con 104/39 y 2,390; **falta** que cambie la rechazada a 563575. La consola Next.js y los 4 módulos nuevos del visor (U5.1, fuera de alcance) **no van en la demo**.
+- **Carriles:** Integrador ~~I1–I8~~ NINGUNO · Núcleo ~~N1–N6~~ **BLOQUEADO hasta la lista oficial de reason_code** (Mauski llena `docs/entrega/codigos.md` y edita `mapa_codigos.json`; PR que aprueba Fer **antes** de correr el set ciego) · UI ~~U0–U5.1~~ congelado (Mau maneja la demo y graba el video de respaldo) · Datos cerrado (Sergio cuida cifras) · Pitch: Alan ensaya.
+- **Set ciego (15:00–16:00), lo corren Fer y Mauski:** (1) pegar en S005 cómo llegó (carpeta, nombres, si trae etiquetas) y la lista oficial de `reason_code`; (2) PR del mapa de Mauski; (3) `.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta> --salida entrega/ [--reanudar]` (I4; ensayado 100/100 VALIDACIÓN OK; 100 capturas ≈ 70–90 s más las lecturas del consenso); (4) revisar `entrega/resumen.txt` y entregar por el canal que diga el comité. **Esto sí llama al endpoint**: tokens reales.
+- **Riesgo vivo (S0 si ocurre):** el endpoint no acepta `temperature`; una lejana se cuela en ~1 de 8 con consenso de 3. Con ~10 aprobadas, una falsa = 91 % y descalifica. No hay señal local para lejanas.
+- **Lecciones de S004:** `correr --desde-extracciones` **no sirve** con consenso (sin cliente baja las 10 aprobadas a revisión): se regenera desde el caché del cliente (`salidas/G/cache`, ya copiado en `salidas/sp7/cache` y `sp8/cache`). El chat audita PR con `git -C repo worktree add ..\audit-<x> origin/<rama>` y leyendo la carpeta; Chrome se desconectó a las 13:03 y no volvió. Antes de fusionar un PR, mirar si hubo force-push (pasó con #26).
+- **Pendiente:** cifras dichas por Sergio en el chat corregidas (eran del desarrollo, no del set ciego; el pitch es a las 17:00, no a las 15:00) · commit `e84d3cf` de Sergio en `carril/datos-sp3-marcador` fuera de `main` (se le pidió PR nuevo solo si hace falta) · costo real de la revisión manual (Alan al comité).
+- **No verificado:** el 100 % de precisión sobre el set ciego · costo de revisión manual real · tamaño y formato del set ciego · puntaje de Rival 3B · que el guion ya diga 563575 · el video de respaldo.
+- **Primera acción de S005:** acuse §4 · `git log --oneline -3` en `repo-docs` · pedir el set ciego y la lista oficial con la plantilla de arriba · auditar el PR del mapa de Mauski · escribir **I9** (correr el set ciego con `entregar`) en `prompts-integrador.md` con sello y orden para el Code de Fer · auditar `entrega/` (100 % JSON válido, conteo de decisiones, ninguna aprobada sin consenso) · F4/F5: video de respaldo, capturas, tres ensayos.
+
+## Relevo para S004 (histórico) — escrito al cerrar S003 (2026-11-21 12:36)
 
 **Abre con `S004 3B. Lee el prompt inicial`** → instrucciones del proyecto → `PROMPT-APERTURA-S003.md` (vale para S004 cambiando el número) → este relevo. Lo de abajo es historia.
 
