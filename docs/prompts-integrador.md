@@ -1,17 +1,49 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 12:25
-Carril integrador · dueño Fer (Claude Code) · misiones 9 · hechas 7 · siguiente **I6**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ → **I6** (consenso unánime de 3)
-siguiente: **I6**
-Última auditoría: I5 → Aprobado con anotaciones ([REPORTADO por Code 12:22; MEDIDO por el arquitecto sobre salidas-sp5.zip: 11 aprobadas, 0 falsas, costo 103/38] · PR #23 fusionado 12:24). temperature no la acepta el endpoint (400)
-Qué cambió por esa auditoría: 489454 (lejana) se aprueba en una de cada dos lecturas: con 2 lecturas unánimes se cuela ~1 de cada 4; Fer decide (12:24) subir a 3 lecturas unánimes
-Reescrituras de este documento: 12
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
+## ESTADO · 2026-11-21 12:51
+Carril integrador · dueño Fer (Claude Code) · misiones 10 · hechas 8 · siguiente **I7**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ → **I7** (regenerar con los códigos de N4, desde caché)
+siguiente: **I7**
+Última auditoría: I6 → Aprobado con anotaciones ([MEDIDO 12:35 por el arquitecto sobre salidas-sp6.zip: 10 aprobadas, 0 falsas, 104/39, 2,390 tokens por captura] · PR #25 fusionado). Después: N4 (#27 → aa85b57) y U5 (#26) fusionadas en S004
+Qué cambió por esa auditoría: N4 cambia los reason_code de las rechazadas (2/22 → 8/22 correctos) sin cambiar decisiones; hay que regenerar el zip final. **`correr --desde-extracciones` NO sirve**: sin cliente el consenso no puede pedir las lecturas 2 y 3 y manda las 10 aprobadas a revisión [MEDIDO 12:41]
+Reescrituras de este documento: 13
+Siguiente con modelo: Sonnet 5.5 · esfuerzo medium (recomendado) · clasificación autónoma
+Main: 074ad38 [MEDIDO 12:50 en la terminal de Fer]
 
 ---
 
-## I6 — Consenso unánime de tres lecturas para aprobar
+## I7 — Regenerar el zip final con los códigos de N4, desde caché (0 tokens)
+
+`carril: integrador · rama: carril/integrador-sp3-codigos desde origin/main (git fetch origin && git switch -c carril/integrador-sp3-codigos origin/main; main la tiene ..\repo-docs) · cuelga de 074ad38 [MEDIDO 12:50] · tope: 20 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: medium`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con **sello `12:51`**; `git log --oneline -1 origin/main` debe ser `074ad38` o posterior. Si ya está hecho, dilo y no lo toques.
+
+**Por qué:** N4 (ya en `main`) corrige el `reason_code` de las rechazadas (calidad del dato, 15 %) sin cambiar decisiones. El zip que vale para el pitch y el visor (`salidas-sp6.zip`) trae los códigos viejos. Hay que regenerarlo **sin gastar tokens**, desde el caché del cliente.
+
+**Hechos que no puedes ver:**
+- `[MEDIDO 12:41 por el arquitecto]` `correr --desde-extracciones salidas/sp6/extracciones.json` re-decide sin cliente: el consenso no puede pedir las lecturas 2 y 3 y **baja las 10 aprobadas a revisión**. **No lo uses para esto.**
+- `[LEÍDO cliente.py]` El caché vive en `<carpeta de --salida>/cache/` y su llave depende de la versión del prompt + variante (`-b`, `-c`) + imágenes. `salidas/sp6/` **no tiene** `cache/` `[MEDIDO 12:50 en disco]`; las lecturas de I4/I5/I6 están en el `cache/` de la carpeta que usó la corrida C de I6 (revísalo en tu historial o busca cuál de `salidas/{A,B,F,G,ensayo,corte,...}/cache/` o `salidas/cache/` tiene llaves de las tres variantes).
+- `[MEDIDO 12:41]` Con las extracciones de sp6 y `decidir()` de N4: decisiones **idénticas** a sp6; motivo correcto en 8 de 22 rechazadas correctas (antes 2).
+
+**Qué hacer:**
+1. Identifica la carpeta de caché con las lecturas de sp6. Copia esa carpeta `cache/` a `salidas/sp7/cache/` (copia, no muevas).
+2. Corre el motor normal (con cliente, `--hilos 4`) con `--salida salidas/sp7/resultados.json` sobre `datos/privado`.
+3. **Para y pregunta** si `tokens.csv` de sp7 registra alguna fila `origen == "modelo"`, o sea, una llamada nueva (corta con Ctrl+C a la primera: el caché no está completo). Esperado: 0 tokens nuevos.
+4. Compara contra `salidas/sp6/resultados.json`: mismas 100 decisiones, mismas 10 aprobadas (por `capture_id`), 0 falsas, costo 104/39; cuántos `reason_code` cambian; motivo correcto en rechazadas correctas (esperado 8/22). **Para y pregunta** si cambia una sola decisión.
+5. Para que el visor y el marcador sigan dando 2,390 tokens por captura, `tokens.csv` de sp7 tiene que ser **el de sp6** (las 124 llamadas reales), no el de esta corrida desde caché, que sale con 0: cópialo y dilo en el reporte.
+6. `..\salidas-sp7.zip` con `resultados.json`, `extracciones.json`, `locales.csv` y `tokens.csv` (sin prefijos, sin `cache/`).
+
+**No se toca:** código (nada en `ml/`), `datos/`. Esta misión no cambia archivos versionados salvo el reporte.
+
+**Prueba de cierre:** tabla en el reporte, sp6 contra sp7 (aprobadas · falsas · precisión · costo pesimista/optimista · `reason_code` correctos en rechazadas · tokens nuevos de la corrida) con **decisiones idénticas, 0 tokens nuevos, 8/22**. `python -m ml.validat3b.evaluar` sobre sp7: JSON válido 100/100.
+
+**Entregable:** push + PR (solo el reporte) + `docs/reportes/I7-codigos.md` (12 líneas, con «no hecho / simulado» y la carpeta de caché que usaste) + `..\salidas-sp7.zip`.
+
+Mensaje de commit sugerido: `docs: I7 zip final con reason_code de N4 desde caché`
+
+---
+
+## I6 [HECHA · Aprobado con anotaciones] — Consenso unánime de tres lecturas para aprobar
 
 `carril: integrador · rama: carril/integrador-sp3-tres desde origin/main (git switch -c carril/integrador-sp3-tres origin/main) · tope: 25 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
 
@@ -391,3 +423,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 11:54 · S003 · I3.1 aprobada y fusionada (#17; sp4 medido 10/10, 99/38) → se escribe I4 (ensayo del set ciego).
 - 2026-11-21 12:10 · S003 · I4 aprobada y fusionada (#20); su hallazgo (92.3 % con lecturas nuevas) es S0 → I5 (temperatura 0 + consenso).
 - 2026-11-21 12:25 · S003 · I5 aprobada y fusionada (#23; consenso de 2, 0 falsas, 103/38) → I6 (3 lecturas unánimes, decisión de Fer).
+- 2026-11-21 12:51 · S004 · I6 ya estaba fusionada (#25); se tacha. N4 y U5 fusionadas → I7 (regenerar desde caché con los códigos de N4; `--desde-extracciones` no sirve, medido). Se sube el sello.
