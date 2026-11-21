@@ -1,33 +1,37 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 13:41
-Carril integrador · dueño Fer (Claude Code) · misiones 14 · hechas 11 · siguiente **I9**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~ → **I9** → I10 → I11
-siguiente: **I9**
-Última auditoría: I8 → Aprobado (PR #32 fusionado → 8a7ed01). S005: el arquitecto escribió la regla 7a en `decidir.py` (N7) directamente en el árbol de `..\repo-docs` por instrucción de Fer (13:39, «te dejo el proyecto en tus manos»); sp9 [MEDIDO 13:38 con `evaluar`]: 10 aprobadas · 0 falsas · 92/35 · JSON 100/100
-Qué cambió por esa auditoría: I9 verifica sp9 por el camino oficial (caché + `correr`) y regenera pitch y zip; I10 mide el consenso de 5; I11 es el set ciego
-Reescrituras de este documento: 16
-Siguiente con modelo: Sonnet 5.5 · esfuerzo low (recomendado) · clasificación autónoma
-Main: bb81810 (merge del PR #34 de Mau) [MEDIDO 13:34 en GitHub] + el commit de N7 que hace Fer con el bloque de git de S005
+## ESTADO · 2026-11-21 14:46
+Carril integrador · dueño Fer (Claude Code) · misiones 14 · hechas 12 · siguiente **I11**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~ ~~I9~~ ~~I10~~ (descartada) → **I11**
+siguiente: **I11** — BLOQUEADA hasta que Fer pegue en el chat cómo llegó el set ciego y la lista oficial de reason_code (15:00–16:00); el arquitecto ajusta `mapa_codigos.json` y sube el sello
+Última auditoría: sp11–sp13 (fuera de cola, corridas de Code) → Aprobado ([MEDIDO 14:44 por el arquitecto: `salidas/sp13/pitch.html` en navegador, 0 falsas · 16 aprobadas · 55 de 100 · 84/27 · 3,192 tokens] · `main` = `e44e52e`)
+Qué cambió por esa auditoría: motor final = lectura v3 + N8; `APROBAR_REDACCION_DISTINTA = True` (decisión de Fer 14:45, recomendada por el arquitecto); I10 (consenso de 5) descartada
+Reescrituras de este documento: 17
+Siguiente con modelo: Sonnet 5.5 · esfuerzo medium (recomendado) · clasificación requiere compuerta
+Main: e44e52e [MEDIDO 14:43 en la terminal de Fer]
 
 ---
 
 ## I11 — Correr el set ciego y dejar la entrega validada
 
-`carril: integrador · rama: carril/integrador-sp4-ciego desde origin/main · tope: 30 min · clasificación: requiere compuerta (BLOQUEADA hasta que Fer pegue el set ciego y la lista oficial de reason_code, 15:00–16:00) · modelo: Sonnet 5.5 · esfuerzo: medium`
+`carril: integrador · trabaja en repo\ sobre carril/integrador-sp4-etiqueta con origin/main fusionado (debe incluir e44e52e) · tope: 30 min · clasificación: requiere compuerta (BLOQUEADA hasta 15:00) · modelo: Sonnet 5.5 · esfuerzo: medium`
 
-**Primer paso.** `CLAUDE.md` §Disparador; acuse con el sello vigente. **No corre** sin que Fer diga dónde quedó descomprimido el set ciego y sin que el PR del mapa de códigos de Mauski (`mapa_codigos.json`) esté fusionado. **Esto llama al endpoint: tokens reales.**
+**Primer paso.** `git fetch origin && git merge origin/main`; `ml/validat3b/extraer.py` debe decir `PROMPT_VERSION = "v3"` y `ml/validat3b/decidir.py` debe contener `APROBAR_REDACCION_DISTINTA = True` y «5b. (S005)». Si no, **para**. **Esto llama al endpoint: tokens reales** (~3,200 por captura; 100 capturas ≈ 320 mil tokens, ≈ 2–4 min con 4 hilos).
+
+**Hechos que no puedes ver:**
+- `[MEDIDO sp13]` en desarrollo: 16 aprobadas · 0 falsas · 84/27 · JSON 100/100. El set ciego **no** trae `decision_esperada`: no hay forma de medir precisión; solo forma.
+- `[LEÍDO entregar.py]` localiza `capturas.csv`/`.json` e imágenes aunque cambien de nombre o carpeta, manda a `revision_manual`/`SIN_LECTURA` lo que no tenga fotos y valida un resultado por `capture_id`.
 
 **Qué hacer:**
-1. `.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta del set ciego> --salida entrega/` (si se corta: el mismo comando con `--reanudar`).
-2. Lee `entrega/resumen.txt` y pégalo completo en el reporte.
-3. **Para y pregunta** si: JSON válido < 100 %, alguna captura sin fila, más de 5 % en `SIN_LECTURA`, o más de 25 % de aprobadas (en desarrollo fueron 10 %: un salto así es señal de que algo cambió en los datos).
+1. `.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta del set ciego> --salida entrega/` (si se corta: el mismo comando con `--reanudar`; lo ya leído sale del caché).
+2. Pega `entrega/resumen.txt` completo en tu respuesta.
+3. **Para y pregunta** si: VALIDACIÓN no dice OK · alguna captura sin resultado · más de 5 % en `SIN_LECTURA` o «Error al procesar» · más de 25 % de aprobadas (en desarrollo fue 16 %) · algún `reason_code` fuera de la lista oficial.
 
-**No se toca:** `decidir.py`, `consenso.py`, `compuerta.py`, el prompt de `extraer.py`. Nada de «ajustar» con el set ciego a la vista.
+**No se toca:** `decidir.py`, `consenso.py`, `compuerta.py`, `extraer.py`. Nada de ajustar reglas con el set ciego a la vista.
 
-**Prueba de cierre:** `entrega/resumen.txt` dice VALIDACIÓN OK; una fila por `capture_id` del CSV del set ciego; conteo de decisiones y de `reason_code` (todos de la lista oficial) en el reporte.
+**Prueba de cierre:** VALIDACIÓN OK; una fila por `capture_id` del CSV del set ciego; conteo de decisiones y de `reason_code` en la respuesta.
 
-**Entregable:** `entrega/` lista para el canal del comité + `docs/reportes/I11-ciego.md` (≤ 12 líneas, sin datos de 3B). **El contenido de `entrega/` no se commitea.**
+**Entregable:** `entrega/resultados.json` listo para el canal del comité + `docs/reportes/I11-ciego.md` (≤ 12 líneas, sin datos de 3B). **El contenido de `entrega/` no se commitea.**
 
 ---
 
@@ -518,3 +522,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 12:58 · S004 · I7 aprobada y fusionada (#30 → 4bf23de; sp7 medido). N5 entró después → I8 repite el procedimiento con las explicaciones nuevas. Se sube el sello.
 - 2026-11-21 13:15 · S004 · I8 aprobada y fusionada (#32). Motor congelado.
 - 2026-11-21 13:41 · S005 · sin auditoría de carril: el arquitecto escribe N7 (regla 7a: contenido que explica el catálogo → revisión; sp9 medido 92/35, 10/0) y fusiona el PR #34 de Mau (bb81810). Se escriben I9 (verificar sp9 y regenerar pitch), I10 (consenso de 5, aprobada por Fer 13:39) e I11 (set ciego, bloqueada hasta las 15:00). Se sube el sello.
+- 2026-11-21 14:46 · S005 · sp11–sp13 medidos (lectura v3 + N8: 16/0, 84/27, 3,192 tokens); I9 hecha, I10 descartada; I11 reescrita para el motor final y bloqueada hasta el set ciego. Se sube el sello.
