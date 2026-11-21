@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from .contrato import Captura, Extraccion, Resultado
-from .extraer import _jpeg
+from .extraer import _jpeg, resolver_imagen
 
 VERIFICAR_VERSION = "verificar-v1"
 LADO = 1024          # si una llamada pasa de TOPE_TOKENS de entrada, baja a LADO_ALTERNO
@@ -51,11 +51,11 @@ def _parsear(texto: str) -> tuple[bool, str]:
 def verificar(captura: Captura, ext: Extraccion, dir_datos, cliente) -> tuple[bool, str]:
     """Una llamada. Nunca lanza: error -> (False, motivo)."""
     try:
-        base = Path(dir_datos) / "imagenes"
         prompt = _prompt(captura, ext)
         version = VERIFICAR_VERSION + "-" + hashlib.sha1(prompt.encode()).hexdigest()[:8]
         for lado in (LADO, LADO_ALTERNO):
-            imgs = [_jpeg(base / captura.product_file, lado), _jpeg(base / captura.shelf_file, lado)]
+            imgs = [_jpeg(resolver_imagen(dir_datos, captura.product_file), lado),
+                    _jpeg(resolver_imagen(dir_datos, captura.shelf_file), lado)]
             texto, t_in, _, _ = cliente.consultar(captura.capture_id, version, prompt, imgs,
                                                   max_tokens=200, etiqueta="verificar")
             if t_in <= TOPE_TOKENS:

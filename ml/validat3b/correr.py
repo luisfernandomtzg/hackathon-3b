@@ -22,6 +22,16 @@ COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda
             "codigo_barras", "evidencia_precio", "precio_detectado", "codigo_barras_detectado", "explicacion"]
 
 
+def escribir_csv(resultados: list[dict], ruta) -> None:
+    with open(ruta, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=COLUMNAS)
+        w.writeheader()
+        for r in resultados:
+            fila = {k: r.get(k) for k in COLUMNAS}
+            fila.update(r["validaciones"])
+            w.writerow(fila)
+
+
 def _respaldo(captura: Captura, motivo: str) -> Resultado:
     return Resultado(capture_id=captura.capture_id, decision="revision_manual", confidence_score=0.0,
                      reason_code=RC_SIN_LECTURA, validaciones=Validaciones(),
@@ -70,6 +80,7 @@ def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--datos", required=True)
     p.add_argument("--salida", required=True)
+    p.add_argument("--metadatos", help="capturas.csv/json o su carpeta (por omisión se busca dentro de --datos)")
     p.add_argument("--limite", type=int)
     p.add_argument("--sin-modelo", action="store_true")
     p.add_argument("--hilos", type=int, default=4)
@@ -84,7 +95,7 @@ def main(argv=None):
     salida.parent.mkdir(parents=True, exist_ok=True)
     mapa = json.loads(Path(a.mapa_codigos).read_text(encoding="utf-8")) if a.mapa_codigos else {}
 
-    capturas = cargar_capturas(datos / "metadatos")
+    capturas = cargar_capturas(a.metadatos or datos)
     if a.limite:
         capturas = capturas[: a.limite]
     if a.desde_extracciones:
@@ -95,8 +106,13 @@ def main(argv=None):
         pares = [redecidir(c, guardadas[c.capture_id], datos, cliente, a.verificar) for c in capturas]
     else:
         cliente = None if a.sin_modelo else Cliente(salida.parent)
-        with ThreadPoolExecutor(max_workers=max(1, a.hilos)) as ex:
+        ex = ThreadPoolExecutor(max_workers=max(1, a.hilos))
+        try:
             pares = list(ex.map(lambda c: procesar(c, datos, cliente, not a.sin_modelo, a.verificar), capturas))
+        except KeyboardInterrupt:  # corte limpio: lo ya llamado queda en el caché para reanudar
+            ex.shutdown(wait=False, cancel_futures=True)
+            raise
+        ex.shutdown()
 
     cli = cliente
     tok_verif = getattr(cli, "tokens_verificar", 0)
@@ -113,13 +129,7 @@ def main(argv=None):
     salida.write_text(json.dumps(resultados, ensure_ascii=False, indent=2), encoding="utf-8")
     (salida.parent / "extracciones.json").write_text(json.dumps(extracciones, ensure_ascii=False, indent=2),
                                                      encoding="utf-8")
-    with open(salida.with_suffix(".csv"), "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNAS)
-        w.writeheader()
-        for r in resultados:
-            fila = {k: r.get(k) for k in COLUMNAS}
-            fila.update(r["validaciones"])
-            w.writerow(fila)
+    escribir_csv(resultados, salida.with_suffix(".csv"))
 
     tok = (0 if a.desde_extracciones else sum(e["tokens_entrada"] + e["tokens_salida"] for e in extracciones)) + tok_verif
     n = len(capturas)
