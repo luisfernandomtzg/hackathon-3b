@@ -17,6 +17,7 @@ from .extraer import extraer, sin_modelo
 from .local import senales_locales
 from .compuerta import compuerta
 from .consenso import aplicar_consenso
+from .fachada import aplicar_fachada
 from .verificar import aplicar_verificacion
 
 COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda_fachada", "producto",
@@ -50,6 +51,7 @@ def _cerrar(captura, ext, res, dir_datos, cliente, verificar):
     """decidir() -> compuertas locales -> consenso con 2ª lectura (solo aprobadas) -> verificador solo con --verificar."""
     res = compuerta(res, ext.senales, captura.capture_barcode)
     res = aplicar_consenso(captura, ext, res, dir_datos, cliente, decidir)  # 2ª lectura solo a las aprobadas
+    res = aplicar_fachada(captura, res, dir_datos, cliente)  # la cadena del letrero, solo a las que siguen aprobadas
     return aplicar_verificacion(captura, ext, res, dir_datos, cliente) if verificar else res
 
 
