@@ -1,17 +1,57 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 11:07
-Carril integrador · dueño Fer (Claude Code) · misiones 5 · hechas 4 · siguiente **I3**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ → **I3** → I4 (se escribe con I3 + N2)
-siguiente: **I3**
-Última auditoría: I2 → Aprobado con anotaciones ([MEDIDO 11:05 por el arquitecto sobre salidas-sp2.zip: decidir() de N1 sobre lecturas v2 → aprobó 16, 14 correctas = 87.5 %; 1,921 tokens por captura; coincide con el reporte] · PR #12 fusionado 11:06 por el chat; `main` = `e492dbf` [MEDIDO en GitHub])
-Qué cambió por esa auditoría: v2 detecta 6 de 18 lejanas y no daña las válidas, pero 489454 y 241497 siguen «cercano» y legibles → el prompt único ya no da más; I3 agrega una segunda mirada solo a las que van a salir aprobadas. S2: salida +~120 tokens por captura (campos nuevos); el cambio de llave de caché por hash del prompt fue fuera de misión, aceptado
-Reescrituras de este documento: 8
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
+## ESTADO · 2026-11-21 11:28
+Carril integrador · dueño Fer (Claude Code) · misiones 6 · hechas 4 · siguiente **I3.1**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (hecho · Devuelto → I3.1) → **I3.1** → I4 (se escribe con I3.1 + N2)
+siguiente: **I3.1**
+Última auditoría: I3 → Devuelto ([REPORTADO por Code 11:26, rama carril/integrador-sp2-verificar @ 52c0762, sin PR]: con verificador aprobó 7, 6 correctas = 85.7 %; bajó 8 válidas (tope 5); +19 % de tokens (tope 15 %); 206200 sigue aprobada. Code paró como pedía la misión)
+Qué cambió por esa auditoría: [MEDIDO 11:27 por el arquitecto sobre salidas-sp2.zip] dos compuertas locales sin tokens después de decidir() dan 13 aprobadas, 13 correctas (100 %) y costo 96 / 35 → I3.1 cambia el verificador por esas compuertas
+Reescrituras de este documento: 9
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (obligatorio: arreglo de una misión devuelta) · clasificación autónoma
 
 ---
 
-## I3 — Verificador de aprobadas: segunda mirada solo a lo que va a salir «aprobada»
+## I3.1 — Arreglo de I3: compuertas locales de aprobación (sin tokens) en lugar del verificador
+
+`carril: integrador · rama: la misma, carril/integrador-sp2-verificar (cuelga de 52c0762 [REPORTADO por Code 11:26]; rebasa sobre origin/main) · tope: 25 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high (obligatorio)`
+
+**Primer paso.** `CLAUDE.md` §Disparador: `git fetch origin`, quédate en `carril/integrador-sp2-verificar`, `git rebase origin/main` (trae solo docs), `-Estado -Carril integrador`, relee este ESTADO, acuse con **sello `11:28`**. Si al leer el código concluyes que el hallazgo es falso, dilo y no toques nada.
+
+**Hallazgo textual de la auditoría de I3** (`[REPORTADO por Code 11:26]`): el verificador aprobó 7 (6 correctas, 85.7 %), bajó 8 válidas (726347, 847838, 170513, 621992, 275838 entre ellas), sumó ~358 tokens por captura (+19 %) y **no bajó CAP-206200**. No cumple la prueba de cierre de I3.
+
+**Hechos que no puedes ver** (`[MEDIDO 11:27 por el arquitecto: decidir() de N1 sobre salidas-sp2.zip + locales.csv + capturas.csv]`)
+- **CAP-206200**: el lector local leyó el código **0401013049343** y no coincide con `capture_barcode` 7501791626163.
+- En las 100, «código leído y **no** coincide» (`senales["codigo_coincide"] is False`) aparece en: revisión manual 9 · aprobada 2 · rechazada 2. Es la señal más fuerte que tenemos de `revision_manual`.
+- **CAP-410562** (falsa, borrosa): nitidez local de etiqueta 99. Entre las aprobadas correctas, solo 970141 (83) queda debajo de 100.
+- Resultado medido de cada variante (aprobadas · correctas · precisión · costo pesimista / optimista):
+  - decidir() tal cual: 16 · 14 · 87.5 % · 118 / 52
+  - A) aprobada y código no coincide → revisión: 15 · 14 · 93.3 % · 109 / 42
+  - B) A + aprobada con nitidez de etiqueta < 100 → revisión: **13 · 13 · 100 % · 101 / 34**
+  - C) B + **cualquier** captura con código no coincide → revisión: **13 · 13 · 100 % · 96 / 35** ← la que se implementa
+
+**Qué construir**
+1. `ml/validat3b/compuerta.py` con `compuerta(resultado, senales) -> Resultado`, pura y con constantes arriba (`UMBRAL_NITIDEZ_ETIQUETA = 100.0`, con comentario «fijado con las 100 de desarrollo, 21-nov 11:27»):
+   - si `senales.get("codigo_coincide") is False` → `revision_manual`, `reason_code=None`, `confidence_score=0.5`, la explicación añade «El código de barras de la foto (<leído>) no coincide con el registrado (<esperado>).»;
+   - si no, y el resultado es `aprobada` y `nitidez_etiqueta` es `None` o < umbral → `revision_manual`, con la explicación «La etiqueta no se ve con nitidez suficiente para aprobar.»;
+   - en otro caso, el resultado sin cambios. Nunca convierte nada en `aprobada`.
+2. En `correr.procesar`: `compuerta()` va después de `decidir()`. El **verificador queda en el código pero apagado**: solo corre con la bandera `--verificar`; por omisión, cero llamadas extra.
+3. `test_compuerta.py`: los tres casos, más `senales={}` (sin señales) con una aprobada → revisión. La prueba de «código no coincide» se pone roja si quitas la compuerta de `correr`.
+
+**No se toca:** `decidir.py` y las demás de otros carriles; el contrato.
+
+**Prueba de cierre:**
+1. Todas las pruebas en verde (`test_decidir`, `test_local`, `test_evaluar`, `test_verificar`, `test_compuerta`).
+2. `correr --desde-extracciones salidas/extracciones.json` (cero tokens: compruébalo en `tokens.csv`) y `evaluar` → deben salir **13 aprobadas, 13 correctas, 100 %, costo 96 / 35**. Si sale otra cosa, para y muestra la diferencia.
+3. La prueba de cierre de I2 sigue pasando: `--desde-extracciones` es reproducible.
+4. `git status --short` sin `datos/` ni `salidas/`.
+
+**Entregable:** push de la misma rama + PR + `docs/reportes/I3.1-compuerta.md` (12 líneas, al final y de una vez; incluye la tabla del verificador de I3 como antecedente), y `salidas-sp3.zip` (resultados, extracciones, tokens, locales; sin `cache/`), que se saca del repo con `Move-Item` después de compartirlo.
+
+Mensaje de commit sugerido: `feat(ml): compuertas locales de aprobación y verificador apagado por omisión (I3.1)`
+
+---
+
+## I3 — Verificador de aprobadas: segunda mirada solo a lo que va a salir «aprobada» [hecho · Devuelto → I3.1]
 
 `carril: integrador · rama: carril/integrador-sp2-verificar desde main fresco · cuelga de: e492dbf [MEDIDO 11:06 en GitHub: merge del PR #12] · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
 
@@ -270,3 +310,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 10:34 · S002: auditoría de I1 (PR #6) → Aprobado con anotaciones; fusionado; carril bloqueado hasta I2 (S003).
 - 2026-11-21 10:52 · S003 · auditoría del sprint 1 (N1 medido sobre las 100 lecturas reales: 79 % de precisión) → se escribe I2 (lectura v2, contrato v1.1, señales locales en la tubería, re-decisión sin tokens) y se quita el BLOQUEADO.
 - 2026-11-21 11:07 · S003 · auditoría de I2 (PR #12, 87.5 % medido por el arquitecto sobre salidas-sp2.zip) → se escribe I3 (verificador de aprobadas).
+- 2026-11-21 11:28 · S003 · I3 devuelto (85.7 %, 8 válidas bajadas, +19 % tokens; Code paró bien) → I3.1 cambia el verificador por compuertas locales medidas: 13/13 = 100 %, costo 96/35.
