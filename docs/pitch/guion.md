@@ -19,7 +19,7 @@ Construimos **Validat3B** bajo un principio estricto: **el modelo lee, las regla
 
 Veamos tres capturas reales del lote de hoy:
 
-1. **Aprobada (`CAP-434912`, Detergente Precissimo ochocientos gramos):** el modelo lee a ciegas marca, descripción, contenido neto y precio, y qué tan cerca y nítido sale el letrero; solo aprueba si tres lecturas independientes coinciden. Todo coincide y se aprueba con cero puntos de costo.
+1. **Aprobada (`CAP-434912`, Detergente Precissimo ochocientos gramos):** el modelo lee a ciegas marca, descripción, contenido neto y precio, y qué tan cerca y nítido sale el letrero; solo aprueba si tres lecturas independientes coinciden y la fachada no contradice la cadena registrada. Todo coincide y se aprueba con cero puntos de costo.
 2. **Rechazada (`CAP-489454`, Leche entera Valley Foods en Soriana):** la foto del producto es impecable, pero el letrero de precio ocupa apenas doce por ciento de la foto. Las reglas la rechazan como `CAPTURA_LEJANA` y dicen por qué.
 3. **Revisión manual (`CAP-350077`, Arroz SOS mil gramos en Walmart):** ante discrepancia parcial, varios precios o nitidez baja, nuestra compuerta local bloquea la aprobación. Aprobar una inválida cuesta diez puntos y descalifica debajo de noventa y siete por ciento; revisar cuesta uno. Ante la duda, nunca aprobamos.
 
