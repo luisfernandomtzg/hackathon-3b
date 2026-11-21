@@ -1,0 +1,136 @@
+﻿id_product,product_name,product_barcode,product_price,min_product_price,max_product_price,unit_product,unit_quantity_product,product_group,product_line
+4,Frijol refrito bayo,7501017004270,17.0,7.7,31.0,gramo,580.0,(04) Canned,(03) Frijol
+6,Jabón de lavandería rosa 400g,7501026005671,24.0,5.0,55.5,gramo,400.0,(13) Cleaning,(01) Jabon Ropa
+7,Leche  evaporada,7501058611062,22.0,4.0,64.5,mililitro,360.0,(30) Lacti Deli NR,(03) Leches enlatadas
+9,Mayonesa regular,7501003340139,60.0,6.0,163.0,gramo,390.0,(01) SauSpi,(05) Mayonesa
+12,Aceite mixto,75002343,43.0,17.5,135.0,mililitro,1000.0,(20) Oils,(02) Mixto
+21,Detergente multiusos,7501026004605,37.0,2.8,225.0,gramo,1000.0,(13) Cleaning,(09) Detergente Multiusos
+22,Formula lactea UHT,7501020540666,19.0,9.0,91.0,mililitro,1000.0,(30) Lacti Deli NR,(02) Leches
+58,Lavatrastes liquido limon Salvo,7506339323474,61.0,15.0,95.0,mililitro,1200.0,(13) Cleaning,(02) Lavatrastes liquido
+100,Arroz super extra,7501791638623,14.0,9.0,74.0,gramo,900.0,(02) Seeds,(03) Arroz
+108,Chocolate en polvo,7501059296305,47.0,12.6,80.0,gramo,357.0,(05) Breakfast,(07) Modificadores
+114,Postre natilla chocolate,75030896,11.0,3.71,36.0,gramo,100.0,(10) Lacti Deli,(07) Postres Refrigerados
+126,Yogurt bebible fresa,7501032395933,42.0,2.94,42.0,gramo,90.0,(10) Lacti Deli,(06) Yoghurt
+258,Leche condensada,7501200486005,25.0,7.0,38.9,gramo,380.0,(30) Lacti Deli NR,(03) Leches enlatadas
+268,Lavatrastes liquido limon,7509546073651,69.5,40.14,103.0,mililitro,1400.0,(13) Cleaning,(02) Lavatrastes liquido
+449,Frijol refrito bayo,7501052420172,15.0,9.81,35.0,gramo,430.0,(04) Canned,(03) Frijol
+515,Cafe clasico,7501058620101,115.0,54.0,159.0,gramo,120.0,(05) Breakfast,(04) Cafe
+569,Insecticida domestico,7501021121161,83.9,36.9,108.0,mililitro,480.0,(14) General M,(07) Insect Aroma
+623,Rajas de chiles jalapeños 115g (total: 210g),7501791668873,11.0,5.0,35.0,gramo,115.0,(04) Canned,(02) Chiles
+684,Frijol pinto,7501791619851,20.0,13.77,69.0,gramo,900.0,(02) Seeds,(02) Frijol
+940,Refresco de manzana,7506233805861,10.0,4.95,10.0,mililitro,600.0,(07) Beverages,(06) Refrescos
+966,Alimento lacteo en Polvo,7501058644824,69.0,21.9,165.0,gramo,460.0,(33) Dairy Products,(06) Leches
+1016,Leche entera UHT,7506233804437,19.0,7.5,31.5,mililitro,1000.0,(33) Dairy Products,(06) Leches
+1020,Refresco Toronja,7506233805342,23.0,8.91,47.0,mililitro,3000.0,(07) Beverages,(06) Refrescos
+1050,Salsa Tipo Inglesa,7501791629409,48.0,30.51,50.0,mililitro,250.0,(01) SauSpi,(04) Salsas
+1100,Sardinas en salsa de tomate 240g (total: 425g),7501791657013,15.0,11.0,48.0,gramo,240.0,(04) Canned,(07) Sardina
+1103,Refresco sabor Naranja,7506233805335,23.0,8.91,24.0,mililitro,3000.0,(07) Beverages,(06) Refrescos
+1122,Suavizante para telas,7501025414153,26.0,17.91,26.0,mililitro,850.0,(13) Cleaning,(04) Suavizantes
+1253,Café soluble regular 50g,7501791623476,27.0,13.05,79.0,gramo,50.0,(05) Breakfast,(04) Cafe
+1286,Blanqueador gel,7501025405151,18.0,13.41,41.5,mililitro,950.0,(13) Cleaning,(06) Blanqueadores
+1318,Pasta spaghetti,7501018310943,17.0,5.0,76.5,gramo,450.0,(17) Pasta Soup,(01) Pastas
+1568,Chile en polvo 160g,7501791641630,24.0,14.31,30.0,gramo,160.0,(01) SauSpi,(02) Especias
+1877,Galletas mexicanas,7501008703441,18.5,5.85,27.0,gramo,135.0,(21) Cookies,(02) Dulces
+1892,Limpiador multi lavanda Fabuloso,7501035905344,56.0,19.0,68.88,mililitro,2000.0,(13) Cleaning,(03) Limpiadores
+2196,Chocolate para mesa Aurrera,7501791626163,92.0,5.0,132.0,gramo,540.0,(05) Breakfast,(07) Modificadores
+2440,Nescafe clasico,7501000912803,50.0,22.32,50.0,gramo,42.0,(05) Breakfast,(04) Cafe
+2692,Sopa habanero,41789001864,27.0,0.0,135.0,gramo,64.0,(17) Pasta Soup,(02) Instantaneas
+2750,Rebanadas de piña en almíbar 480g (total: 800g),7501791614047,59.0,0.0,76.0,gramo,480.0,(04) Canned,(05) Almibares
+2850,Atún en aceite 90g (total: 130g),7506495004064,14.0,0.0,31.0,gramo,90.0,(04) Canned,(01) Atun
+2854,Atún en agua 90g (total: 130g),7506495004057,11.0,0.0,31.0,gramo,90.0,(04) Canned,(01) Atun
+2941,Shampoo,7500435105651,34.0,0.0,58.0,mililitro,150.0,(11) Personal Care,(05) Shampoo
+2980,Insectisida domestico,7501021110257,68.5,0.0,89.0,gramo,372.0,(14) General M,(99) Varios
+2989,Leche condensada La Lechera,7506475104722,24.0,0.0,161.25,gramo,375.0,(30) Lacti Deli NR,(03) Leches enlatadas
+3095,Sal yodada fluorada grano grueso,7501118392108,18.0,0.0,22.0,gramo,1000.0,(01) SauSpi,(08) Sal
+3234,Jabon barra rosa,7501026005985,7.0,0.0,26.5,gramo,100.0,(13) Cleaning,(01) Jabon Ropa
+3440,Sal yodada fluorada,7501008813805,20.0,0.0,27.2,gramo,1000.0,(01) SauSpi,(08) Sal
+3870,Insecticida Casa y Jardin,7501032907570,72.0,0.0,124.9,mililitro,400.0,(14) General M,(07) Insect Aroma
+4205,Polvo para preparar gelatina sabor fresa,7506233808435,10.0,0.0,40.0,gramo,120.0,(16) Desserts,(02) Gelatinas
+4439,Aceite Mixto,7501039122099,39.0,0.0,54.88,mililitro,850.0,(20) Oils,(02) Mixto
+5050,Detergente en polvo multiusos,7506233808589,24.0,0.0,87.0,gramo,1000.0,(13) Cleaning,(08) Detergente Polvo
+5055,Arena para gato,763331024755,14.0,0.0,28.0,gramo,2000.0,(29) Pets,(04) Accesorios
+5187,Azucar morena 900g,661440001462,28.0,0.0,1622.0,gramo,900.0,(27) Sugar,(01) Estandar
+5395,Aceite vegetal comestible,7501253677436,29.0,0.0,39.0,mililitro,800.0,(20) Oils,(02) Mixto
+5535,Insecticida control total,7501032905347,61.5,0.0,128.0,mililitro,400.0,(14) General M,(07) Insect Aroma
+5676,Refresco toronja squirt,7501071120183,19.1,0.0,20.5,mililitro,600.0,(07) Beverages,(06) Refrescos
+5853,Aceite comestible puro de soya,7506495010874,32.0,0.0,106.0,mililitro,800.0,(20) Oils,(01) Soya
+5927,Suavizante Floral,7500435196253,28.0,0.0,334.0,mililitro,700.0,(13) Cleaning,(04) Suavizantes
+6043,Avena en hojuela,7501253612536,25.0,0.0,66.5,gramo,1000.0,(05) Breakfast,(08) Cereales
+6340,Leche en polvo Nutri Rindes,7501058611420,60.0,0.0,110.0,gramo,460.0,(33) Dairy Products,(06) Leches
+6987,Fibra Esponja,7501008811771,19.9,0.0,20.9,pieza,1.0,(14) General M,(06) Articulos Limpieza
+7163,Alimento humedo gato salmon,7501072209849,11.0,0.0,15.4,gramo,85.0,(29) Pets,(02) Alimento Humedo
+7631,Harina para hot cakes 1000g,7500093538730,35.9,0.0,57.9,gramo,1000.0,(03) Flour,(07) Harina de Hot Cakes
+7775,Leche entera,7501020547047,38.0,0.0,38.0,mililitro,1800.0,(30) Lacti Deli NR,(02) Leches
+7990,jugo durazno jumex,7501013103144,9.0,0.0,10.0,mililitro,200.0,(07) Beverages,(05) Jugos y Nectares
+8219,Jabon neutro Balance,7509546075013,21.0,0.0,31.0,gramo,100.0,(13) Cleaning,(01) Jabon Ropa
+8924,Frijoles Refritos Peruanos,7501071308581,15.0,0.0,19.5,gramo,430.0,(04) Canned,(01) Atun
+9164,Alimento seco para perro adulto,7503012418069,25.0,0.0,38.0,gramo,1000.0,(29) Pets,(01) Alimento Seco
+9971,Chiles Jalapenos Picados,7501017005765,19.0,0.0,19.0,gramo,121.0,(04) Canned,(02) Chiles
+10463,Blanqueador multiusos con cloro,7506233809531,10.0,0.0,55.0,mililitro,1000.0,(13) Cleaning,(06) Blanqueadores
+10595,Blanqueador multiusos con cloro,7506233809548,33.0,0.0,52.0,mililitro,4000.0,(13) Cleaning,(06) Blanqueadores
+10881,Suavizante de Telas Princesa Soleada Primavera,7502251522858,22.0,0.0,22.0,mililitro,750.0,(13) Cleaning,(04) Suavizantes
+11243,Toallitas húmedas basic,7506233810865,13.0,0.0,20.5,pieza,80.0,(06) Baby,(04) Limpieza Bebes
+11697,Cloro Precissimo,7500525502148,39.5,0.0,69.9,mililitro,3800.0,(13) Cleaning,(06) Blanqueadores
+12029,Azúcar estándar,7501253681693,20.0,0.0,50.0,gramo,900.0,(27) Sugar,(01) Estandar
+12041,Leche condensada La Lechera,401004582316,24.0,0.0,150.0,gramo,375.0,(30) Lacti Deli NR,(03) Leches enlatadas
+12093,Leche Entera,7500525499844,23.5,0.0,146.0,mililitro,1000.0,(33) Dairy Products,(06) Leches
+13401,Producto lacteo combinado con grasa vegetal 1000ml,7500525497482,19.9,0.0,27.5,mililitro,1000.0,(33) Dairy Products,(06) Leches
+13929,Cloro,7500525502155,12.3,0.0,41.5,mililitro,950.0,(13) Cleaning,(06) Blanqueadores
+13998,Frijol negro 908g,7500525496515,19.2,0.0,67.5,gramo,908.0,(02) Seeds,(02) Frijol
+14011,Frijol pinto,7500525494726,19.9,0.0,51.9,gramo,908.0,(02) Seeds,(02) Frijol
+14013,Detergente líquido de ropa,7500525502209,49.9,0.0,69.9,mililitro,2000.0,(13) Cleaning,(07) Detergente Liquido
+14189,Producto lácteo combinado condensado,7500525491053,22.9,0.0,37.5,gramo,380.0,(30) Lacti Deli NR,(03) Leches enlatadas
+14278,Leche evaporada,7500525491060,20.0,0.0,26.5,mililitro,378.0,(30) Lacti Deli NR,(03) Leches enlatadas
+14311,Limpiador multiusos,7500525502308,16.0,0.0,48.9,mililitro,1000.0,(13) Cleaning,(03) Limpiadores
+14651,Suavizante de telas,7500525502476,26.9,0.0,28.9,mililitro,900.0,(13) Cleaning,(04) Suavizantes
+14680,Pan Integral,7500810022061,58.0,0.0,68.0,gramo,620.0,(05) Breakfast,(01) Pan Comercial
+15289,Leche deslactosada,7501020565911,29.0,0.0,47.0,mililitro,1000.0,(30) Lacti Deli NR,(02) Leches
+15294,Flan vainilla,735257003909,12.0,0.0,119.0,gramo,115.0,(16) Desserts,(02) Gelatinas
+15323,Pan para hamburguesa,401010499899,33.0,0.0,52.0,gramo,450.0,(39) Bakery,(01) Pan Comercial
+15819,Sardinas en salsa de tomate,7502294223170,30.0,28.0,32.0,gramo,425.0,(04) Canned,(07) Sardina
+15937,Limpiador con aceite de Pino,7500525502360,25.0,25.0,25.0,mililitro,1000.0,(13) Cleaning,(03) Limpiadores
+16598,Cereal frutiaros,7506495022150,45.0,13.0,123.0,gramo,410.0,(05) Breakfast,(08) Cereales
+16645,Frijoles negros refritos,7501253679577,18.0,7.01,35.0,gramo,400.0,(04) Canned,(03) Frijol
+16891,Cereal de frutas 380g,7501008066386,79.0,29.0,97.9,gramo,380.0,(05) Breakfast,(08) Cereales
+17016,Jabón de lavandería rosa,7500525496416,18.5,13.3,23.5,gramo,350.0,(13) Cleaning,(01) Jabon Ropa
+17127,canela molida,7500525495211,29.5,25.0,29.5,gramo,65.0,(14) General M,(99) Varios
+17162,Frijoles Peruanos Refritos	400g,7501052421193,13.9,11.5,23.9,gramo,400.0,(04) Canned,(03) Frijol
+17264,Chiles chipotles adobados 120g (total: 210g),7501791668897,21.0,9.0,64.0,gramo,120.0,(04) Canned,(02) Chiles
+17420,Gelatina sabor Piña,735257002469,16.0,8.1,16.1,gramo,120.0,(16) Desserts,(02) Gelatinas
+17498,Azucar estandar,661440000052,49.9,19.0,105.0,gramo,2000.0,(27) Sugar,(01) Estandar
+17543,Jabon rosa Rosa Venus,7501026006616,14.0,10.0,19.0,gramo,150.0,(11) Personal Care,(04) Jabones
+17564,Servilletas premium,7501791650311,33.0,21.0,59.0,pieza,250.0,(12) Paper,(02) Servilletas
+17565,Spaguetti pasta de semola de trigo,7501791626293,7.0,4.0,20.0,gramo,200.0,(17) Pasta Soup,(01) Pastas
+17567,Servilletas,7506495005832,33.0,16.0,65.0,pieza,360.0,(12) Paper,(02) Servilletas
+17616,Pasta de moñito,7500525494443,5.3,4.5,6.5,gramo,200.0,(17) Pasta Soup,(01) Pastas
+17621,Jugo de tomate,14800515343,83.5,62.0,83.5,mililitro,1890.0,(07) Beverages,(99) Varios
+17973,Frijol negro,7501791624534,23.0,14.0,41.0,gramo,900.0,(02) Seeds,(02) Frijol
+17983,Leche deslactosada 1000ml,7501055901425,26.0,22.5,71.0,mililitro,1000.0,(30) Lacti Deli NR,(02) Leches
+18001,Frijoles enteros negros 290g,7501017004294,16.0,8.0,32.5,gramo,290.0,(04) Canned,(03) Frijol
+18006,Pure de tomate,7501017005611,7.5,5.0,65.0,gramo,210.0,(01) SauSpi,(03) Pure
+18159,Arroz grano largo super extra 1000g,7501372812565,30.0,21.0,38.5,gramo,1000.0,(02) Seeds,(03) Arroz
+18699,Jamón de pavo virginia,7501040010286,75.9,19.9,168.0,gramo,450.0,(34) Delicatessen,(01) Carnes Frias
+18914,Hojuelas de avena,7506495002459,25.0,23.0,59.0,gramo,1000.0,(05) Breakfast,(08) Cereales
+18919,Arena para gato,7501791664479,26.0,11.0,116.0,gramo,3000.0,(29) Pets,(04) Accesorios
+18923,Blanqueador multiusos con cloro,7506495002695,37.0,17.5,59.0,mililitro,4000.0,(13) Cleaning,(06) Blanqueadores
+19166,Rajas de chiles jalapeños 118g (total: 215g),7502294225358,12.0,10.0,34.0,gramo,118.0,(04) Canned,(02) Chiles
+19223,Sazonador,7501791629393,50.0,27.5,52.0,mililitro,250.0,(01) SauSpi,(04) Salsas
+19969,Chiles chipotles adobados 60g (total: 100g),7500525980977,13.0,9.0,22.9,gramo,60.0,(04) Canned,(02) Chiles
+20073,Mostaza preparada,7501003110305,22.0,16.0,25.0,gramo,220.0,(01) SauSpi,(05) Mayonesa
+20312,Cereal corn flakes,7501008073759,58.0,36.0,101.0,gramo,385.0,(05) Breakfast,(08) Cereales
+20369,Sal con cebolla,7500525495495,33.5,32.5,33.5,gramo,150.0,(01) SauSpi,(02) Especias
+20422,Axion 7 en 1,7509546697468,44.0,36.0,49.0,mililitro,750.0,(13) Cleaning,(02) Lavatrastes liquido
+20976,Huevo blanco 12pz,7503052858009,24.0,24.0,37.0,pieza,12.0,(10) Lacti Deli,(01) Huevo
+21125,Bebida sabor almendra sin lactosa  960g,7501020565775,36.0,36.0,42.0,gramo,960.0,(30) Lacti Deli NR,(02) Leches
+21592,Detergente en polvo para ropa 800g,7506634921283,23.5,18.5,44.9,gramo,800.0,(13) Cleaning,(08) Detergente Polvo
+21736,Jugo sabor arándano 960ml,7501013106893,47.0,38.0,51.0,mililitro,960.0,(07) Beverages,(05) Jugos y Nectares
+21962,Jugo sabor manzana 960ml,7501013104073,42.0,27.0,42.0,mililitro,960.0,(07) Beverages,(05) Jugos y Nectares
+22128,Alimento húmedo sabor carne con arroz 85g,7501072220899,10.0,7.0,13.5,gramo,85.0,(29) Pets,(02) Alimento Humedo
+22678,Toallas higiénicas y protectores diarios 96pz,7501019032172,79.0,45.0,84.0,pieza,96.0,(11) Personal Care,(03) Higiene Fem
+22998,Vinagre blanco,7506233812418,12.0,10.0,45.0,mililitro,1100.0,(01) SauSpi,(06) Vinagres
+23059,Papel higiénico 4R 1000H (4000pz),7506425666249,25.0,25.0,30.0,pieza,4000.0,(12) Paper,(01) Higienico
+23220,Mitades de durazno en almíbar 485g (total: 820g),7506233812524,47.0,40.0,55.0,gramo,485.0,(04) Canned,(05) Almibares
+23257,Leche entera UHT,7502294228021,20.0,7.5,20.0,mililitro,1000.0,(30) Lacti Deli NR,(02) Leches
+23438,Leche deslactosada,7502294228038,20.0,16.0,20.0,mililitro,1000.0,(30) Lacti Deli NR,(02) Leches
+24091,Harina de Maíz,7501253685912,12.5,9.5,23.0,gramo,800.0,(03) Flour,(05) Harina de Maiz
+24490,Pasta para sopa de concha,7502294229837,5.5,5.5,6.5,gramo,200.0,(17) Pasta Soup,(01) Pastas
