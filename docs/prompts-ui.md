@@ -1,17 +1,48 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-21 11:54
-Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 6 · hechas 5 · siguiente **U5**
-Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ → **U5**
-siguiente: **U5**
-Última auditoría: U4 → Aprobado con anotaciones (PR #13 fusionado)
-Qué cambió por esa auditoría: Fer eligió la opción A (11:53): la pantalla del pitch se hace con Tarima
-Reescrituras de este documento: 8
+## ESTADO · 2026-11-21 12:47
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 7 · hechas 6 · siguiente **U5.1**
+Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ ~~U5~~ → **U5.1**
+siguiente: **U5.1**
+Última auditoría: U5 → Aprobado con anotaciones ([MEDIDO 12:43: pitch.html con sp6 a 1920×1080, 4 láminas, 0 peticiones de red, sin logotipo; tokens 1,927 por llamada en vez de 2,390 por captura] · PR #26 fusionado 12:44 → 92603b8)
+Qué cambió por esa auditoría: U5.1 corrige tokens y reordena el marcador (decisión de Fer 12:46: abrir con 0 falsas y 50 sin persona; costo como rango pesimista/optimista)
+Reescrituras de este documento: 9
 Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
 
 ---
 
-## U5 — La pantalla del pitch con Tarima (`pitch.html` y el encabezado del visor)
+## U5.1 — Marcador honesto en `pitch.html` (arreglo de U5)
+
+`rama: carril/ui-sp3-marcador desde main fresco (aa85b57 o posterior) · tope: 25 min · clasificación: requiere pantalla · cifras: salidas-sp6.zip · decisión de Fer 12:46`
+
+**Primer paso:** `git fetch origin && git switch -c carril/ui-sp3-marcador origin/main`; confirma que `git log --oneline -1` es `aa85b57` o posterior. Descomprime **`salidas-sp6.zip`** en `salidas/` (reemplaza lo que haya). Si al leer el código concluyes que un hallazgo es falso, dilo y no toques nada.
+
+**Hallazgos de la auditoría de U5** `[MEDIDO 12:43 por el arquitecto: visor.py de U5 con sp6, Chromium 1920×1080]`:
+1. La lámina 1 dice **1,927 tokens por captura**, pero es el **promedio por llamada**: `tokens.csv` tiene 124 filas `origen == "modelo"` de **100 capturas** (las aprobadas tienen 3 lecturas). Por captura: 212,988 + 25,971 = 238,959 / 100 = **2,390**. Línea ~185 de `visor.py`: `sum(vals) / len(vals)` divide entre filas, no entre `capture_id` únicos. Lo mismo pasa en el respaldo con `extracciones` (~194) y en el «tok/cap» del visor normal (~332).
+2. El pie de esa cifra dice «Una sola llamada a claude-haiku-5-5…» (~692). Ya no es cierto.
+3. «104 vs 100» como cifra principal se lee como que perdemos contra revisar a mano. Fer decidió el orden nuevo (abajo).
+4. En la aprobada CAP-434912, «Producto» sale en rojo (`mismatch`) porque compara texto exacto («…ropa 800g» contra «…ropa»), aunque el motor lo validó (`validaciones.producto == "ok"`). «800.0 gramo» y «$23.5» se ven mal proyectados.
+
+**Qué construir (solo `ml/validat3b/visor.py`):**
+1. **Tokens por captura** = suma de `tokens_entrada + tokens_salida` de las filas `origen == "modelo"` **dividida entre el número de `capture_id` distintos de esas filas** (en los dos caminos: `tokens.csv` y `extracciones`). Con sp6 debe dar **2,390**. El visor normal usa la misma cifra.
+2. **Lámina 1 con cuatro cifras, en este orden**, todas calculadas de `resultados.json` + `capturas.csv` + `tokens.csv`, **nunca escritas a mano**:
+   - **«0 aprobadas falsas»** · línea chica: «10 aprobadas · 100 % de precisión (mínimo oficial 97 %)».
+   - **«50 de 100 sin persona»** · línea chica: «10 aprobadas + 40 rechazadas; 50 van a revisión». (Sin persona = decisión del motor distinta de `revision_manual`.)
+   - **«104 / 39»** · título «Costo operativo (pesimista / optimista)» · línea chica: «contra 100 / 67 de revisar todo a mano». Pesimista = tabla que ya tienes en `COSTO_PESIMISTA`. Optimista = igual, salvo cuando la real es `revision_manual`: rechazar = 0 y revisión = 0 (aprobar sigue en 10). «Revisar todo a mano» = el costo de poner `revision_manual` a las 100, con cada tabla.
+   - **«2,390 tokens por captura»** · línea chica: «Una lectura por captura; tres solo para las que se aprueban».
+   La primera tarjeta lleva el borde verde; las demás, el de la marca. Si caben mejor en 2×2 que en fila a 1920×1080, 2×2.
+3. **Tabla Esperado / Leído:** marca en rojo un campo solo si la validación correspondiente del resultado **no es `ok`** (`producto` → marca, producto y contenido; `evidencia_precio` → precio). Si no hay validaciones, se queda la comparación de texto actual. Formato: contenido como `800 g` / `1 kg` / `500 ml` (sin «.0» ni «gramo»); precio con dos decimales: `$23.50`.
+4. Nada más: no cambies navegación, colores ni láminas 2–4.
+
+**Lo que NO se toca:** nada fuera de `visor.py`; ni `salidas/` ni `datos/` en el commit; nada de logotipo de 3B; sin Google Fonts ni CDN.
+
+**Prueba de cierre (requiere pantalla):** `python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html --pitch CAP-434912,CAP-748989,CAP-350077` con **sp6** → la lámina 1 muestra exactamente **0 · 50 de 100 · 104 / 39 contra 100 / 67 · 2,390**. Para que se vea que la prueba sí detecta el error: si vuelves a dividir entre filas, dice 1,927. En CAP-434912 ninguna fila sale en rojo y se lee `800 g` y `$23.50`. Abre con el wifi apagado. Captura de la lámina 1 y de CAP-434912 en el PR + reporte `docs/reportes/U5.1-marcador.md` (12 líneas, con «no hecho / simulado»).
+
+**Commit sugerido:** `fix(ml): marcador del pitch con tokens por captura, sin persona y costo en rango (U5.1)`
+
+---
+
+## U5 [HECHA · Aprobado con anotaciones → U5.1] — La pantalla del pitch con Tarima (`pitch.html` y el encabezado del visor)
 
 `rama: carril/ui-sp3-tarima desde main fresco · tope: 45 min · clasificación: requiere pantalla · decisión A de Fer (11:53)`
 
@@ -134,3 +165,4 @@ Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación re
 - 2026-11-21 11:23 · S003 · U1, U2 y U3 auditadas y fusionadas → se escribe U4 (pitch con datos reales) y se sube el sello.
 - 2026-11-21 11:47 · S003 · U4 fusionada (#13) → carril en espera de la decisión A/B (pantalla del pitch con Tarima).
 - 2026-11-21 11:54 · S003 · Fer elige A → U5 (pantalla del pitch con Tarima). Se sube el sello.
+- 2026-11-21 12:47 · S004 · U5 auditada y fusionada (#26 → 92603b8; el PR traía un force-push a 1efb827 que se verificó después del merge: mismos blobs). Se escribe U5.1 con la decisión de Fer (12:46) y se sube el sello.

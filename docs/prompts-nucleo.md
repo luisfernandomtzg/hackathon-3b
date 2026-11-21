@@ -1,17 +1,35 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 12:26
-Carril nucleo · dueño Mauski (chat web) · misiones 4 · hechas 3 · siguiente **N4**
-Cola: ~~N1~~ ~~N2~~ ~~N3~~ → **N4** (reason_code de las rechazadas)
-siguiente: **N4**
-Última auditoría: N3 → Aprobado con anotaciones (PR #19 fusionado 12:06; `traducir()` duplica lo que ya hace `correr --mapa-codigos`)
-Qué cambió por esa auditoría: N4 ataca la calidad del dato (15 %) y quita `traducir()`
-Reescrituras de este documento: 5
+## ESTADO · 2026-11-21 12:48
+Carril nucleo · dueño Mauski (chat web) · misiones 5 · hechas 4 · siguiente **N5**
+Cola: ~~N1~~ ~~N2~~ ~~N3~~ ~~N4~~ → **N5** (explicación de la regla 7)
+siguiente: **N5**
+Última auditoría: N4 → Aprobado con anotaciones ([MEDIDO 12:41: re-decidido sobre las extracciones de sp6, decisiones idénticas a main; motivo correcto en rechazadas 2/22 → 8/22; 69 pruebas en verde] · PR #27 fusionado 12:45 → aa85b57)
+Qué cambió por esa auditoría: N5 alinea la explicación de la regla 7 con su código nuevo. La nitidez local NO separa las borrosas (medido: borrosas con 88–483 de nitidez de producto, lejanas con 152–2181), así que no se agrega regla de BORROSA
+Reescrituras de este documento: 6
 Siguiente con modelo: el del asistente de Mauski · clasificación autónoma
 
 ---
 
-## N4 — Que las rechazadas traigan el motivo correcto
+## N5 — Que la explicación de la regla 7 diga lo mismo que su código
+
+`rama: carril/nucleo-sp3-explicacion desde main fresco (aa85b57 o posterior) · tope: 15 min · clasificación: autónoma · solo ml/validat3b/decidir.py y test_decidir.py`
+
+**Por qué:** desde N4 la regla 7 (producto que no coincide) emite `CAPTURA_LEJANA`, pero su `explicacion` sigue diciendo «…no coincide con lo esperado». El jurado lee código y explicación juntos (calidad del dato, 15 %): tienen que contar la misma historia.
+
+**Hecho que no puedes ver** `[MEDIDO 12:41 por el arquitecto con sp6]`: de las 22 rechazadas correctas, 9 salen con `CAPTURA_LEJANA` tras N4; de esas 9, 4 son lejanas reales, 4 borrosas y 1 descripción incompleta. Por eso la frase no debe afirmar «está lejos», sino que **no se distingue bien el producto**.
+
+**Qué construir:** en la regla 7 cambia solo el texto de la explicación, conservando los datos que ya cita (marca, descripción y contenido leídos; lo esperado). Forma: «No se distingue con claridad el producto en la foto (captura lejana o poco nítida): se lee marca «…», descripción «…» y …; se esperaba (…).» El código, la decisión y la confianza **no cambian**. Una prueba en `test_decidir.py` que verifica que la explicación de la regla 7 contiene «No se distingue» (se pone roja con el texto viejo).
+
+**No se toca:** ninguna otra regla, `reason_code`, decisión ni umbral; nada fuera de esos dos archivos. Si ya está hecho, dilo y no lo toques.
+
+**Prueba de cierre:** `python -m unittest ml.validat3b.test_decidir -v` → todo OK, con la prueba nueva. PR + reporte `docs/reportes/N5-explicacion.md` (12 líneas, con «no hecho / simulado»).
+
+**Commit sugerido:** `fix(ml): explicación de la regla 7 coherente con CAPTURA_LEJANA (N5)`
+
+---
+
+## N4 [HECHA · Aprobado con anotaciones] — Que las rechazadas traigan el motivo correcto
 
 `rama: carril/nucleo-sp3-motivo desde main fresco · tope: 40 min · clasificación: autónoma`
 
@@ -183,3 +201,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 11:23 · S003 · N1 auditada (79 % sobre lecturas reales v1) → se escribe N2 con los hechos de v2 y se sube el sello.
 - 2026-11-21 11:47 · S003 · N2 auditada y fusionada (#16) → se escribe N3 y se sube el sello.
 - 2026-11-21 12:26 · S003 · N3 fusionada (#19) → N4 (reason_code de las rechazadas; quitar traducir). Se sube el sello.
+- 2026-11-21 12:48 · S004 · N4 auditada y fusionada (#27 → aa85b57; decisiones idénticas, motivo 2/22 → 8/22) → N5 (explicación de la regla 7). Se sube el sello.
