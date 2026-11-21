@@ -1,17 +1,35 @@
 # Misiones — carril PITCH Y SEÑALES LOCALES (Alan)
 
-## ESTADO · 2026-11-21 09:55
-Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 2 · hechas 0 · siguiente **P1**
-Cola: **P1** (código, 09:45–11:15) → P2 (pitch, arranca 15:00: Alan narra, Mau maneja el visor, Sergio lleva los números)
-siguiente: **P1**
-Última auditoría: ninguna
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 1
+## ESTADO · 2026-11-21 11:23
+Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 3 · hechas 1 · siguiente **P2**
+Cola: ~~P1~~ → **P2** (puerta local) → P3 (pitch de 3 minutos; antes «P2», se renombró porque el paquete de Alan llama P2 a la puerta)
+siguiente: **P2**
+Última auditoría: P1 → Aprobado con anotaciones ([LEÍDO código; REPORTADO 3 pruebas OK y corrida de las 100] · PR #9 fusionado 10:49)
+Qué cambió por esa auditoría: P2 usa el `locales.csv` de `salidas-sp2.zip` o lo genera con P1
+Reescrituras de este documento: 2
 Siguiente con modelo: el del asistente de Alan · clasificación autónoma
 
 ---
 
-## P1 — Señales locales sin tokens: código de barras, nitidez y huella de fachada
+## P2 — Puerta local: qué capturas se pueden resolver sin gastar tokens
+
+`rama: carril/pitch-sp2-puerta · tope: 60 min`
+
+**Archivos que comparte Fer en `salidas/`:** `extracciones.json` (lista de `Extraccion` del contrato), `resultados.json` (lista de `Resultado`), `locales.csv` (una fila por captura: `capture_id, codigo_barras_leido, codigo_coincide, nitidez_producto, nitidez_etiqueta, huella_fachada, decision_esperada, motivo_rechazo`). Las etiquetas reales están en `datos/privado/metadatos/capturas.csv` (`decision_esperada`, `motivo_rechazo`, `facade_url`).
+
+**Pregunta que respondes con datos:** usando solo señales locales (nitidez, tamaño, código de barras leído), ¿cuántas capturas se pueden **rechazar sin llamar al modelo** sin equivocarnos en ninguna?
+
+1. `ml/validat3b/puerta.py`:
+   - `python -m ml.validat3b.puerta --locales salidas/locales.csv`: para la nitidez de producto y la de etiqueta, recorre umbrales y reporta, por umbral, cuántas capturas quedan por debajo y cuáles son sus decisiones reales. Busca el umbral más alto por debajo del cual **ninguna** captura real es `aprobada` (rechazo seguro). Reporta cuántas capturas ahorra y qué % de tokens.
+   - `puerta(senales: dict) -> str | None`: devuelve `"CAPTURA_BORROSA"` si la captura cae bajo el umbral seguro, o `None` si debe ir al modelo. El umbral es una constante arriba del archivo, con un comentario que diga con qué datos se fijó.
+2. `test_puerta.py`: casos por encima y por debajo del umbral, y señales con `None` (debe devolver `None`: ante la duda, va al modelo).
+3. En tu reporte, una recomendación clara: **«activar»** si ahorra ≥ 10 % de las llamadas con cero aprobadas reales rechazadas, o **«no activar»**. Antecedente medido por Fer: la nitidez sola se traslapa mucho (mediana 182 en borrosas contra 399 en el resto), así que «no activar» es un resultado válido y honesto; igual lo usamos en el pitch.
+
+**Prueba de cierre:** `python -m unittest ml.validat3b.test_puerta -v` en verde y la tabla de umbrales pegada en el reporte. Integrarla al motor es decisión de Fer.
+
+---
+
+## P1 [HECHA · Aprobado con anotaciones] — Señales locales sin tokens: código de barras, nitidez y huella de fachada
 
 `carril: pitch · dueño Alan · rama: carril/pitch-sp1-locales desde main fresco · cuelga de: 1403ab0 · tope: 45 min · clasificación: autónoma · modelo: el de tu asistente`
 
@@ -49,7 +67,7 @@ Siguiente con modelo: el del asistente de Alan · clasificación autónoma
 
 ---
 
-## P2 — Pitch de 3 minutos y ficha técnica de una página (arranca 15:00 · Alan narra, Mau maneja el visor, Sergio lleva los números)
+## P3 — Pitch de 3 minutos y ficha técnica de una página (arranca 15:00 · Alan narra, Mau maneja el visor, Sergio lleva los números)
 
 Se escribe completa a las 14:45 con el marcador real. Desde ya, Alan guarda en `docs/pitch/notas.md`: las respuestas de Alfredo (800 capturistas, ~12,000 capturas por semana, «un peso por millones de ventas», «preferimos 80 de 100 con error casi cero», «no queremos revisión manual») y cada cifra con su fuente.
 
@@ -58,3 +76,4 @@ Se escribe completa a las 14:45 con el marcador real. Desde ya, Alan guarda en `
 ## Bitácora de reescrituras
 
 - 2026-11-21 09:55 · S002: creado con P1 (Alan pide tareas de programación) y P2 en espera.
+- 2026-11-21 11:23 · S003 · P1 auditada → se escribe P2 (puerta local, del paquete de Alan); el pitch pasa a P3. Se sube el sello.

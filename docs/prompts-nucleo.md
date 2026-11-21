@@ -1,17 +1,43 @@
 # Misiones — carril NUCLEO
 
-## ESTADO · 2026-11-21 09:55
-Carril nucleo · dueño Mauski (chat web) · misiones 1 · hechas 0 · siguiente **N1**
-Cola: **N1** → N2 (ajuste de umbrales con los errores más caros que reporte D1)
-siguiente: **N1**
-Última auditoría: ninguna
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 2
+## ESTADO · 2026-11-21 11:23
+Carril nucleo · dueño Mauski (chat web) · misiones 2 · hechas 1 · siguiente **N2**
+Cola: ~~N1~~ → **N2** → N3 (códigos oficiales y tipo de precio)
+siguiente: **N2**
+Última auditoría: N1 → Aprobado con anotaciones ([MEDIDO 10:44: 14 pruebas en verde en el contenedor del arquitecto; sobre las 100 lecturas reales v1 aprobó 19, 15 correctas = 79 %] · PR #8 fusionado 10:49)
+Qué cambió por esa auditoría: N2 se calibra con lecturas v2 (`salidas-sp2.zip`) y con los casos medidos de abajo
+Reescrituras de este documento: 3
 Siguiente con modelo: el del asistente de Mauski · clasificación autónoma
 
 ---
 
-## N1 — `decidir()`: de la lectura del modelo a la decisión, con reglas puras
+## N2 — Calibrar `decidir()` contra las lecturas reales
+
+`rama: carril/nucleo-sp2-calibrar · tope: 60 min`
+
+**Archivos que comparte Fer en `salidas/`:** `extracciones.json` (lista de `Extraccion` del contrato), `resultados.json` (lista de `Resultado`), `locales.csv` (una fila por captura: `capture_id, codigo_barras_leido, codigo_coincide, nitidez_producto, nitidez_etiqueta, huella_fachada, decision_esperada, motivo_rechazo`). Las etiquetas reales están en `datos/privado/metadatos/capturas.csv` (`decision_esperada`, `motivo_rechazo`, `facade_url`).
+
+**Objetivo medible:** sobre las 100 capturas de desarrollo, **cero aprobadas falsas** (ninguna aprobada cuya real no sea `aprobada`) y el menor costo posible.
+
+**Qué construir:**
+1. `ml/validat3b/calibrar.py` — `python -m ml.validat3b.calibrar --extracciones salidas/extracciones.json --capturas datos/privado/metadatos/capturas.csv`: aplica `decidir()` a cada lectura y muestra (a) una tabla **regla que disparó × decisión real** con conteos; (b) la lista de **aprobadas falsas** con lo leído y lo esperado; (c) la lista de **válidas rechazadas** (real `aprobada`, motor `rechazada`) con la regla culpable; (d) costo total con la tabla 0/1/3/10. Para saber qué regla disparó, `decidir()` puede exponer `decidir_con_regla(captura, x) -> (Resultado, int)` y `decidir()` la envuelve.
+2. Ajusta en `decidir.py` **solo constantes de umbral y el orden de reglas**, guiado por esa tabla. Prioridad: primero eliminar aprobadas falsas (cuestan 10 y descalifican), luego rescatar válidas rechazadas (3), al final reducir revisión manual (1).
+3. **Regla de revisión manual:** con las notas de Sergio sobre las 33 capturas `revision_manual` (te las pasa Fer), redacta la condición que las distingue y agrégala como regla explícita, con su prueba. Si no hay notas a las 12:00, usa lo que muestre tu tabla.
+4. Actualiza `test_decidir.py`: cada umbral que cambies lleva un caso que lo fija.
+
+**Prueba de cierre:** `python -m unittest ml.validat3b.test_decidir -v` en verde; la salida de `calibrar` con **0 aprobadas falsas**; en el reporte, costo antes y después.
+**No se toca:** el contrato, `extraer.py`, `correr.py`. Si una lectura del modelo viene mal (p. ej. siempre dice «dudosa»), **no lo compenses con reglas raras**: anótalo para Fer, que ajusta el prompt.
+
+**Hechos medidos que no puedes ver** (`[MEDIDO 11:05 por el arquitecto sobre salidas-sp2.zip + capturas.csv]`):
+- Usa **`salidas-sp2.zip`** (lecturas v2 del modelo, `resultados.json` con las decisiones reales de `decidir()` y `locales.csv`). Descomprímelo dentro de `salidas/`. El de SP1 ya no sirve.
+- Con v2, `decidir()` de N1 aprueba 16 y 14 son correctas: **precisión 87.5 % (descalifica; mínimo 97 %)**. Matriz real→predicha: aprobada 14/2 rech/17 manual · rechazada 1 aprob/24/9 manual · revisión manual 1 aprob/17 rech/15. Costo con `evaluar.py`: pesimista 118, optimista 52 (todo a revisión manual: 100 / 67).
+- Las 2 aprobadas falsas: **CAP-206200** (real `revision_manual`) y **CAP-410562** (real rechazada «Capturas borrosas»; nitidez local de etiqueta 99). Válidas aprobadas con nitidez de etiqueta baja: 970141 (83) y 621992 (125).
+- La regla 7 manda válidas a revisión porque mide el parecido sobre las palabras de la descripción leída (larga). Medir qué fracción de las palabras del **nombre esperado** aparece en lo leído. Cuando `product_name` trae «(total: NNNg)», cualquiera de los dos pesos vale.
+- Fer agrega en I3 un **verificador después de `decidir()`**: una segunda mirada solo a las aprobadas, que baja a revisión manual lo que no pase. No lo toques ni lo dupliques.
+
+---
+
+## N1 [HECHA · Aprobado con anotaciones] — `decidir()`: de la lectura del modelo a la decisión, con reglas puras
 
 `carril: nucleo · dueño Mauski (chat web, archivos completos) · rama: carril/nucleo-sp1-decidir desde main fresco · cuelga de: 1403ab0 · tope: 45 min · clasificación: autónoma · modelo: el de tu asistente`
 
@@ -122,3 +148,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-17 13:20 · creado en S000, sin misiones.
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, `BLOQUEADO hasta`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
+- 2026-11-21 11:23 · S003 · N1 auditada (79 % sobre lecturas reales v1) → se escribe N2 con los hechos de v2 y se sube el sello.

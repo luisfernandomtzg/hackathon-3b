@@ -1,17 +1,30 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-21 09:55
-Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 2 · hechas 1 · siguiente **U1**
-Cola: ~~U0~~ → **U1** → U2 (ficha técnica de una página y lámina de marcador, con Alan)
-siguiente: **U1**
-Última auditoría: U0 → Aprobado con anotaciones (20-nov 20:51; integrada como `c366e8d`)
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 5
+## ESTADO · 2026-11-21 11:23
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 5 · hechas 4 · siguiente **U4**
+Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ → **U4**
+siguiente: **U4**
+Última auditoría: U1 → Aprobado con anotaciones ([MEDIDO 10:44: 100 tarjetas, costo 100 con las decisiones provisionales]) · U2 (#7) y U3 (#10) → Aprobado con anotaciones ([LEÍDO; REPORTADO]; fusionados 10:51)
+Qué cambió por esa auditoría: con v2, las capturas del pitch 645667 y 305088 salen en revisión manual → U4 elige aciertos reales
+Reescrituras de este documento: 6
 Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
 
 ---
 
-## U1 — Visor local de capturas (herramienta de análisis de errores y apoyo del pitch)
+## U4 — El pitch con datos reales
+
+`rama: carril/ui-sp2-pitch-real (solo si cambias código) · tope: 40 min`
+
+1. Descomprime **`salidas-sp2.zip`** en `salidas/` y regenera el visor: `python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html`. El marcador debe decir **16 aprobadas, 14 correctas, 87.5 %**; si dice otra cosa, avisa antes de seguir.
+2. **Cambia las capturas del pitch.** Con este motor, 645667 y 305088 salen en revisión manual. Escoge dos candidatas por categoría **entre los aciertos** (una aprobada correcta, una rechazada correcta —de preferencia borrosa o lejana—, una revisión manual correcta), con fotos que se vean bien proyectadas. Ponlas en `docs/entrega/capturas-demo.md` con su `capture_id` y por qué funcionan.
+3. Revisa que el visor siga funcionando con los campos nuevos del contrato v1.1 (`contenido_legible`, `senales`); si quieres, muéstralos en la tabla comparativa.
+4. Hacia las 12:30 llega `salidas-sp3.zip` (verificador de Fer + reglas de Mauski): ahí regeneras `pitch.html` con las candidatas que sigan siendo aciertos. **Las cifras del pitch salen de ese último zip.**
+
+**Prueba de cierre:** el visor generado con `salidas-sp2.zip` muestra 87.5 % y `capturas-demo.md` lista seis candidatas que hoy son aciertos. PR + reporte de 12 líneas; pásale a Alan el marcador.
+
+---
+
+## U1 [HECHA · Aprobado con anotaciones] — Visor local de capturas (herramienta de análisis de errores y apoyo del pitch)
 
 `carril: ui · dueño de la misión: Mau (Antigravity, agente en el repo) · rama: carril/ui-sp1-visor desde main fresco · cuelga de: 1403ab0 · tope: 45 min · clasificación: requiere pantalla · modelo: el de tu asistente`
 
@@ -98,3 +111,4 @@ Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación re
 - 2026-11-20 20:51 · S001.5: auditoría de U0 (PR #1) → Aprobado con anotaciones; carril bloqueado hasta U1.
 - 2026-11-20 20:59 · S001.5: resellado después del merge de U0 (`c366e8d`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
+- 2026-11-21 11:23 · S003 · U1, U2 y U3 auditadas y fusionadas → se escribe U4 (pitch con datos reales) y se sube el sello.

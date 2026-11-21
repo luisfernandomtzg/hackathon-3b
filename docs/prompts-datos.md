@@ -1,17 +1,41 @@
 # Misiones — carril DATOS E IA
 
-## ESTADO · 2026-11-21 09:55
-Carril datos · dueño Sergio (chat web) · misiones 1 · hechas 0 · siguiente **D1**
-Cola: **D1** → D2 (partición por visita y curva costo-umbral)
-siguiente: **D1**
-Última auditoría: ninguna
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 2
+## ESTADO · 2026-11-21 11:23
+Carril datos · dueño Sergio (chat web) · misiones 2 · hechas 1 · siguiente **D2**
+Cola: ~~D1~~ → **D2** → D3 (el marcador para el pitch)
+siguiente: **D2**
+Última auditoría: D1 → Aprobado con anotaciones ([REPORTADO 7 pruebas OK; MEDIDO por el arquitecto: líneas base 100/67 coinciden] · PR #11 fusionado 10:50)
+Qué cambió por esa auditoría: D2 usa `salidas-sp2.zip`; la pregunta más valiosa es qué distingue a las 33 capturas de revisión manual
+Reescrituras de este documento: 3
 Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
 
 ---
 
-## D1 — Arnés de evaluación: el marcador del día
+## D2 — Dónde perdemos puntos, y si un clasificador le gana a las reglas
+
+`rama: carril/datos-sp2-analisis · tope: 60 min`
+
+**Archivos que comparte Fer en `salidas/`:** `extracciones.json` (lista de `Extraccion` del contrato), `resultados.json` (lista de `Resultado`), `locales.csv` (una fila por captura: `capture_id, codigo_barras_leido, codigo_coincide, nitidez_producto, nitidez_etiqueta, huella_fachada, decision_esperada, motivo_rechazo`). Las etiquetas reales están en `datos/privado/metadatos/capturas.csv` (`decision_esperada`, `motivo_rechazo`, `facade_url`).
+
+**Qué construir:**
+1. `ml/validat3b/analisis.py` — `python -m ml.validat3b.analisis --resultados salidas/resultados.json --extracciones salidas/extracciones.json --capturas datos/privado/metadatos/capturas.csv --salida salidas/analisis.md`. Escribe un reporte con: costo por cada par (real → predicha); los 20 errores más caros con lo que leyó el modelo; para cada campo leído (`nitidez`, `encuadre`, `varios_productos`, marca/descripción/contenido presentes o no, `hay_etiqueta`, `legible`) su tabla contra la decisión real — ahí se ve qué lectura separa aprobadas de rechazadas y de revisión manual; y costo por visita (`facade_url`).
+2. `ml/validat3b/clasificador.py` (experimento; instala `pip install scikit-learn` en tu entorno; Fer lo agrega a `ml/requirements.txt`, tú no edites ese archivo): arma una tabla de señales por captura (campos de la lectura convertidos a 0/1, parecido de marca/descripción si viene, nitidez numérica de `locales.csv`), entrena una **regresión logística** que estime P(real = aprobada) y evalúala con **validación cruzada por grupos usando `facade_url` como grupo** (nunca la misma visita en entrenamiento y prueba). Para cada umbral de aprobación entre 0.5 y 0.99 reporta: aprobadas, aprobadas falsas, precisión y costo total. Compara contra el costo de las reglas de Mauski.
+3. **Tu conclusión, en tres líneas, al inicio del reporte:** ¿el clasificador baja el costo sin ninguna aprobada falsa? Si sí, a qué umbral. Si no, se queda como evidencia de que las reglas bastan (también sirve para el pitch).
+
+**Prueba de cierre:** los dos comandos corren sobre los archivos de `salidas/` y generan su reporte; pega en `docs/reportes/D2-analisis.md` tus tres líneas y la tabla umbral → costo.
+**Importante:** con 100 ejemplos es fácil engañarse. Reporta siempre el resultado de validación cruzada, nunca el del conjunto con el que entrenaste. La decisión de usar el clasificador en el motor es de Fer.
+
+**Hechos medidos que no puedes ver** (`[MEDIDO 11:05 por el arquitecto sobre salidas-sp2.zip + capturas.csv]`):
+- Usa **`salidas-sp2.zip`** (lecturas v2 del modelo, `resultados.json` con las decisiones reales de `decidir()` y `locales.csv`). Descomprímelo dentro de `salidas/`. El de SP1 ya no sirve.
+- Con v2, `decidir()` de N1 aprueba 16 y 14 son correctas: **precisión 87.5 % (descalifica; mínimo 97 %)**. Matriz real→predicha: aprobada 14/2 rech/17 manual · rechazada 1 aprob/24/9 manual · revisión manual 1 aprob/17 rech/15. Costo con `evaluar.py`: pesimista 118, optimista 52 (todo a revisión manual: 100 / 67).
+- Las 2 aprobadas falsas: **CAP-206200** (real `revision_manual`) y **CAP-410562** (real rechazada «Capturas borrosas»; nitidez local de etiqueta 99). Válidas aprobadas con nitidez de etiqueta baja: 970141 (83) y 621992 (125).
+- La regla 7 manda válidas a revisión porque mide el parecido sobre las palabras de la descripción leída (larga). Medir qué fracción de las palabras del **nombre esperado** aparece en lo leído. Cuando `product_name` trae «(total: NNNg)», cualquiera de los dos pesos vale.
+- Fer agrega en I3 un **verificador después de `decidir()`**: una segunda mirada solo a las aprobadas, que baja a revisión manual lo que no pase. No lo toques ni lo dupliques.
+- **Prioridad de D2:** ¿qué distingue a las 33 de `revision_manual`? (lectura del modelo, nitidez, precio contra su rango). Mándale la pista a Mauski por el grupo en cuanto la tengas, aunque sea parcial. No toques `decidir.py`; si usas scikit-learn, solo en tu entorno.
+
+---
+
+## D1 [HECHA · Aprobado con anotaciones] — Arnés de evaluación: el marcador del día
 
 `carril: datos · dueño Sergio (chat web, cuota corta) · rama: carril/datos-sp1-evaluar desde main fresco · cuelga de: 1403ab0 · tope: 40 min · clasificación: autónoma · modelo: el de tu asistente`
 
@@ -56,3 +80,4 @@ Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
 - 2026-11-17 13:20 · creado en S000, sin misiones.
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, `BLOQUEADO hasta`).
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
+- 2026-11-21 11:23 · S003 · D1 auditada → se escribe D2 con los hechos de v2 y se sube el sello.
