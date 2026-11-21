@@ -1,15 +1,63 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 10:34
-Carril integrador · dueño Fer (Claude Code) · misiones 3 · hechas 3 · siguiente **NINGUNO**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ → (I2 se escribe en S003 con la corrida de las 100: prompt v2, señales locales, fachada con caché, reintentos largos)
-siguiente: **NINGUNO — BLOQUEADO hasta que S003 escriba I2** (lo libera Fer al abrir S003)
-Última auditoría: I1 → Aprobado con anotaciones ([MEDIDO 10:28: código de extraer/cliente/correr leído del disco; tokens.csv: 1,661 entrada + ~200 salida = 1,865 por captura; 5 lecturas cruzadas a mano contra etiquetas: 0 aprobadas falsas] · PR #6 fusionado 10:32 por el chat)
-Qué cambió por esa auditoría: S2 a I2/N2 — «lejana» del analista = contenido ilegible, no el encuadre del modelo · g vs ml con la misma cantidad no es rechazo · submarca (Carnation/Nestle) y precio con varias cifras apuntan a revisión manual · reintentos cortos (5, 31 s) para un límite compartido
-Reescrituras de este documento: 6
-Siguiente con modelo: — (se fija en S003)
+## ESTADO · 2026-11-21 10:52
+Carril integrador · dueño Fer (Claude Code) · misiones 4 · hechas 3 · siguiente **I2**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ → **I2** → I3 (se escribe con el resultado de I2 + N2)
+siguiente: **I2**
+Última auditoría: I1 → Aprobado con anotaciones ([MEDIDO 10:28] · PR #6 fusionado 10:32). Sprint 1 completo auditado en S003 (10:45–10:52): #8 N1, #9 P1, #11 D1, #7 U2 y #10 U3 fusionados por el chat; `main` = `4c1cea7` [MEDIDO 10:52 en GitHub commits/main]
+Qué cambió por esa auditoría: I2 nace de medir N1 sobre las 100 lecturas reales v1 (precisión de aprobadas 15/19 = 79 % → descalifica; costo D1 pesimista 151 / optimista 74 contra 100 / 67 de «todo revisión manual») y de las señales locales de P1
+Reescrituras de este documento: 7
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado: cruza carriles y toca el contrato) · clasificación requiere compuerta (contrato v1.1: la compuerta la da Fer al mandar la orden)
 
 ---
+
+## I2 — Lectura v2, señales locales en la tubería y re-decisión sin tokens
+
+`carril: integrador · rama: carril/integrador-sp2-lectura desde main fresco · cuelga de: 4c1cea7 [MEDIDO 10:52 en GitHub: merge del PR #10] · tope: 50 min · clasificación: requiere compuerta (contrato v1.1 — la da Fer al mandar la orden) · modelo: Sonnet 5.5 · esfuerzo: high`
+
+**Primer paso.** `CLAUDE.md` §Disparador completo: `git fetch origin`, `git pull --rebase origin main`, `-Estado -Carril integrador`, relee este ESTADO y devuelve el acuse con **sello `10:52`** y la punta de `origin/main`, que debe ser `4c1cea7` (si hay algo encima, lístalo). Corre todo con `.venv\Scripts\python`. Si ya está hecho, dilo y no lo toques.
+
+**Hechos que no puedes ver**
+- `[MEDIDO 10:44 por el arquitecto, sobre salidas/extracciones.json v1 + capturas.csv]` `decidir()` de N1 aplicado a las 100 lecturas reales: aprobó 19, **15 correctas → precisión 79 % (descalifica, mínimo 97 %)**. Matriz real→pred: aprobada 15/3 rech/15 manual · rechazada 2 aprob/22/10 · manual 2 aprob/23 rech/8. Costo con `evaluar.py` de D1: pesimista 151, optimista 74; «todo revisión manual» = 100 / 67.
+- **Ojo:** `correr.py` ya importa `decidir.py` de N1 en cuanto existe (está en `main` desde 10:49). Hoy cualquier corrida produce esas cifras.
+- Las 4 aprobadas falsas: 489454 y 241497 (reales «Capturas lejanas») el modelo las leyó `nitida`+`cercano` con marca, descripción y contenido completos → **el prompt v1 no distingue lejana**. 206200 (Aurrera chocolate) y 568678 (esperado Purina, leído «Purina Felix»: submarca) son reales `revision_manual`.
+- 8 válidas caen a revisión por la regla 7 porque el modelo copia la descripción entera del empaque («Leche entera 100 % de vaca, ultrapasteurizada…» contra «Leche entera UHT»). 3 válidas se rechazan por contenido: `product_name` trae «485g (total: 820g)» y el modelo lee el total; en 621992 empaque 560 g vs catálogo 290 g y aun así es válida. **Esas reglas son de Núcleo (N2); tú no tocas `decidir.py`.**
+- `[REPORTADO P1, Alan]` `ml/validat3b/local.py` → `senales_locales(captura, dir_datos) -> dict` sin tokens: nitidez del producto mediana 160 en borrosas vs 310 en válidas; nitidez de etiqueta 46 en «descripción incompleta» vs 281; código de barras leído solo 20/100 (coincide 7); 25 fachadas distintas en 100. En lejanas la nitidez es igual o mayor: **no las detecta**.
+- `[LEÍDO]` `ml/requirements.txt` ya trae numpy, pillow y zxing-cpp.
+- Tokens v1: 1,661 de entrada fijos + ~200 de salida por captura; la corrida de las 100 fue 175,259 tokens en 40 s con 4 hilos.
+
+**Qué construir**
+1. **Contrato v1.1** (`ml/validat3b/contrato.py`, compatible hacia atrás; todo campo nuevo con valor por omisión): `LecturaProducto.contenido_legible: Optional[bool] = None` («¿alcanzas a leer el número de contenido impreso en el empaque?») y `Extraccion.senales: dict[str, Any] = {}` (las señales de `senales_locales`). Nada más. Las 14 pruebas de N1, las de P1 y las de D1 tienen que seguir en verde sin tocarlas.
+2. **Prompt v2** en `extraer.py` (`PROMPT_VERSION = "v2"`, así no lee caché v1):
+   - `encuadre` se define por legibilidad: «lejano» si el texto del frente (marca, descripción y contenido) no se lee con claridad, aunque la foto sea nítida; pide `contenido_legible`.
+   - `descripcion`: el nombre corto del producto tal como dice el frente, máximo 6 palabras, sin ingredientes ni leyendas.
+   - `marca`: la marca principal; si hay submarca, `"Marca Submarca"`.
+   - `contenido_*`: el contenido neto que dice el frente; si hay dos (drenado y total), el **drenado**, y pon el otro en la descripción.
+   - Mantén el formato JSON y `max_tokens=400`. No subas la resolución: los tokens cuentan 10 %.
+3. **Señales en la tubería:** en `correr.procesar`, `ext.senales = senales_locales(captura, dir_datos)` antes de `decidir()`. Nunca lanza; si falla, `{}`.
+4. **Re-decisión sin tokens:** `correr --desde-extracciones salidas/extracciones.json` vuelve a aplicar `decidir()` sobre lecturas guardadas sin llamar al endpoint (para que N2 y D2 iteren gratis). Si una lectura guardada no tiene `senales`, las calcula en local.
+5. Quita `ml/evaluador.py` (de Mau, entró sin auditar y lo sustituye `evaluar.py` de D1) en un commit aparte, mensaje `chore(ml): quitar evaluador.py duplicado (lo sustituye evaluar.py de D1)`.
+
+**Contrato que consumes / produces:** `contrato.py` v1.1 (lo produces tú, eres el dueño). Datos simulados: ninguno; corre contra `datos/privado`.
+
+**No se toca:** `decidir.py`, `normalizar.py`, `local.py`, `evaluar.py`, `visor.py` ni sus pruebas (son de Núcleo, Pitch, Datos y UI). `datos/` y `salidas/` no se commitean.
+
+**Prueba de cierre (ejecutable):**
+1. `.venv\Scripts\python -m unittest ml.validat3b.test_decidir ml.validat3b.test_local ml.validat3b.test_evaluar -v` → todo OK.
+2. `.venv\Scripts\python -m ml.validat3b.correr --datos datos/privado --salida salidas/resultados.json --hilos 4` (llama al endpoint: ~100 llamadas, ~180k tokens).
+3. `.venv\Scripts\python -m ml.validat3b.evaluar --resultados salidas/resultados.json --capturas datos/privado/metadatos/capturas.csv` → copia en el reporte JSON válido, aprobadas/falsas/precisión, costo pesimista y optimista, y la matriz.
+4. Contra v1: cuántas de las 18 lejanas reales salen ahora con `encuadre="lejano"` o `contenido_legible=false` (antes 489454 y 241497 salían «cercano»). Es la medición que decide si v2 sirve.
+5. `--desde-extracciones` sobre el archivo recién generado da exactamente los mismos `resultados.json` (compáralos) y no gasta tokens (`tokens.csv` no crece).
+6. `git status --short` sin `datos/` ni `salidas/`.
+
+**Para y pregunta** si el prompt v2 sube los tokens de entrada más de 10 % o si algo pide tocar `decidir.py`. Si v2 empeora la lectura de las válidas (más `null` en contenido), dilo con números y no lo compenses.
+
+**Entregable:** push de la rama + `docs/reportes/I2-lectura.md` de 12 líneas (al final y de una vez), con modelo y esfuerzo, la tabla v1 vs v2 (tokens por captura, lejanas detectadas, precisión, costo) y su «no hecho / simulado». Además, comprime `salidas/extracciones.json`, `resultados.json`, `tokens.csv` y `locales.csv` (de `python -m ml.validat3b.local --datos datos/privado --salida salidas/locales.csv`) en `salidas-sp2.zip`, sin `cache/`, para que Fer lo comparta con Mauski (N2) y Sergio (D2).
+
+Mensaje de commit sugerido: `feat(ml): lectura v2, señales locales en la tubería y re-decisión sin tokens (I2)`
+
+---
+
 
 ## I1 — Esqueleto del motor Validat3B: contrato, cargador, cliente del endpoint, extracción v1 y corrida de punta a punta [HECHA · Aprobado con anotaciones]
 
@@ -183,3 +231,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-17 16:32 · auditoría de I0.1 (Aprobado con anotaciones); candado probado en las dos direcciones: PARO a las 16:32 con el ESTADO viejo, liberado por esta reescritura.
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 10:34 · S002: auditoría de I1 (PR #6) → Aprobado con anotaciones; fusionado; carril bloqueado hasta I2 (S003).
+- 2026-11-21 10:52 · S003 · auditoría del sprint 1 (N1 medido sobre las 100 lecturas reales: 79 % de precisión) → se escribe I2 (lectura v2, contrato v1.1, señales locales en la tubería, re-decisión sin tokens) y se quita el BLOQUEADO.
