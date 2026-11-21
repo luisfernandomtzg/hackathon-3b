@@ -10,18 +10,21 @@ from PIL import Image
 from .cliente import Cliente
 from .contrato import Captura, Extraccion, LecturaEtiqueta, LecturaProducto
 
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v3"
 
 PROMPT = """Fotos de tienda: 1ª = PRODUCTO en anaquel, 2ª = ETIQUETA de precio. Solo LEE; no juzgues. Lo ilegible va null.
 Responde SOLO JSON:
 {"producto":{"hay_producto":bool,"marca":str|null,"descripcion":str|null,"contenido_cantidad":número|null,"contenido_unidad":"g"|"kg"|"ml"|"l"|"pza"|null,"contenido_legible":bool,"nitidez":"nitida"|"dudosa"|"borrosa","encuadre":"cercano"|"medio"|"lejano","varios_productos":bool,"foto_de_pantalla":bool},
-"etiqueta":{"hay_etiqueta":bool,"texto_producto":str|null,"precio":número|null,"tipo_precio":"regular"|"oferta"|"volumen"|null,"otros_precios":[números],"legible":bool}}
+"etiqueta":{"hay_etiqueta":bool,"texto_producto":str|null,"precio":número|null,"tipo_precio":"regular"|"oferta"|"volumen"|null,"otros_precios":[números],"legible":bool,"encuadre":"cercano"|"medio"|"lejano","nitidez":"nitida"|"dudosa"|"borrosa","ancho_pct":número}}
 encuadre: "lejano" si el texto del frente (marca, descripción, contenido) no se lee con claridad aunque la foto sea nítida; "cercano" si se lee sin esfuerzo; si no, "medio".
 contenido_legible: true solo si lees el número de contenido impreso (p. ej. 400 g).
 descripcion: nombre corto del frente, máx. 6 palabras, sin ingredientes.
 marca: la principal; con submarca, "Marca Submarca".
 contenido: el neto del frente; si hay drenado y total, el drenado (el otro en descripcion).
-precio: el unitario vigente de la etiqueta."""
+precio: el unitario vigente de la etiqueta.
+etiqueta = el letrero de precio del anaquel, no el empaque. texto_producto: SOLO lo impreso en ese letrero (nombre del producto); null si no se lee ahí.
+etiqueta.ancho_pct: % aproximado del ancho de la 2ª foto que ocupa ese letrero (0-100). etiqueta.encuadre: "cercano" si ocupa un tercio del ancho o más; "lejano" si ocupa menos de un sexto o la foto muestra el anaquel con el letrero pequeño; si no, "medio".
+etiqueta.nitidez: "borrosa" si la letra pequeña del letrero no se lee por desenfoque; "nitida" si se lee toda; si no, "dudosa"."""
 
 _VERSION = PROMPT_VERSION + "-" + hashlib.sha1(PROMPT.encode()).hexdigest()[:6]  # editar el prompt invalida el caché
 
@@ -50,7 +53,22 @@ def _jpeg(ruta: Path, lado=768, calidad=80) -> bytes:
 def _parsear(texto: str):
     m = re.search(r"\{.*\}", texto, re.S)
     d = json.loads(m.group(0) if m else texto)
-    return LecturaProducto(**d["producto"]), LecturaEtiqueta(**d["etiqueta"])
+    return LecturaProducto(**d["producto"]), LecturaEtiqueta(**_limpiar_etiqueta(d["etiqueta"]))
+
+
+def _limpiar_etiqueta(e: dict) -> dict:
+    """Los campos nuevos de la foto de etiqueta (v3) nunca tumban la lectura: lo que no valide queda en None."""
+    e = dict(e)
+    if e.get("encuadre") not in ("cercano", "medio", "lejano"):
+        e["encuadre"] = None
+    if e.get("nitidez") not in ("nitida", "dudosa", "borrosa"):
+        e["nitidez"] = None
+    try:
+        v = e.get("ancho_pct")
+        e["ancho_pct"] = None if v is None else max(0.0, min(100.0, float(str(v).replace("%", "").strip())))
+    except (TypeError, ValueError):
+        e["ancho_pct"] = None
+    return e
 
 
 def _vacia(capture_id, origen, t_in=0, t_out=0) -> Extraccion:

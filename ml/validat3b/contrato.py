@@ -37,6 +37,10 @@ class LecturaEtiqueta(BaseModel):              # lo que el modelo LEE en la foto
     tipo_precio: Optional[Literal["regular", "oferta", "volumen"]] = None
     otros_precios: list[float] = Field(default_factory=list)
     legible: bool = False
+    # v1.2 (S005): la FOTO de la etiqueta. Los motivos del analista (lejana/borrosa) describen esta foto, no la del producto.
+    encuadre: Optional[Literal["cercano", "medio", "lejano"]] = None
+    nitidez: Optional[Literal["nitida", "dudosa", "borrosa"]] = None
+    ancho_pct: Optional[float] = None          # % del ancho de la foto que ocupa el letrero de precio
 
 class Extraccion(BaseModel):
     capture_id: str
