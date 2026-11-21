@@ -1,17 +1,54 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 10:52
-Carril integrador · dueño Fer (Claude Code) · misiones 4 · hechas 3 · siguiente **I2**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ → **I2** → I3 (se escribe con el resultado de I2 + N2)
-siguiente: **I2**
-Última auditoría: I1 → Aprobado con anotaciones ([MEDIDO 10:28] · PR #6 fusionado 10:32). Sprint 1 completo auditado en S003 (10:45–10:52): #8 N1, #9 P1, #11 D1, #7 U2 y #10 U3 fusionados por el chat; `main` = `4c1cea7` [MEDIDO 10:52 en GitHub commits/main]
-Qué cambió por esa auditoría: I2 nace de medir N1 sobre las 100 lecturas reales v1 (precisión de aprobadas 15/19 = 79 % → descalifica; costo D1 pesimista 151 / optimista 74 contra 100 / 67 de «todo revisión manual») y de las señales locales de P1
-Reescrituras de este documento: 7
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado: cruza carriles y toca el contrato) · clasificación requiere compuerta (contrato v1.1: la compuerta la da Fer al mandar la orden)
+## ESTADO · 2026-11-21 11:07
+Carril integrador · dueño Fer (Claude Code) · misiones 5 · hechas 4 · siguiente **I3**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ → **I3** → I4 (se escribe con I3 + N2)
+siguiente: **I3**
+Última auditoría: I2 → Aprobado con anotaciones ([MEDIDO 11:05 por el arquitecto sobre salidas-sp2.zip: decidir() de N1 sobre lecturas v2 → aprobó 16, 14 correctas = 87.5 %; 1,921 tokens por captura; coincide con el reporte] · PR #12 fusionado 11:06 por el chat; `main` = `e492dbf` [MEDIDO en GitHub])
+Qué cambió por esa auditoría: v2 detecta 6 de 18 lejanas y no daña las válidas, pero 489454 y 241497 siguen «cercano» y legibles → el prompt único ya no da más; I3 agrega una segunda mirada solo a las que van a salir aprobadas. S2: salida +~120 tokens por captura (campos nuevos); el cambio de llave de caché por hash del prompt fue fuera de misión, aceptado
+Reescrituras de este documento: 8
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
 
 ---
 
-## I2 — Lectura v2, señales locales en la tubería y re-decisión sin tokens
+## I3 — Verificador de aprobadas: segunda mirada solo a lo que va a salir «aprobada»
+
+`carril: integrador · rama: carril/integrador-sp2-verificar desde main fresco · cuelga de: e492dbf [MEDIDO 11:06 en GitHub: merge del PR #12] · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
+
+**Primer paso.** `CLAUDE.md` §Disparador completo: `git checkout main`, `git fetch origin`, `git pull --rebase origin main`, `-Estado -Carril integrador`, relee este ESTADO y devuelve el acuse con **sello `11:07`** y la punta de `origin/main` (debe ser `e492dbf` o el commit de docs que Fer suba encima con este documento; si hay algo más, lístalo). Corre todo con `.venv\Scripts\python`. Si ya está hecho, dilo y no lo toques.
+
+**Hechos que no puedes ver** (`[MEDIDO 11:05 por el arquitecto sobre salidas-sp2.zip + capturas.csv]`)
+- Con lecturas v2 y `decidir()` de N1: aprobó 16, **14 correctas (87.5 %, descalifica)**. Las 2 falsas: **CAP-206200** (real `revision_manual`) y **CAP-410562** (real rechazada, «Capturas borrosas»; nitidez local de etiqueta 99).
+- Nitidez local de etiqueta de las 16 aprobadas: 83 · 195 · 368 · 319 · 384 · 326 · 298 · 543 · **99 (410562, falsa)** · 407 · 326 · 245 · 208 · 125 · 190 · 402. Un corte en nitidez sola tira también a la válida de 83 (970141): no sirve como regla única.
+- La lectura única (producto + etiqueta en una llamada a 768 px) no detecta 489454 ni 241497 como lejanas: hay que mirar distinto, no más fuerte en las 100.
+- Una revisión manual cuesta 1; una aprobada falsa, 10, y abajo de 97 % descalifica. Pasar 2–3 válidas a revisión para quitar todas las falsas **es buen negocio**.
+- `decidir()` y su calibración son de Mauski (N2, corriendo ahora sobre `salidas-sp2.zip`). **Tú no tocas `decidir.py`**: el verificador va después de decidir, en la tubería.
+
+**Qué construir**
+1. `ml/validat3b/verificar.py` con `verificar(captura, ext, dir_datos, cliente) -> tuple[bool, str]`: **una llamada más, solo si `decidir()` dijo `aprobada`**. Manda la foto del producto y la de la etiqueta a **más resolución que la lectura** (lado 1024; si los tokens de esa llamada pasan de 2,500, baja a 896) y un prompt de sí/no estricto: «¿Se leen con claridad, sin adivinar, la marca, la descripción, el contenido neto y el precio, y la etiqueta corresponde a este producto exacto (no a otro sabor, tamaño o submarca)? Responde JSON {"ok": bool, "motivo": str corto}». Le pasas como texto lo esperado (marca, `product_name`, contenido) y lo leído. Versión de prompt propia (`verificar-v1`), con caché igual que la lectura.
+2. En `correr.procesar`: si `decidir()` aprueba y `verificar` dice `ok=false`, **error o JSON inválido** → el `Resultado` pasa a `revision_manual`, `reason_code=None`, `confidence_score=0.5`, y `explicacion` añade «Segunda revisión: <motivo>». Ante cualquier duda, nunca aprueba.
+3. Tokens del verificador a `tokens.csv` con `origen="verificar"`, para que D1 los cuente.
+4. `--desde-extracciones` también reusa las respuestas del verificador guardadas en caché (no gasta tokens en una segunda corrida).
+
+**No se toca:** `decidir.py`, `normalizar.py`, `local.py`, `evaluar.py`, `visor.py`, el contrato. `datos/` y `salidas/` no se commitean.
+
+**Prueba de cierre (ejecutable):**
+1. `.venv\Scripts\python -m unittest ml.validat3b.test_decidir ml.validat3b.test_local ml.validat3b.test_evaluar -v` en verde, más `test_verificar.py` con un cliente falso: `ok=false` → revisión; error del cliente → revisión; `ok=true` → sigue aprobada; captura no aprobada → **cero llamadas**. Esta última se pone roja si el verificador llama en todas.
+2. `.venv\Scripts\python -m ml.validat3b.correr --datos datos/privado --salida salidas/resultados.json --hilos 4` (la lectura sale de caché; solo ~16 llamadas nuevas).
+3. `.venv\Scripts\python -m ml.validat3b.evaluar --resultados salidas/resultados.json --capturas datos/privado/metadatos/capturas.csv` → en el reporte: aprobadas, falsas, precisión, costo pesimista/optimista antes (I2: 118/52) y después, y tokens por captura con verificador incluido.
+4. Lista de lo que el verificador bajó a revisión, con su real: tiene que incluir **206200 y 410562**; si baja válidas, cuántas.
+5. `git status --short` sin `datos/` ni `salidas/`.
+
+**Para y pregunta** si el verificador baja más de 5 válidas, o si los tokens por captura (promedio en las 100) suben más de 15 % sobre 1,921.
+
+**Entregable:** push de la rama + PR + `docs/reportes/I3-verificar.md` de 12 líneas (al final y de una vez), con modelo y esfuerzo, la tabla antes/después y su «no hecho / simulado». Deja `salidas-sp3.zip` (resultados, extracciones, tokens, locales; sin `cache/`) en la raíz del repo, sin commitear.
+
+Mensaje de commit sugerido: `feat(ml): verificador de aprobadas con segunda mirada a mayor resolución (I3)`
+
+---
+
+
+## I2 — Lectura v2, señales locales en la tubería y re-decisión sin tokens [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: carril/integrador-sp2-lectura desde main fresco · cuelga de: 4c1cea7 [MEDIDO 10:52 en GitHub: merge del PR #10] · tope: 50 min · clasificación: requiere compuerta (contrato v1.1 — la da Fer al mandar la orden) · modelo: Sonnet 5.5 · esfuerzo: high`
 
@@ -232,3 +269,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 10:34 · S002: auditoría de I1 (PR #6) → Aprobado con anotaciones; fusionado; carril bloqueado hasta I2 (S003).
 - 2026-11-21 10:52 · S003 · auditoría del sprint 1 (N1 medido sobre las 100 lecturas reales: 79 % de precisión) → se escribe I2 (lectura v2, contrato v1.1, señales locales en la tubería, re-decisión sin tokens) y se quita el BLOQUEADO.
+- 2026-11-21 11:07 · S003 · auditoría de I2 (PR #12, 87.5 % medido por el arquitecto sobre salidas-sp2.zip) → se escribe I3 (verificador de aprobadas).
