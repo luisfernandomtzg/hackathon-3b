@@ -1,28 +1,66 @@
-# Hackathon Tiendas 3B — 21-nov-2026
+# Validat3B — motor de validación de capturas de precio
 
-Equipo: Fer, Mau, Sergio, Mauski y Alan.
+Hackatón Tiendas 3B · 21-nov-2026 · Reto 2 (Validat3B) · Equipo: Fer, Mau, Sergio, Mauski y Alan.
 
-> **Estado al 17-nov-2026:** plantilla previa — andamiaje Next.js + Supabase + reglas de frontera entre carriles y la ruta `/salud`. Sin código de producto: el producto se construye el día del evento. Qué trae exactamente: `docs/reportes/I0-andamiaje.md`.
+Por cada captura de campo (foto de fachada, foto del producto y foto de la etiqueta de precio) el motor decide
+`aprobada`, `rechazada` o `revision_manual`, con su `reason_code`, nivel de confianza, precio detectado y una
+explicación en español. El modelo solo **lee**; las decisiones las toman reglas deterministas.
 
-## Cómo se trabaja
+## Cómo decide
 
-- `main` siempre desplegable. Ramas cortas `carril/<carril>-<tema>`. Integra una sola persona.
-- Cada programador lee `CLAUDE.md` y el documento de misiones de su carril en `docs/`.
-- Los reportes de entrega van a `docs/reportes/`.
+1. **Señales locales, sin tokens** (`local.py`): código de barras leído de la foto, nitidez, fachadas repetidas.
+2. **Lectura** (`extraer.py`): una llamada a `claude-haiku-5-5` en el endpoint asignado, con la foto del producto y la de
+   la etiqueta. Devuelve marca, descripción, contenido, precio, y qué tan cerca y nítido sale el letrero de precio.
+3. **Reglas** (`decidir.py`): comparan lo leído contra el producto esperado. La etiqueta lejana o borrosa se rechaza;
+   sin letrero cerca y nítido no se aprueba.
+4. **Compuertas** (`compuerta.py`): código de barras que no coincide o etiqueta poco nítida → revisión.
+5. **Consenso** (`consenso.py`): solo se aprueba si tres lecturas independientes coinciden.
 
-## Comandos
+## Resultado medido (100 capturas de desarrollo)
 
-```bash
-npm install          # dependencias
-cp .env.example .env.local   # y llena los valores (pídeselos a Fer, nunca por el chat del grupo)
-npm run dev          # http://localhost:3000 · salud en /salud
-npm run lint         # incluye las fronteras entre carriles
-npm run build
+16 aprobadas · 0 aprobadas falsas · costo operativo 84 (pesimista) / 27 (optimista) contra 100 / 67 de revisar todo ·
+55 de 100 sin persona · 3,192 tokens por captura · JSON válido 100 de 100. Fuentes en `docs/pitch/cifras.md`.
+
+## Instalar
+
+```
+python -m venv .venv
+.venv\Scripts\pip install -r ml/requirements.txt        (Linux/Mac: .venv/bin/pip)
 ```
 
-Control remoto (máquina de Fer): `powershell -ExecutionPolicy Bypass -File .\remoto-hackathon-3b.ps1` · estado de los carriles sin lanzar nada: `... -Estado` (o `-Estado -Carril ui`).
-Sembrar datos y probar: se agregan cuando existan.
+Pon la llave del endpoint en `.env.local` como `FOUNDRY_API_KEY=<llave>` (no se versiona).
 
-## Herramientas y librerías usadas
+## Correr
 
-Next.js 16 · React 19 · Tailwind 4 · Supabase · Vercel · fuente Geist. Asistentes de IA usados para programar: Claude (Anthropic) y los que use cada integrante; se declaran en la entrega.
+Entrega de un lote (set ciego): localiza `capturas.csv` y las imágenes dentro de la carpeta, corre el motor, valida la
+salida y escribe `resultados.json` (lista), `por_captura/<capture_id>.json` (un archivo por captura), `resultados.csv`
+y `resumen.txt`.
+
+```
+.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta del lote> --salida entrega/
+```
+
+Con etiquetas (desarrollo): correr, medir y ver.
+
+```
+.venv\Scripts\python -m ml.validat3b.correr  --datos datos/privado --salida salidas/resultados.json
+.venv\Scripts\python -m ml.validat3b.evaluar --resultados salidas/resultados.json
+.venv\Scripts\python -m ml.validat3b.visor   --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html
+```
+
+Prueba de humo sin gastar tokens: agrega `--sin-modelo` a `correr`. Pruebas: `python -m unittest discover -s ml/validat3b -t . -p "test_*.py"`.
+
+## Qué hay en el repositorio
+
+- `ml/validat3b/` — el motor (Python). Es lo que se entrega.
+- `docs/entrega/ficha-tecnica.html` — ficha técnica de una página.
+- `docs/pitch/` — guion, láminas y tabla de cifras con su fuente.
+- `app/`, `components/`, `lib/`, `supabase/` — andamiaje web previo al evento (Next.js). **No forma parte del motor** ni de la demo.
+
+## Reglas del reto que este repositorio respeta
+
+- Solo se usa el endpoint asignado; lo demás (lectura de códigos de barras, nitidez, reglas) corre en la laptop.
+- Los datos de 3B no se versionan: `datos/privado/`, `salidas/` y `entrega/` están en `.gitignore`.
+- Las decisiones del set ciego salen del motor, sin revisión humana.
+
+Asistentes de IA usados para programar: Claude (Anthropic) y Gemini (Google).

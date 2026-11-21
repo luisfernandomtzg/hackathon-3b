@@ -184,6 +184,14 @@ def main(argv=None) -> int:
     # (e) escribir
     resultados_json.write_text(json.dumps(resultados, ensure_ascii=False, indent=2), encoding="utf-8")
     correr.escribir_csv(resultados, resultados_json.with_suffix(".csv"))
+    # El reto pide «un JSON por captura»: además de la lista, se deja un archivo por capture_id.
+    por_captura = salida / "por_captura"
+    por_captura.mkdir(exist_ok=True)
+    for viejo in por_captura.glob("*.json"):
+        viejo.unlink()
+    for r in resultados:
+        nombre = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in str(r["capture_id"]))
+        (por_captura / f"{nombre}.json").write_text(json.dumps(r, ensure_ascii=False, indent=2), encoding="utf-8")
     nuevas = _filas_tokens(tokens_csv)[previas:]
     tok = sum(int(f[1]) + int(f[2]) for f in nuevas)
     llamadas = sum(1 for f in nuevas if f[4] == "modelo")
