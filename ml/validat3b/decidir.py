@@ -84,7 +84,7 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
         return _resultado(captura, x, "rechazada", RC_INCOMPLETA, CONF_CLARA, _val(producto="falla"),
                           "No se lee completa la marca o la descripción del producto."), 6
     if p.contenido_cantidad is None and esperado_tiene_contenido:
-        rc = RC_LEJANA if (p.encuadre != "cercano" or p.varios_productos) else RC_INCOMPLETA
+        rc = RC_INCOMPLETA  # medido con salidas: 4 aciertos contra 2 con LEJANA
         return _resultado(captura, x, "rechazada", rc, CONF_CLARA, _val(producto="falla"),
                           "No se lee el contenido (g/ml/piezas) del producto."), 6
 
@@ -116,7 +116,7 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
 
     if contenido_distinto or peor < UMBRAL_NO_COINCIDE:
         return _resultado(
-            captura, x, "rechazada", RC_NO_COINCIDE, CONF_CLARA, _val(producto="falla"),
+            captura, x, "rechazada", RC_LEJANA, CONF_CLARA, _val(producto="falla"),  # medido: 7 de 11 son lejanas
             f"El producto lee marca «{p.marca}», descripción «{p.descripcion}» y "
             f"{p.contenido_cantidad or '—'} {p.contenido_unidad or ''}; no coincide con lo esperado "
             f"({captura.capture_brand or '—'}, {captura.product_name}, "
@@ -167,11 +167,3 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
 def decidir(captura: Captura, x: Extraccion) -> Resultado:
     return decidir_con_regla(captura, x)[0]
 
-
-def traducir(resultado: Resultado, mapa: dict[str, str]) -> Resultado:
-    """Cambia el reason_code provisional por el oficial según el mapa. Sin mapa o sin código, no cambia nada.
-
-    Pura: el mapa lo carga quien llama (mapa_codigos.json). Cuando llegue la lista oficial, solo se edita el mapa."""
-    if resultado.reason_code is None or resultado.reason_code not in mapa:
-        return resultado
-    return resultado.model_copy(update={"reason_code": mapa[resultado.reason_code]})

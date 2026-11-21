@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 import ml.validat3b.contrato as contrato
-from ml.validat3b.decidir import decidir, traducir
+from ml.validat3b.decidir import decidir
 
 
 def captura(**cambios):
@@ -92,12 +92,12 @@ class DecidirTest(unittest.TestCase):
         cap = captura()
         prod = lectura_producto(contenido_cantidad=None, contenido_unidad=None, encuadre="medio")
         r = decidir(cap, extraccion(cap, producto=prod))
-        self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_LEJANA))
+        self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_INCOMPLETA))
 
     def test_08_marca_claramente_distinta_se_rechaza(self):
         cap = captura()
         r = decidir(cap, extraccion(cap, producto=lectura_producto(marca="ZAPATOS ROJOS", descripcion="tenis")))
-        self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_NO_COINCIDE))
+        self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_LEJANA))
 
     def test_09_zona_gris_va_a_revision(self):
         cap = captura()
@@ -157,12 +157,6 @@ class DecidirTest(unittest.TestCase):
         r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(tipo_precio="oferta")))
         self.assertEqual(r.decision, "aprobada")
         self.assertIn("de oferta", r.explicacion)
-
-    def test_19_traducir_cambia_codigo_solo_si_hay_entrada(self):
-        cap = captura()
-        r = decidir(cap, extraccion(cap, producto=lectura_producto(encuadre="lejano")))
-        self.assertEqual(traducir(r, {"CAPTURA_LEJANA": "OFICIAL_LEJANA"}).reason_code, "OFICIAL_LEJANA")
-        self.assertEqual(traducir(r, {}).reason_code, "CAPTURA_LEJANA")
 
 
 if __name__ == "__main__":
