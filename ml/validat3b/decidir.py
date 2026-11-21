@@ -117,9 +117,10 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
     if contenido_distinto or peor < UMBRAL_NO_COINCIDE:
         return _resultado(
             captura, x, "rechazada", RC_LEJANA, CONF_CLARA, _val(producto="falla"),  # medido: 7 de 11 son lejanas
-            f"El producto lee marca «{p.marca}», descripción «{p.descripcion}» y "
-            f"{p.contenido_cantidad or '—'} {p.contenido_unidad or ''}; no coincide con lo esperado "
-            f"({captura.capture_brand or '—'}, {captura.product_name}, "
+            f"No se distingue con claridad el producto en la foto (captura lejana o poco nítida): "
+            f"se lee marca «{p.marca}», descripción «{p.descripcion}» y "
+            f"{p.contenido_cantidad or '—'} {p.contenido_unidad or ''}; "
+            f"se esperaba ({captura.capture_brand or '—'}, {captura.product_name}, "
             f"{captura.unit_quantity_product or '—'} {captura.unit_product or ''}).",
         ), 7
     if peor < UMBRAL_ZONA_GRIS or contenido_incomparable:
