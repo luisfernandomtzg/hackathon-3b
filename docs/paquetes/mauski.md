@@ -1,0 +1,164 @@
+# Paquete de Mauski — Hackatón 3B · Reto 2 Validat3B · todos tus sprints
+
+> Generado 2026-11-21 10:19. **Pega este archivo completo a tu asistente de IA** y dile: «Lee todo. Ejecuta el sprint que te indique; empieza por el primero que no esté entregado». Es autocontenido.
+
+## Cómo trabajamos (léelo tú, 1 minuto)
+
+- **Tu carril:** nucleo. **Tus archivos, y solo esos:** `ml/validat3b/decidir.py`, `normalizar.py`, `test_decidir.py`, `calibrar.py`, `mapa_codigos.json`. Nadie más los toca y tú no tocas los de nadie.
+- **Tu cola del día:** N1 reglas de decisión → N2 calibrar reglas con lecturas reales → N3 códigos oficiales y tipo de precio → 15:00 corrida del set ciego con Fer
+- **Al empezar CADA sprint:** `git fetch origin` y `git pull --rebase origin main`. Rama nueva por sprint: `carril/nucleo-sp<N>-<tema>` desde `main`. **Si tu PR anterior aún no está fusionado, crea la rama nueva desde tu rama anterior** y dilo en el reporte.
+- **Al terminar CADA sprint:** corre la prueba de cierre → `git push` de tu rama → abre PR a `main` → escribe `docs/reportes/<id>-<tema>.md` (12 líneas: hecho, prueba de cierre con salida real, no hecho/simulado, archivos fuera de tu carril, qué necesitas de otro) → avisa en el chat del equipo «<id> listo, PR #n» → **empieza el siguiente sprint sin esperar la auditoría**. Si la auditoría devuelve algo, Fer te lo dice y lo arreglas en la misma rama.
+- **A `main` solo entra Fer.** Nadie fusiona PRs ni empuja a `main`.
+- **Nunca** `git add datos/` ni `salidas/`. La llave del endpoint nunca va en código ni en el repo.
+- **Solo Fer llama al endpoint** (los tokens cuentan 10 % de la calificación y el límite por minuto es compartido). Fer corre el motor y comparte en el chat privado del equipo la carpeta `salidas/` (`extracciones.json`, `resultados.json`, `locales.csv`); tú la copias a tu `salidas/` y trabajas con eso.
+- **Horario:** sprint 1 hasta 10:45 · sprint 2 hasta 13:15 · comida 13:30 · sprint 3 hasta **14:30 (congelamos)** · 15:00 pitch y preparación de la corrida ciega · set ciego entre 15:00 y 16:00 · presentaciones 17:00. Si un sprint va al 150 % de su tope, entrega lo que haya y sigue.
+
+## Qué estamos construyendo (para la IA)
+
+Motor por lotes en Python (`ml/validat3b/`) que, por cada captura de precio tomada en tiendas de la competencia (foto de producto, foto de etiqueta, foto de fachada y metadatos), decide `aprobada`, `rechazada` o `revision_manual`, con motivo, precio detectado y explicación. Tubería: `cargar` → `local` (señales sin tokens) → `extraer` (el modelo `claude-haiku-5-5` del endpoint de Azure AI Foundry **lee** campos, no juzga) → `decidir` (reglas puras) → `correr` (escribe el JSON oficial) → `evaluar` (mide el costo) → `visor` (HTML local).
+Calificación: costo operativo 50 % (acierto 0 · revisión manual 1 · rechazar una válida 3 · aprobar una inválida 10) · calidad del dato 15 % (`reason_code`, precio, tipo de precio) · tokens por captura 10 % · pitch 25 %. Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, entregar tarde. Cliente: Tiendas 3B (hard discount): quieren aprobar solo lo seguro, eliminar revisión manual y que sea barato de operar. Hoy reciben ~12,000 capturas por semana revisadas una por una.
+
+---
+
+# SPRINT 1 (hasta 10:45)
+
+## N1 — `decidir()`: de la lectura del modelo a la decisión, con reglas puras
+
+`carril: nucleo · dueño Mauski (chat web, archivos completos) · rama: carril/nucleo-sp1-decidir desde main fresco · cuelga de: 1403ab0 · tope: 45 min · clasificación: autónoma · modelo: el de tu asistente`
+
+**Paso 0, obligatorio y automático para tu agente, antes de leer o tocar nada:** `git fetch origin` y `git pull --rebase origin main`; luego crea tu rama desde ese `main`. Si el pull falla por cambios locales, **para y muéstralos**; no los descartes. Antes de cada push: `git fetch origin` + `git rebase origin/main`. Cada quien es dueño de sus archivos: **no edites archivos de otra persona**; si necesitas algo, pídelo.
+
+**Para la persona.** Pega esta misión completa en tu chat. Pídele **archivos completos**. Tú los guardas, corres la prueba y haces push + PR. Tu carpeta hoy: solo `ml/validat3b/decidir.py`, `ml/validat3b/normalizar.py` y `ml/validat3b/test_decidir.py`.
+
+**Hechos del reto que no puedes ver** (todos `[MEDIDO o LEÍDO por el arquitecto, 21-nov 09:16–09:36]`):
+- Reto 2 · Validat3B: por cada captura (foto de fachada, foto de producto, foto de etiqueta + metadatos) se decide `aprobada`, `rechazada` o `revision_manual`. Entregable: un JSON con un `Resultado` por captura.
+- Puntos de costo (gana el menor): acierto 0 · mandar a revisión manual 1 · rechazar una válida 3 · **aprobar una inválida 10**. Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, o entregar tarde.
+- Datos de desarrollo: 100 capturas (34 rechazadas, 33 aprobadas, 33 revisión manual) en `datos/privado/metadatos/capturas.csv` y `catalogo_productos.csv`; 300 imágenes en `datos/privado/imagenes/imagenes/`. Motivos de rechazo presentes: «Capturas lejanas» 18, «Capturas borrosas» 11, «Descripción de producto incompleta» 5.
+- **Los metadatos no deciden nada:** en las 100, `capture_barcode == product_barcode` y `capture_price` cae en `[min_product_price, max_product_price]`. Todo está en las fotos.
+- Negocio (Alfredo, 3B): una captura vale solo si de la foto de producto se leen **marca, descripción y contenido** (g/ml), de la etiqueta se lee el **precio**, y la etiqueta **es de ese producto**. Si no se alcanza a leer el contenido, es lejana/incompleta. Se juzga foto por foto. Prefieren aprobar menos con error casi cero.
+- **Datos de 3B (respuesta del comité, 09:50):** tu asistente **sí puede leer** las imágenes y los metadatos de desarrollo para construir y afinar (prompts, umbrales, pruebas). Lo que **no** se vale: commitearlos (viven solo en `datos/privado/`, ignorado), usarlos fuera del reto, llamar a una IA externa **dentro de la solución** (solo el endpoint asignado), ni decidir el set ciego a mano.
+- **El criterio de aprobar / rechazar / revisión manual lo diseñamos nosotros** (comité, 09:50). El set ciego, la lista oficial de `reason_code` y el esquema se liberan entre 15:00 y 16:00: los códigos de hoy son provisionales y se cambian por un mapa, sin tocar reglas.
+- **Principio de decisión (todo o nada):** solo se aprueba con evidencia completa y clara; ante duda nunca se aprueba. Aprobar mal cuesta 10 y puede descalificar; mandar a revisión cuesta 1.
+
+**Contrato v1 — `ml/validat3b/contrato.py`, YA ESTÁ EN `main`: impórtalo, no lo edites ni lo recrees.** Va aquí completo para que tu asistente lo conozca. Pydantic v2.
+
+```python
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
+
+Decision = Literal["aprobada", "rechazada", "revision_manual"]
+OkFalla = Literal["ok", "falla"]
+
+# Códigos PROVISIONALES: la lista oficial aún no nos la entregan. Se usan SOLO por estas constantes.
+RC_BORROSA = "CAPTURA_BORROSA"; RC_LEJANA = "CAPTURA_LEJANA"; RC_INCOMPLETA = "DESCRIPCION_INCOMPLETA"
+RC_NO_COINCIDE = "PRODUCTO_NO_COINCIDE"; RC_NO_VISIBLE = "PRODUCTO_NO_VISIBLE"; RC_PANTALLA = "FOTO_DE_PANTALLA"
+RC_SIN_ETIQUETA = "SIN_ETIQUETA_PRECIO"; RC_ETIQUETA_AJENA = "ETIQUETA_NO_CORRESPONDE"
+RC_PRECIO_RANGO = "PRECIO_FUERA_DE_RANGO"; RC_FACHADA = "FACHADA_INCORRECTA"; RC_SIN_LECTURA = "SIN_LECTURA"
+
+class Captura(BaseModel):                      # una fila de capturas.csv
+    capture_id: str; capture_store_name: str; capture_date: str
+    capture_barcode: str; capture_price: Optional[float] = None; capture_brand: Optional[str] = None
+    id_product: int; product_name: str; product_barcode: str
+    product_price: Optional[float] = None; min_product_price: Optional[float] = None; max_product_price: Optional[float] = None
+    unit_product: Optional[str] = None; unit_quantity_product: Optional[float] = None   # p. ej. "gramo", 1000.0
+    product_group: Optional[str] = None; product_line: Optional[str] = None
+    facade_file: str; product_file: str; shelf_file: str                                # rutas "imagenes/CAP-..._x.jpg"
+    decision_esperada: Optional[str] = None; motivo_rechazo: Optional[str] = None       # solo en desarrollo
+
+class LecturaProducto(BaseModel):              # lo que el modelo LEE en la foto del producto
+    hay_producto: bool
+    marca: Optional[str] = None; descripcion: Optional[str] = None
+    contenido_cantidad: Optional[float] = None; contenido_unidad: Optional[str] = None  # "g","kg","ml","l","pza"
+    nitidez: Literal["nitida", "dudosa", "borrosa"] = "dudosa"
+    encuadre: Literal["cercano", "medio", "lejano"] = "medio"
+    varios_productos: bool = False; foto_de_pantalla: bool = False
+
+class LecturaEtiqueta(BaseModel):              # lo que el modelo LEE en la foto de la etiqueta
+    hay_etiqueta: bool
+    texto_producto: Optional[str] = None       # el nombre del producto tal como lo dice la etiqueta
+    precio: Optional[float] = None             # el precio unitario vigente
+    tipo_precio: Optional[Literal["regular", "oferta", "volumen"]] = None
+    otros_precios: list[float] = Field(default_factory=list)
+    legible: bool = False
+
+class Extraccion(BaseModel):
+    capture_id: str
+    producto: LecturaProducto; etiqueta: LecturaEtiqueta
+    codigo_barras_leido: Optional[str] = None; cadena_en_fachada: Optional[str] = None
+    tokens_entrada: int = 0; tokens_salida: int = 0
+    origen: Literal["modelo", "cache", "sin_modelo", "error"] = "sin_modelo"
+
+class Validaciones(BaseModel):
+    tienda_fachada: OkFalla = "ok"; producto: OkFalla = "ok"; codigo_barras: OkFalla = "ok"; evidencia_precio: OkFalla = "ok"
+
+class Resultado(BaseModel):                    # FORMATO OFICIAL de salida, una por captura
+    capture_id: str; decision: Decision
+    confidence_score: float = Field(ge=0, le=1)
+    reason_code: Optional[str] = None
+    validaciones: Validaciones
+    precio_detectado: Optional[float] = None; codigo_barras_detectado: Optional[str] = None
+    explicacion: str
+```
+
+Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` (Integrador) · `extraer.extraer(captura, dir_datos) -> Extraccion` (Integrador) · `decidir.decidir(captura, extraccion) -> Resultado` (Núcleo, función pura) · `evaluar.py` (Datos) · `visor.py` (UI).
+
+**Qué construir** (solo biblioteca estándar + pydantic; sin red, sin leer archivos: funciones puras):
+1. `normalizar.py` — `texto(s)` (minúsculas, sin acentos, sin signos), `parecido(a, b) -> float` 0–1 (proporción de palabras de la más corta contenidas en la otra, apoyado en `difflib` para faltas de ortografía), `a_base(cantidad, unidad) -> (float, "g"|"ml"|"pza")|None` (kg→g, l→ml; acepta «gramo», «gr», «mililitro», «lt», «pieza»…).
+2. `decidir.py` — `decidir(captura: Captura, x: Extraccion) -> Resultado`. Umbrales como constantes arriba del archivo. Reglas **en este orden; la primera que se cumple decide**:
+   1. `x.origen` es `error` o `sin_modelo` → `revision_manual` · `RC_SIN_LECTURA`.
+   2. `foto_de_pantalla` → `rechazada` · `RC_PANTALLA` (`producto=falla`).
+   3. `not hay_producto` → `rechazada` · `RC_NO_VISIBLE`.
+   4. `nitidez == "borrosa"` → `rechazada` · `RC_BORROSA`.
+   5. `encuadre == "lejano"` → `rechazada` · `RC_LEJANA`.
+   6. falta `marca` o `descripcion` → `rechazada` · `RC_INCOMPLETA`. Falta el contenido y el producto esperado sí lo tiene → `RC_LEJANA` si `encuadre != "cercano"` o `varios_productos`; si no, `RC_INCOMPLETA`.
+   7. Coincidencia con lo esperado: marca contra `capture_brand`, descripción contra `product_name`, contenido contra `unit_quantity_product`/`unit_product` (tolerancia 2 %). Marca claramente distinta (parecido < 0.4) o contenido distinto → `rechazada` · `RC_NO_COINCIDE`. Zona gris (0.4–0.7) → `revision_manual` · `RC_NO_COINCIDE`.
+   8. `not hay_etiqueta`, o `precio is None`, o `not legible` → `rechazada` · `RC_SIN_ETIQUETA` (`evidencia_precio=falla`).
+   9. `texto_producto` de la etiqueta presente y con parecido < 0.3 contra `product_name` + marca → `revision_manual` · `RC_ETIQUETA_AJENA`.
+   10. precio fuera de `[min_product_price, max_product_price]` (solo si ambos > 0) → `revision_manual` · `RC_PRECIO_RANGO`.
+   11. `nitidez == "dudosa"` o `encuadre == "medio"` o `varios_productos` → `revision_manual` · sin código.
+   12. todo lo anterior pasa → `aprobada`, `reason_code=None`.
+   En todos: `precio_detectado = x.etiqueta.precio`, `codigo_barras_detectado = x.codigo_barras_leido or captura.capture_barcode`, `validaciones` coherentes con la regla que disparó, `confidence_score` 0.95 (reglas 2–5, 8 y 12 con todo nítido), 0.8 (6–7 claras), 0.5 (toda `revision_manual`), y `explicacion` en una frase en español que **cite lo leído** («La etiqueta dice 430 g y el producto esperado es de 580 g.»).
+3. `test_decidir.py` — con `unittest`, un caso por regla (12) construyendo `Captura` y `Extraccion` a mano con datos inventados, más uno donde la marca viene con acento y mayúsculas distintas y debe aprobar.
+
+**Lo que NO se toca:** `contrato.py` (si no te alcanza, para y pídeselo a Fer), nada fuera de tus tres archivos.
+
+**Prueba de cierre:** `python -m unittest ml.validat3b.test_decidir -v` → 13 pruebas OK.
+
+**Para y pregunta** si una regla te parece contradictoria con lo que dijo negocio. **Entregable:** push + PR + `docs/reportes/N1-decidir.md` (12 líneas). Commit: `feat(ml): decidir() con reglas puras y pruebas`.
+
+---
+
+# SPRINT 2 (11:00–13:15) · N2 — Calibrar `decidir()` contra las lecturas reales
+
+`rama: carril/nucleo-sp2-calibrar · tope: 60 min`
+
+**Archivos que comparte Fer en `salidas/`:** `extracciones.json` (lista de `Extraccion` del contrato), `resultados.json` (lista de `Resultado`), `locales.csv` (una fila por captura: `capture_id, codigo_barras_leido, codigo_coincide, nitidez_producto, nitidez_etiqueta, huella_fachada, decision_esperada, motivo_rechazo`). Las etiquetas reales están en `datos/privado/metadatos/capturas.csv` (`decision_esperada`, `motivo_rechazo`, `facade_url`).
+
+**Objetivo medible:** sobre las 100 capturas de desarrollo, **cero aprobadas falsas** (ninguna aprobada cuya real no sea `aprobada`) y el menor costo posible.
+
+**Qué construir:**
+1. `ml/validat3b/calibrar.py` — `python -m ml.validat3b.calibrar --extracciones salidas/extracciones.json --capturas datos/privado/metadatos/capturas.csv`: aplica `decidir()` a cada lectura y muestra (a) una tabla **regla que disparó × decisión real** con conteos; (b) la lista de **aprobadas falsas** con lo leído y lo esperado; (c) la lista de **válidas rechazadas** (real `aprobada`, motor `rechazada`) con la regla culpable; (d) costo total con la tabla 0/1/3/10. Para saber qué regla disparó, `decidir()` puede exponer `decidir_con_regla(captura, x) -> (Resultado, int)` y `decidir()` la envuelve.
+2. Ajusta en `decidir.py` **solo constantes de umbral y el orden de reglas**, guiado por esa tabla. Prioridad: primero eliminar aprobadas falsas (cuestan 10 y descalifican), luego rescatar válidas rechazadas (3), al final reducir revisión manual (1).
+3. **Regla de revisión manual:** con las notas de Sergio sobre las 33 capturas `revision_manual` (te las pasa Fer), redacta la condición que las distingue y agrégala como regla explícita, con su prueba. Si no hay notas a las 12:00, usa lo que muestre tu tabla.
+4. Actualiza `test_decidir.py`: cada umbral que cambies lleva un caso que lo fija.
+
+**Prueba de cierre:** `python -m unittest ml.validat3b.test_decidir -v` en verde; la salida de `calibrar` con **0 aprobadas falsas**; en el reporte, costo antes y después.
+**No se toca:** el contrato, `extraer.py`, `correr.py`. Si una lectura del modelo viene mal (p. ej. siempre dice «dudosa»), **no lo compenses con reglas raras**: anótalo para Fer, que ajusta el prompt.
+
+---
+
+# SPRINT 3 (13:45–14:30) · N3 — Códigos oficiales, tipo de precio y explicación
+
+`rama: carril/nucleo-sp3-codigos · tope: 40 min`
+
+1. `ml/validat3b/mapa_codigos.json`: diccionario `{"CODIGO_PROVISIONAL": "CODIGO_OFICIAL"}` con los 11 códigos del contrato mapeados a sí mismos. Cuando el comité libere la lista oficial (15:00–16:00) solo se edita este archivo. Incluye en `test_decidir.py` una prueba de que todo código que emite `decidir()` es llave del mapa.
+2. **Precio y tipo de precio** (cuenta en el 15 % de calidad): si la etiqueta trae `otros_precios`, `precio_detectado` es el precio unitario **vigente** que leyó el modelo; si `tipo_precio` es `oferta` o `volumen`, dilo en la `explicacion` («Precio de oferta $24; regular $28»). Si hay dos precios y no se sabe cuál aplica → `revision_manual`.
+3. Repasa las 12 `explicacion`: una frase, en español, que cite lo leído y lo esperado. Sin tecnicismos: la va a leer un analista de precios.
+
+**Prueba de cierre:** pruebas en verde y `calibrar` sin cambios de costo a peor.
+
+---
+
+# 15:00 — Corrida del set ciego (con Fer)
+
+Tú eres el segundo par de ojos: cuando Fer genere `salidas/resultados_ciego.json`, comprueba que hay exactamente una entrada por `capture_id` del set ciego, que todas validan contra `Resultado`, y que los `reason_code` están en la lista oficial. Si llega la lista oficial, tú editas `mapa_codigos.json`. **Nadie corrige decisiones a mano**: los registros del endpoint se auditan.

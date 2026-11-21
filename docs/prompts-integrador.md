@@ -1,17 +1,17 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 09:55
-Carril integrador · dueño Fer (Claude Code) · misiones 3 · hechas 2 · siguiente **I1**
-Cola: ~~I0~~ ~~I0.1~~ → **I1** → I2 (prompt v2 + fachada con caché + calibración de umbrales con el arnés de D1)
-siguiente: **I1**
-Última auditoría: I0.1 → Aprobado con anotaciones (S000, 17-nov 16:32)
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 5
-Siguiente con modelo: Sonnet 5.5 · esfuerzo medium (recomendado) · clasificación autónoma
+## ESTADO · 2026-11-21 10:34
+Carril integrador · dueño Fer (Claude Code) · misiones 3 · hechas 3 · siguiente **NINGUNO**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ → (I2 se escribe en S003 con la corrida de las 100: prompt v2, señales locales, fachada con caché, reintentos largos)
+siguiente: **NINGUNO — BLOQUEADO hasta que S003 escriba I2** (lo libera Fer al abrir S003)
+Última auditoría: I1 → Aprobado con anotaciones ([MEDIDO 10:28: código de extraer/cliente/correr leído del disco; tokens.csv: 1,661 entrada + ~200 salida = 1,865 por captura; 5 lecturas cruzadas a mano contra etiquetas: 0 aprobadas falsas] · PR #6 fusionado 10:32 por el chat)
+Qué cambió por esa auditoría: S2 a I2/N2 — «lejana» del analista = contenido ilegible, no el encuadre del modelo · g vs ml con la misma cantidad no es rechazo · submarca (Carnation/Nestle) y precio con varias cifras apuntan a revisión manual · reintentos cortos (5, 31 s) para un límite compartido
+Reescrituras de este documento: 6
+Siguiente con modelo: — (se fija en S003)
 
 ---
 
-## I1 — Esqueleto del motor Validat3B: contrato, cargador, cliente del endpoint, extracción v1 y corrida de punta a punta
+## I1 — Esqueleto del motor Validat3B: contrato, cargador, cliente del endpoint, extracción v1 y corrida de punta a punta [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: carril/integrador-sp1-motor desde main fresco · cuelga de: 1403ab0 [REPORTADO: salida de git push de Fer, 09:36; refs/heads/main leído del disco 09:38] · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: medium (recomendado)`
 
@@ -182,3 +182,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, campos que lee `-Estado`); I0.1 gana el paso 7 (probar el candado en las dos direcciones).
 - 2026-11-17 16:32 · auditoría de I0.1 (Aprobado con anotaciones); candado probado en las dos direcciones: PARO a las 16:32 con el ESTADO viejo, liberado por esta reescritura.
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
+- 2026-11-21 10:34 · S002: auditoría de I1 (PR #6) → Aprobado con anotaciones; fusionado; carril bloqueado hasta I2 (S003).

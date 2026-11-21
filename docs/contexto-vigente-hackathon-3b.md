@@ -1,22 +1,24 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 09:55 · S002, cierre de F1** · siguiente **S002 (sábado 21-nov, el día del hackatón)**.
+> Última actualización: **2026-11-21 10:34 · cierre de S002** · siguiente **S003 (sprint 2)**.
 
-## 🟢 S002 en curso — estado al 2026-11-21 09:55 (lee esto primero; lo de abajo anterior al sábado es historia)
+## 🟢 Relevo para S003 — escrito al cerrar S002 (2026-11-21 10:34)
 
-- **Reto asignado: Reto 2 · Validat3B** (motor que decide `aprobada / rechazada / revision_manual` por captura de precio). Página: hackaton3b.com/validat3b.html.
-- **Giro (compuerta de Fer, 09:16):** competencia por lotes, no app. Producto = **Python local en `ml/validat3b/`**. Supabase y Vercel fuera del producto. Repo **privado** desde 09:35 (los datos estuvieron en `main` público de 09:11 a ~09:35 por error; sacados en `1403ab0`, siguen en el historial).
-- **Calificación:** costo operativo 50 % (acierto 0 · manual 1 · rechazar válida 3 · aprobar inválida 10) · calidad del dato 15 % · tokens 10 % · pitch 25 % (3 min). Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, entrega tarde.
-- **Endpoint:** Azure AI Foundry, SDK `anthropic` (`AnthropicFoundry`), modelo único `claude-haiku-5-5`, llave en `FOUNDRY_API_KEY` (`.env.local`). Sin kit de arranque: cargador, esquema y script de costo son nuestros.
-- **Datos `[MEDIDO 09:16]`:** 100 capturas (34/33/33), 300 imágenes, en `datos/privado/`. Metadatos sin señal (código y rango de precio coinciden en las 100). Motivos: lejanas 18, borrosas 11, descripción incompleta 5.
-- **Negocio (Alfredo, `[REPORTADO]`):** válida = se leen marca, descripción y contenido en el producto, precio en la etiqueta, y la etiqueta es de ese producto. Foto por foto. ~800 capturistas, ~12,000 capturas/semana. Prefieren menos aprobadas con error casi cero.
-- **Arquitectura:** modelo **lee** campos (`extraer`) → código **decide** (`decidir`, reglas puras) → `evaluar` mide costo. Contrato en `ml/validat3b/contrato.py`.
-- **Carriles (sello 09:55):** Integrador **I1** (Code de Fer) · Núcleo **N1** (Mauski) · Datos **D1** (Sergio) · UI **U1** visor (Mau) · Pitch **P1** señales locales (Alan). Pitch P2 arranca 15:00: Alan narra, Mau maneja, Sergio números; Fer y Mauski cierran motor y corrida ciega.
-- **Reloj del reto:** 10:45 primer JSON válido · 11:30 primer costo medido con modelo · 13:15 costo < «todo manual» con precisión ≥ 97 % · **14:30 congelar** + corrida cronometrada · **set ciego entre 15:00 y 16:00** («cuando la mayoría termine», comité 09:50), con la lista oficial de `reason_code`.
-- **Comité (09:50, `[REPORTADO]`):** los asistentes sí pueden leer los datos de desarrollo para construir; la solución final debe correr sola; el criterio de las tres decisiones lo diseñamos nosotros. **Sin responder:** costo cuando la real es `revision_manual` · plazo y tamaño del set ciego · si la llave es compartida.
-- **Propuestas de Mau y Mauski, integradas:** aprobar «todo o nada» · filtros locales sin tokens (P1) y puerta local antes del modelo (I2, solo si el arnés lo respalda) · explicaciones por plantilla sin tokens · clasificador tabular sobre las señales (D2, validado por visita) · export CSV para analistas. **Fuera de alcance, van al pitch como siguiente paso:** PWA sin conexión con pre-validación al capturar, capa analítica DuckDB/Parquet, embeddings CLIP. **Descartado:** decisión binaria sin revisión manual (rechazar una válida cuesta 3; revisar, 1) y «sin modelo por imagen» (con 100 ejemplos y 6 horas, leer con el modelo es lo preciso).
-- **No verificado:** `/salud` (ya irrelevante hoy) · endpoint probado con una llamada real · puntaje de Rival 3B.
+**Abre con `S003 3B. Lee el prompt inicial`** → lee instrucciones del proyecto → `PROMPT-APERTURA-S003.md` → este relevo. Lo de abajo de este bloque es historia anterior al sábado.
+
+- **Fase:** F3 · sprint 1 cerrándose (meta 10:45). Reto 2 · **Validat3B** (motor por lotes que decide `aprobada / rechazada / revision_manual` por captura de precio). Producto = **Python local en `ml/validat3b/`**; Next/Supabase/Vercel fuera. Repo **privado**.
+- **Calificación:** costo 50 % (acierto 0 · manual 1 · rechazar válida 3 · aprobar inválida 10) · calidad del dato 15 % · tokens 10 % · pitch 25 % (3 min). Descalifica: precisión de aprobadas < 97 %, JSON válido < 99 %, tarde. **Congelar 14:30**; set ciego + lista oficial de `reason_code` entre 15:00 y 16:00 (comité, 09:50).
+- **Endpoint:** Azure AI Foundry, SDK `anthropic` (`AnthropicFoundry`), modelo único `claude-haiku-5-5`, `thinking` desactivado (si no, agota tokens sin texto), llave en `.env.local` como `FOUNDRY_API_KEY`. **Solo Fer llama al endpoint** y comparte `salidas/` al equipo.
+- **Datos `[MEDIDO]`:** 100 capturas (34 rech / 33 aprob / 33 manual), en `datos/privado/`. Metadatos sin señal. Motivos: lejanas 18, borrosas 11, descripción incompleta 5. Negocio (Alfredo): válida = se leen marca, descripción, contenido y precio y la etiqueta es de ese producto; foto por foto; ~800 capturistas, ~12,000 capturas/semana; prefieren menos aprobadas con error casi cero. Comité: los asistentes pueden leer los datos de desarrollo; el criterio de las tres decisiones lo diseñamos nosotros.
+- **`main`:** contiene `c99c380` (misiones SP1 + contrato) y el merge del **PR #6 (I1)** hecho a las 10:32 `[MEDIDO en GitHub: «Merged»]`. SHA del merge: **medirlo al abrir** (`git log --oneline -3`).
+- **Carriles (sprint 1):** Integrador ~~I1~~ **Aprobado con anotaciones** · Núcleo **N1** (Mauski) · Datos **D1** (Sergio) · UI **U1** (Mau, dijo haber terminado: **sin auditar**) · Pitch **P1** (Alan). Entregas llegan como PR + `docs/reportes/<id>-*.md`.
+- **Paquetes por persona con los 3 sprints** (`docs/paquetes/{mauski,sergio,mau,alan}.md`): ya repartidos por chat a las 10:20; en el repo desde el commit de cierre de S002. Sprint 2 = N2 calibrar, D2 análisis + clasificador, U2 visor + modo pitch, P2 puerta local. Sprint 3 = N3 mapa de códigos, D3 marcador, U3 ficha técnica, P3 guion. 15:00: Alan narra, Mau maneja, Sergio números; Fer y Mauski corren el set ciego.
+- **Auditoría I1 `[MEDIDO 10:28]`:** 1,865 tokens por captura (1,661 entrada fijos; ~1,180 son las dos imágenes); ~11 s por llamada; 5 lecturas cruzadas contra etiquetas: 0 aprobadas falsas. Anotaciones para I2/N2: «lejana» = contenido ilegible (el modelo dijo «cercano» en una lejana) · g vs ml misma cantidad no es rechazo · submarca (Carnation vs Nestle) + precio con varias cifras huele a revisión manual · reintentos más largos ante 429.
+- **Lo pendiente en curso:** Fer corre las 100 con modelo (`correr --hilos 4`, ~5 min, ~187k tokens) y comparte `salidas/` sin `cache/`. `ml/evaluador.py` de Mau entró a `main` sin auditar y duplica D1 (se quita al integrar D1).
+- **Disciplina:** dos veces se empujó directo a `main` (Mau 09:11–09:13, Alan `47995c4`). Regla: rama + PR, solo Fer fusiona. Fer puede activar la protección de `main` en GitHub.
+- **No verificado:** U1 de Mau · tokens de las 100 · costo cuando la real es `revision_manual` · plazo y tamaño del set ciego · puntaje de Rival 3B · si la llave es compartida.
+- **Primera acción de S003:** acuse §4 · `git log --oneline -3` para fijar el SHA de `main` · pedir a Fer la salida de la corrida de 100 (o correrla) · auditar en orden de llegada las entregas sin auditar (`docs/reportes/` sin tachar: U1 primero) · luego **escribir I2** en `prompts-integrador.md` con las lecturas reales y el resultado de N1+D1.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 
