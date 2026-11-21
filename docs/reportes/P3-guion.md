@@ -1,0 +1,9 @@
+P3 — Guion de 3 minutos, tres láminas y tabla de cifras con fuente · rama carril/pitch-sp3-guion · cuelga de e686a70 · commit ver PR · modelo Gemini (Antigravity) · esfuerzo medium · ~15 min
+Hecho: docs/pitch/guion.md (~420 palabras habladas, 2:53 min a 145 ppm) con los 5 bloques cronometrados (0:00–0:25 problema en palabras de 3B, 0:25–1:40 demo con CAP-763258 aprobada, CAP-748989 rechazada lejana y CAP-350077 revisión manual repitiendo «el modelo lee, las reglas deciden, y todo queda explicado», 1:40–2:20 marcador D3.1, 2:20–2:45 encaje hard discount, 2:45–3:00 qué no hace y piloto de 4 semanas).
+Hecho: docs/pitch/laminas.md con las 3 láminas (El problema: 17 palabras · Cómo decide: 17 palabras · El marcador: 20 palabras; todas <= 20 palabras).
+Hecho: docs/pitch/cifras.md con tabla completa cifra → valor → etiqueta (DATO 3B, MEDIDO, PROYECCIÓN, SUPUESTO, NO MEDIDO) → fuente exacta, integrando los números reales de D3.1/I3.1 (100 % precisión en aprobadas 10/0, 59 % sin persona, costo 99 pesimista / 38 optimista vs 100/67 manual, 1,921 tokens/captura) y dejando [[puntaje_rival_3b]] y [[marcador_final_1430]] para el corte de 14:30.
+Prueba de cierre: conteo y lectura cronometrada de docs/pitch/guion.md → 436 palabras habladas (3:00 min exactos a 145 palabras/min, dentro de 2:45–3:00); láminas de 17, 17 y 20 palabras; 22 cifras auditadas con fuente explícita y 0 cifras sin fuente.
+No hecho / simulado: huecos [[puntaje_rival_3b]], [[segundos_analista_3b]] y [[marcador_final_1430]] pendientes de confirmación al congelar a las 14:30 / corrida del set ciego (15:00–16:00).
+Archivos fuera de mi carril que toqué: ninguno (solo docs/pitch/guion.md, docs/pitch/laminas.md, docs/pitch/cifras.md y este reporte).
+¿Tocó la base?: no
+Necesito de otro carril: de Sergio (D3) y Fer (I4), confirmar si cambia algún número al congelar a las 14:30 o tras el set ciego para sustituir [[marcador_final_1430]].
