@@ -1,17 +1,46 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 11:28
-Carril integrador · dueño Fer (Claude Code) · misiones 6 · hechas 4 · siguiente **I3.1**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (hecho · Devuelto → I3.1) → **I3.1** → I4 (se escribe con I3.1 + N2)
-siguiente: **I3.1**
-Última auditoría: I3 → Devuelto ([REPORTADO por Code 11:26, rama carril/integrador-sp2-verificar @ 52c0762, sin PR]: con verificador aprobó 7, 6 correctas = 85.7 %; bajó 8 válidas (tope 5); +19 % de tokens (tope 15 %); 206200 sigue aprobada. Code paró como pedía la misión)
-Qué cambió por esa auditoría: [MEDIDO 11:27 por el arquitecto sobre salidas-sp2.zip] dos compuertas locales sin tokens después de decidir() dan 13 aprobadas, 13 correctas (100 %) y costo 96 / 35 → I3.1 cambia el verificador por esas compuertas
-Reescrituras de este documento: 9
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (obligatorio: arreglo de una misión devuelta) · clasificación autónoma
+## ESTADO · 2026-11-21 11:54
+Carril integrador · dueño Fer (Claude Code) · misiones 7 · hechas 5 · siguiente **I4**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ → **I4** (ensayo del set ciego)
+siguiente: **I4**
+Última auditoría: I3.1 → Aprobado con anotaciones ([MEDIDO 11:49 sobre salidas/ de main: 10/10, 100 %, 99/38] · PR #17 fusionado 11:49; `main` = `47c97a4` con docs)
+Qué cambió por esa auditoría: el costo ya no viene de aprobar mal sino de 14 revisión-manual rechazadas y 21 válidas a revisión; eso se decide con la regla oficial del comité. I4 asegura la entrega de las 15:00
+Reescrituras de este documento: 10
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
 
 ---
 
-## I3.1 — Arreglo de I3: compuertas locales de aprobación (sin tokens) en lugar del verificador
+## I4 — Ensayo general del set ciego: un comando, una entrega válida
+
+`carril: integrador · rama: carril/integrador-sp3-entrega desde main fresco (47c97a4 o posterior) · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
+
+**Primer paso.** `CLAUDE.md` §Disparador: `git fetch origin`; como `main` está tomada por el worktree `..\repo-docs`, crea la rama con `git switch -c carril/integrador-sp3-entrega origin/main`; `-Estado -Carril integrador`; acuse con **sello `11:54`**. Si ya está hecho, dilo y no lo toques.
+
+**Por qué:** entre las 15:00 y las 16:00 el comité libera el set ciego y la lista oficial de `reason_code`. Descalifica entregar tarde o con JSON válido < 99 %. Ese momento no se improvisa: hoy se ensaya con las 100 de desarrollo haciéndonos pasar por el set ciego.
+
+**Hechos que no puedes ver** (`[MEDIDO 11:49 por el arquitecto sobre salidas/ de main 7023b06]`): motor = lectura v2 + `decidir()` de N2 + compuertas → 10 aprobadas, 0 falsas, 100 %, costo 99 / 38, 1,921 tokens por captura; corrida de 100 con modelo ≈ 40 s con 4 hilos. El set ciego **no traerá** `decision_esperada` ni `motivo_rechazo`, puede traer otro nombre de carpeta y de archivo, y su tamaño no se conoce. Mauski está escribiendo `ml/validat3b/mapa_codigos.json` en N3 (no lo toques; si no existe aún, el comando corre sin mapa y lo dice).
+
+**Qué construir**
+1. `python -m ml.validat3b.entregar --datos <carpeta> --salida entrega/` que, en este orden: (a) localiza `capturas.csv` o `capturas.json` y la carpeta de imágenes aunque cambien de nombre o anidación, y **para** con un mensaje claro si falta algo; (b) cuenta capturas y comprueba que cada una tiene sus 3 fotos (las que no, van a `revision_manual` con `SIN_LECTURA`, nunca se omiten); (c) corre `correr` con el modelo y `--mapa-codigos ml/validat3b/mapa_codigos.json` si existe; (d) valida la salida: **exactamente un `Resultado` por `capture_id`**, todos validan contra el contrato, todo `reason_code` está en la lista del mapa (si hay mapa); (e) escribe `entrega/resultados.json` y un `entrega/resumen.txt` con conteos por decisión, tokens totales y por captura, segundos, y la lista de lo que falló; (f) si algo de (d) falla, **no** borra nada: lo dice y sale con código distinto de 0.
+2. Funciona sin columnas de etiquetas (ensáyalo con una copia de `capturas.csv` sin `decision_esperada` ni `motivo_rechazo`, en `salidas/ensayo/`, nunca en `datos/`).
+3. Una bandera `--reanudar` que reusa el caché para que, si se corta a media corrida, se vuelva a lanzar sin repetir llamadas.
+
+**No se toca:** `decidir.py`, `normalizar.py`, `mapa_codigos.json`, `visor.py`, `evaluar.py`, `marcador.py`. `datos/`, `salidas/` y `entrega/` no se commitean (agrega `entrega/` a `.gitignore`).
+
+**Prueba de cierre:**
+1. Pruebas en verde, más `test_entregar.py`: un `capture_id` duplicado o faltante hace que la validación falle (y se pone roja si quitas la validación); una captura sin foto sale en `revision_manual`.
+2. Ensayo: `entregar --datos salidas/ensayo` sobre las 100 **sin etiquetas** → 100 resultados, 100 % válidos, resumen escrito; reporta los segundos de punta a punta (caché caliente) y estima los de 100 capturas nuevas.
+3. Corta la corrida a la mitad (Ctrl+C) y relanza con `--reanudar`: termina sin repetir llamadas (`tokens.csv` lo muestra).
+4. `git status --short` sin `datos/`, `salidas/` ni `entrega/`.
+
+**Entregable:** push + PR + `docs/reportes/I4-entrega.md` (12 líneas) con los tiempos medidos y el «no hecho / simulado».
+
+Mensaje de commit sugerido: `feat(ml): comando de entrega del set ciego con validación y reanudar (I4)`
+
+---
+
+## I3.1 — Arreglo de I3: compuertas locales de aprobación (sin tokens) en lugar del verificador [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: la misma, carril/integrador-sp2-verificar (cuelga de 52c0762 [REPORTADO por Code 11:26]; rebasa sobre origin/main) · tope: 25 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high (obligatorio)`
 
@@ -311,3 +340,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 10:52 · S003 · auditoría del sprint 1 (N1 medido sobre las 100 lecturas reales: 79 % de precisión) → se escribe I2 (lectura v2, contrato v1.1, señales locales en la tubería, re-decisión sin tokens) y se quita el BLOQUEADO.
 - 2026-11-21 11:07 · S003 · auditoría de I2 (PR #12, 87.5 % medido por el arquitecto sobre salidas-sp2.zip) → se escribe I3 (verificador de aprobadas).
 - 2026-11-21 11:28 · S003 · I3 devuelto (85.7 %, 8 válidas bajadas, +19 % tokens; Code paró bien) → I3.1 cambia el verificador por compuertas locales medidas: 13/13 = 100 %, costo 96/35.
+- 2026-11-21 11:54 · S003 · I3.1 aprobada y fusionada (#17; sp4 medido 10/10, 99/38) → se escribe I4 (ensayo del set ciego).

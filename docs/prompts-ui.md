@@ -1,13 +1,33 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-21 11:47
-Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 5 · hechas 5 · siguiente **NINGUNO**
-Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ → (U5: pitch.html con Tarima, si Fer elige la opción A)
-siguiente: **NINGUNO — BLOQUEADO hasta que Fer decida A/B sobre la pantalla del pitch** (lo libera Fer)
-Última auditoría: U4 → Aprobado con anotaciones ([MEDIDO 11:35: sus 6 candidatas son aciertos con N1+compuertas]; con N2, 763258 y 726347 pasan a revisión → la aprobada del pitch es 434912 o 487774) · PR #13 fusionado
-Qué cambió por esa auditoría: el costo del pitch sale de `evaluar.py`, no del marcador del visor
-Reescrituras de este documento: 7
+## ESTADO · 2026-11-21 11:54
+Carril ui · dueño Fer (dirección) · ejecuta Mau · misiones 6 · hechas 5 · siguiente **U5**
+Cola: ~~U0~~ ~~U1~~ ~~U2~~ ~~U3~~ ~~U4~~ → **U5**
+siguiente: **U5**
+Última auditoría: U4 → Aprobado con anotaciones (PR #13 fusionado)
+Qué cambió por esa auditoría: Fer eligió la opción A (11:53): la pantalla del pitch se hace con Tarima
+Reescrituras de este documento: 8
 Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación requiere pantalla
+
+---
+
+## U5 — La pantalla del pitch con Tarima (`pitch.html` y el encabezado del visor)
+
+`rama: carril/ui-sp3-tarima desde main fresco · tope: 45 min · clasificación: requiere pantalla · decisión A de Fer (11:53)`
+
+**Por qué:** el pitch vale 25 % y el jurado juzga en diez segundos si esto se ve serio. Hoy `pitch.html` se ve como herramienta interna. Se le pone la identidad Tarima (`DESIGN.md`, que manda): continúa la identidad pública de 3B, **sin su logotipo ni una imitación**.
+
+**Tokens que usas** (de `DESIGN.md`, en variables CSS arriba del HTML que genera `visor.py`): rojo `--primary: #E31B23` (hover `#C4101A`), tinta `--text: #04211F`, secundario `#31413F`, fondo `#FFFFFF`, superficie `#F9FAFA`, borde `#DADFDF`, éxito `#1F7A4D` / `#E3F3EA`, aviso `#8A5A12` / `#FBF1DC`, peligro `#9D0812` / `#FEF3F1`. Tipografía `font-family: Montserrat, "Segoe UI", system-ui, sans-serif` (**sin Google Fonts ni CDN**: la demo tiene que correr sin internet), cifras con peso 800 y `font-variant-numeric: tabular-nums`.
+
+**Qué construir (solo en `visor.py`, modo `--pitch`):**
+1. **Lámina de marcador** (la primera de `pitch.html`): tres cifras grandes — «100 % de precisión en aprobadas», «Costo 99 contra 100 de revisar todo a mano», «1,921 tokens por captura» — cada una con su línea chica de qué es. Las cifras salen de `salidas/resultados.json` y `tokens.csv` (solo filas `origen == "modelo"`), **nunca escritas a mano**. Costo con la tabla pesimista de `evaluar.py` (manual real → manual = 1, rechazar una manual = 3).
+2. **Una lámina por captura** (las 3 del pitch: aprobada **434912** o **487774**, rechazada **748989**, revisión **350077**): las tres fotos grandes en fila (fachada · producto · etiqueta), debajo la decisión como **chip de color** (verde aprobada, rojo rechazada, ámbar revisión manual) con su `reason_code`, y la `explicacion` en una frase. Esperado contra leído en una tabla de 4 filas máximo.
+3. Navegación con flechas que ya tienes; tecla `F` para pantalla completa. Sin animaciones.
+4. Encabezado del visor normal con los mismos tokens (que no se vean dos productos distintos).
+
+**No se toca:** nada fuera de `visor.py`; los datos y cifras salen de `salidas/`. Nada de logotipo de 3B.
+
+**Prueba de cierre (requiere pantalla):** `python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html --pitch CAP-434912,CAP-748989,CAP-350077` con **`salidas-sp4.zip`** → la primera lámina dice 100 %, 99 contra 100 y 1,921; se ve bien a 1920×1080 y en el proyector; el HTML abre sin internet (prueba con el wifi apagado). Capturas de las 4 láminas en el PR + reporte de 12 líneas.
 
 ---
 
@@ -113,3 +133,4 @@ Siguiente con modelo: el del asistente de Mau (Antigravity) · clasificación re
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · U1, U2 y U3 auditadas y fusionadas → se escribe U4 (pitch con datos reales) y se sube el sello.
 - 2026-11-21 11:47 · S003 · U4 fusionada (#13) → carril en espera de la decisión A/B (pantalla del pitch con Tarima).
+- 2026-11-21 11:54 · S003 · Fer elige A → U5 (pantalla del pitch con Tarima). Se sube el sello.
