@@ -99,6 +99,13 @@ class DecidirTest(unittest.TestCase):
         r = decidir(cap, extraccion(cap, producto=lectura_producto(marca="ZAPATOS ROJOS", descripcion="tenis")))
         self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_LEJANA))
 
+    def test_20_explicacion_de_regla_7_coincide_con_su_codigo(self):
+        cap = captura()
+        r = decidir(cap, extraccion(cap, producto=lectura_producto(marca="ZAPATOS ROJOS", descripcion="tenis")))
+        self.assertEqual(r.reason_code, RC_LEJANA)
+        self.assertIn("No se distingue", r.explicacion)
+        self.assertNotIn("no coincide", r.explicacion)
+
     def test_09_zona_gris_va_a_revision(self):
         cap = captura()
         # la descripción coincide a medias con el nombre del producto (1 de 2 palabras)
