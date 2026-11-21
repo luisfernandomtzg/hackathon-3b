@@ -54,3 +54,15 @@ def a_base(cantidad: Optional[float], unidad: Optional[str]) -> Optional[tuple[f
         return None
     base, factor = entrada
     return cantidad * factor, base
+
+
+def pesos_del_nombre(nombre: Optional[str]) -> list[tuple[float, str]]:
+    """Pesos explícitos en el nombre: «(total: 820g)» → [(820.0, 'g')]. Lista vacía si no hay."""
+    if not nombre:
+        return []
+    m = re.search(r"total:?\s*(\d+(?:[.,]\d+)?)\s*(kg|g|ml|l)\b", nombre.lower())
+    if not m:
+        return []
+    cantidad = float(m.group(1).replace(",", "."))
+    base = a_base(cantidad, m.group(2))
+    return [base] if base else []

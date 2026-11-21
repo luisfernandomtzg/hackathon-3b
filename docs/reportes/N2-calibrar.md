@@ -1,0 +1,7 @@
+N2 — Calibrar decidir() con lecturas reales · rama carril/nucleo-sp2-calibrar · cuelga de bdfab08 (N1 ya fusionada, PR #8) · commit 9591e14 · modelo claude-haiku-5-5 · esfuerzo no visible · ~50 min
+Hecho: `calibrar.py` (tabla regla×real×motor, aprobadas falsas, válidas rechazadas); `decidir_con_regla()` expone la regla; `UMBRAL_ETIQUETA_AJENA` 0.3→0.6; la regla 11 también dispara con `otros_precios`; 16 pruebas.
+Prueba de cierre: `py -3 -m unittest ml.validat3b.test_decidir -v` → Ran 16 tests, OK. `calibrar` sobre salidas-sp2 → 0 aprobadas falsas, precisión 100 % (11/11), costo pesimista 118→103, optimista 52→36.
+No hecho / simulado: las válidas rechazadas CAP-586021 y CAP-659322 siguen rechazadas. La regla «(total: NNNg)» rescata las dos pero aprueba 3 inválidas (769540, 847183, 467501); quedó apagada en `ACEPTAR_PESO_TOTAL`. La métrica de cobertura desde el nombre propuesta en el paquete no bajó el costo (pesimista 122) y se revirtió. Las 17 válidas en revisión siguen ahí. CAP-410562 ya no se aprueba por `otros_precios`, no por nitidez de etiqueta: decidir() no recibe nitidez.
+Archivos fuera de mi carril que toqué: ninguno (`salidas/` y `datos/privado/` están ignorados).
+¿Tocó la base?: no.
+Necesito de otro carril: Fer, si quieren la regla de nitidez de etiqueta <100, necesito ese campo en `Extraccion` (cambio de contrato). Y una señal que distinga cuándo el «(total)» es el peso real.
