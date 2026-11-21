@@ -5,8 +5,8 @@ Marcador actual (`salidas-sp2.zip`): **16 aprobadas · 14 correctas · 87.5% pre
 ## Candidatas por categoría (2 por cada una, todas aciertos)
 
 ### 1. Aprobada correcta
-- **`CAP-763258`** (Soriana · Precissimo · canela molida): lectura limpia de marca, producto, contenido y precio; aprobada con `0 pts`.
-- **`CAP-726347`** (Soriana · Precissimo · Harina para hot cakes 1000g): respaldo claro con empaque grande y etiqueta legible.
+- **`CAP-434912`** (Precissimo · detergente 800 g): lectura limpia de marca, producto, contenido y precio; aprobada con `0 pts`.
+- **`CAP-487774`** (Precissimo · frijol negro 908 g): segunda opción aprobada correcta con etiqueta legible.
 
 ### 2. Rechazada correcta (lejana / borrosa)
 - **`CAP-748989`** (Walmart · La Sierra · Frijol refrito bayo): rechazada correctamente como `CAPTURA_LEJANA` (coincide decisión y `reason_code`).
