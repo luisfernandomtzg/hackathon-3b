@@ -1,38 +1,26 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-18 18:30 · cierre de S001 (miércoles, adelantada: método de trabajo y sistema de diseño)** · siguiente **S001.5 (viernes 20-nov, corta: Supabase, U0 y ensayo)** · el sábado es **S002**.
+> Última actualización: **2026-11-20 21:00 · cierre de S001.5 (viernes)** · siguiente **S002 (sábado 21-nov, el día del hackatón)**.
 
 ## 🟢 Si estás abriendo la sesión siguiente, lee esto primero
 
-- **Numeración:** S001 se adelantó al miércoles 18 (método); el viernes es **S001.5** (sesión corta, `PROMPT-APERTURA-S001.md`); el sábado arranca en **S002** (`PROMPT-APERTURA-S002.md`). Donde las instrucciones digan «S001» para el sábado, léase S002.
-- Aún **no hay reto**: se conoce el sábado a las 9:00 y se elige por orden de llegada.
-- El repo trae **plantilla previa** sin código de producto: I0 (Next + fronteras de carril + `/salud`) e I0.1 (shadcn, Supabase y Vercel) hechas y auditadas en S000. Los cuatro carriles están en `NINGUNO — BLOQUEADO` hasta que S002 (sábado) escriba sus misiones 1; el de UI se libera antes, en S001.5, para `U0`.
-- Antes del sábado hay tareas de Fer y del equipo en `checklist-previo.md`. Lo que no esté palomeado ahí, se pregunta al abrir.
-- Plan de horas en `plan-del-dia.md`. Arquitectura en `arquitectura-provisional.md`.
+- El sábado es **S002**: abre con `S002 3B. Lee el prompt inicial` → `PROMPT-APERTURA-S002.md` + el relevo de abajo. Donde las instrucciones digan «S001» para el sábado, léase S002.
+- Aún **no hay reto**: se conoce a las 9:00 y se elige por orden de llegada.
+- El repo trae plantilla previa sin producto: I0, I0.1 y **U0** hechas y auditadas. Los cuatro carriles están en `NINGUNO — BLOQUEADO` hasta que S002 escriba sus misiones 1.
+- Plan de horas en `plan-del-dia.md`. Arquitectura en `arquitectura-provisional.md`. Sistema de diseño en `repo/DESIGN.md`.
 
-## Relevo para S001.5 (viernes)
+## Relevo para S002 (sábado)
 
-Escrito al cerrar S001, 2026-11-18 17:10.
-- **S001 se adelantó al miércoles** y solo trató el método. La agenda de `PROMPT-APERTURA-S001.md` (Supabase despierto, misión `U0`, puntos abiertos) **sigue pendiente completa**: es S001.5, y abre con `S001.5 3B. Lee el prompt inicial` → lee `PROMPT-APERTURA-S001.md` + este relevo.
-- **Medido en S001:** `origin/main` = `5df6c6b`, desciende de `3506aa7` → cierre de S000 ✓ `[MEDIDO 17:01, git clone desde el chat]`. `git status` local no medido (sin shell). `/salud` no verificado (la lectura automática solo ve «Revisando…»: medir con navegador).
-- **Hallazgo que sube de severidad:** `npm run build` **falla** sin acceso a Google Fonts (`next/font/google` en `app/layout.tsx`) `[MEDIDO 17:03 en el contenedor del chat; npm ci 12 s y lint en verde]`. Vercel compila porque tiene internet, pero el chat no puede auditar ejecutando y una sede sin internet rompe el build local. **`U0` es lo primero del viernes.**
-- **Decisiones de S001 (Fer, 17:04):** ver «Método de trabajo del sábado» abajo.
-- **Escrito en S001:** `repo/docs/KIT-EQUIPO.md` (kit universal, Parte A + ensayo `E0`), `repo/docs/pull_request_template.md`, `CLAUDE.md` (paso de PR), `AGENTS.md` (apunta al kit), `plan-del-dia.md` (F3a con ventanas). **Empujado en `d05f4f4`** `[MEDIDO en captura de Fer, 17:20: 5df6c6b..d05f4f4 main -> main; git status vacío]`. Después, tabla de equipo con la IA de cada quien (commit siguiente: verificar el viernes que está en `origin/main`).
-- **Sistema de diseño «Tarima» (aprobado por Fer, 18:16):** `DESIGN.md` en la raíz (formato Google, linter `@google/design.md` 0.4.0: 0 errores), tema en `app/globals.css`, Montserrat autoalojada en `app/fonts/` (OFL), Geist del paquete `geist`; `next/font/google` eliminado de `app/layout.tsx`. `npm run lint` y `npm run build` en verde en el contenedor del chat `[MEDIDO 18:25]`: **el build ya no depende de Google Fonts**. Referencia visual: https://claude.ai/artifact/APcRRFs9CSu2Mh7X3aJVwv (privada de Fer). Por commitear: bloque de git en el chat de S001.
-- **`U0` cambia:** ya no es «tema neutro» (lo sustituye Tarima). Ahora: botón y campo de shadcn a 44 px en celular, hover del primario a `primary-hover`, variante destructiva en contorno, y página `/tema` con todos los componentes; prueba de cierre: `/tema` en la URL pública vista en celular.
-- **Primera acción de S001.5:** acuse; verificar que el commit de Tarima está en `origin/main` y que `/salud` sigue `base ok`; revisar los PR de ensayo `E0` que haya (`docs/equipo/<nombre>.md`) y anotar la IA de cada uno en la tabla de equipo; después escribir y correr `U0`.
-
-## Relevo anterior (S000 → S001), ya consumido
-
-Escrito al cerrar S000, 2026-11-17 16:35.
-- **Fase:** antes del evento. Reto: por elegir el sábado a las 9:00. S001 (viernes) es corta: Supabase despierto, misión `U0` (tema base) y puntos abiertos.
-- **Carriles** (`ESTADO` en `repo/docs/prompts-<carril>.md`): integrador sellado 16:32, ~~I0~~ ~~I0.1~~, `siguiente: NINGUNO — BLOQUEADO hasta I1`. UI, Núcleo y Datos sellados 14:54, `BLOQUEADO hasta U1/N1/D1`.
-- **Demo:** https://hackathon-3b.vercel.app · `/salud` `[MEDIDO 15:26: commit ec20083 · base ok 482 ms]`.
-- **Auditorías:** I0 → Aprobado. I0.1 → Aprobado con anotaciones: S2, `next/font/google` reintroducido por shadcn en `app/layout.tsx`, va a la misión de tema de Fer; el paso 5 queda en PA-000.2.
-- **Candado probado en las dos direcciones** con `remoto-hackathon-3b.ps1 -Estado`: SIGUE a las 14:58; PARO a las 16:32 (pierna 2 y contenido) con el `ESTADO` viejo; liberado por la reescritura de las 16:32.
-- **Cierre de S000:** `3506aa7` empujado (`prompts-integrador.md` y el script) `[MEDIDO en captura de Fer, 16:36]`. Después van los documentos de la renumeración y este contexto: por verificar en S001 que `origin/main` está en un commit posterior a `3506aa7` y que `git status` está limpio.
-- **Primera acción de S001 (viernes):** acuse, verificar el cierre de S000 y `/salud`; después escribir y correr `U0` (`PROMPT-APERTURA-S001.md`). **S002 (sábado):** acuse con la plantilla del reto (`PROMPT-APERTURA-S002.md`).
+Escrito al cerrar S001.5, 2026-11-20 21:00.
+- **Fase:** antes de F0. Reto por elegir a las 9:00; ranking provisional por la pista de Data: J3 · J1 · J4 · J6 (ver «Reto» abajo). PA-000.4 sigue abierto: confirmarlo con el equipo en sede.
+- **Carriles:** UI sellado 20:59, ~~U0~~, `BLOQUEADO hasta U1`. Integrador (16:32 del 17-nov), Núcleo y Datos (14:54 del 17-nov) `BLOQUEADO hasta I1/N1/D1`. Sin entregas sin auditar.
+- **`main` = `c366e8d`** (merge del PR #1, U0) `[MEDIDO 20:58: origin/main en el clon del chat y git log de Fer]`. En producción `/tema` responde `[MEDIDO 20:59 en Chrome]`. **`/salud` de producción quedó en «Revisando…»** a las 20:59 (dos intentos, 3 y 8 s); a las 20:10 marcó `cdc2c6c · base ok 1050 ms` y la vista previa de U0, a las 20:51, `7ca3494 · base ok 669 ms`. **Primera medición del sábado: `/salud` con el SHA `c366e8d` y `base ok`** (abrirla en sede para despertar la base).
+- **Auditoría U0 → Aprobado con anotaciones:** lint y build en verde, grep de colores vacío, 12 botones y 3 campos a 44 px, campo a 16 px `[MEDIDO 20:51]`. S2: `text-[13px]` y `text-[35px]` en `/tema` (iguales a los tokens `mono` y `figure`, sin clase de utilidad). **No verificado:** `/tema` en celular (Fer pidió integrar antes de verla).
+- **S2 que sube de peso para el sábado:** `revisarBase()` (`lib/datos/servidor.ts`) no tiene tope de tiempo; si la base no contesta, la página espera sin fin. **Toda lectura a la base que escriba D1/I1 lleva tope de tiempo (≈3 s) y estado de error**: la demo no puede quedarse en «cargando».
+- **Ensayo E0:** PR #2 Alan, PR #3 Mauski, rama `prueba/sergio` empujada (PR por abrir). **Falta Mau.** Los PR de ensayo no se integran. Sergio tiene `.env.local` y `base ok` en local `[REPORTADO: captura, 20:44]`; su invitación se reenvió a las 20:39 y ya empujó.
+- **Decisiones de S001.5:** Mauski trabaja en **chat web** (no Claude Code): sus misiones van autocontenidas y pidiendo archivos completos, como las de Sergio; lo pesado de Núcleo va al Code de Fer. Mau usa Antigravity Pro (agente en el repo): es el respaldo para misiones de repo.
+- **Primera acción de S002:** acuse de §4; medir `/salud` (SHA `c366e8d`, `base ok`); pedir el reto con la plantilla de `PROMPT-APERTURA-S002.md`. En F1, escribir los paquetes `docs/paquetes/<nombre>.md` según esa apertura.
 
 ## Evento `[LEÍDO: láminas de 3B, captura 17-nov-2026]`
 
@@ -43,10 +31,10 @@ Sábado 21-nov-2026 · registro 7:00 · retos, reglas y criterios 9:00 · desarr
 | Rol | Quién | Asistente / cuenta |
 |---|---|---|
 | Orquestador e integrador · **diseño y carril UI** | Fer | **Claude Max** (este proyecto, Claude Code y Claude Design con las skills de diseño): **el que más cuota tiene** |
-| UI de apoyo y quien maneja la demo | Mau | **Antigravity Pro** (agente en el repo, todos los modelos de Gemini) `[dicho por Fer, 20-nov 19:15]`: puede recibir misiones de repo, no solo de chat |
-| Carril Núcleo | Mauski | **Claude Pro** → Claude Code (agente en el repo) `[dicho por Fer, 18-nov 17:26]` |
-| Carril Datos e IA | Sergio (lo pidió) | **Claude gratuito** → chat web en claude.ai, cuota corta: misiones chicas; lo pesado de Datos va al Claude Code de Fer `[dicho por Fer, 18-nov 17:20]` |
-| Negocio y pitch | Alan | Gemini de pago (no programa) |
+| UI de apoyo y quien maneja la demo | Mau | **Antigravity Pro** (agente en el repo, todos los modelos de Gemini) `[dicho por Fer, 20-nov 19:15]`: puede recibir misiones de repo, no solo de chat · E0 pendiente |
+| Carril Núcleo | Mauski | **Claude Pro, chat web** (Opus 5.5) `[E0 de Mauski y dicho por Fer, 20-nov 20:56]`: misiones autocontenidas, archivos completos |
+| Carril Datos e IA | Sergio (lo pidió) | **Claude gratuito** → chat web en claude.ai (macOS), cuota corta: misiones chicas; lo pesado de Datos va al Claude Code de Fer. Tiene `.env.local` |
+| Negocio y pitch | Alan | Antigravity con Google AI Pro (Gemini), toca el repo `[E0 de Alan]` |
 
 Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercambiar entre ellos. Fer tomó diseño y UI (17-nov 13:46): él fija la dirección visual y construye las pantallas del camino dorado; Mau construye estados vacío/cargando/error, responsive y pantallas secundarias **sobre el tema de Fer**, y maneja la demo en el pitch.
 
@@ -54,7 +42,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 ### Política de cuota (rige el sábado)
 
-- Fer tiene Claude Max y Mauski Claude Pro (Claude Code); Sergio usa Claude gratuito y Mau está por confirmar. **La cuota es un recurso del día como el reloj.**
+- Fer tiene Claude Max (Code); Mauski, Claude Pro en chat web; Sergio, Claude gratuito en chat web; Mau y Alan, Antigravity con Gemini. **La cuota es un recurso del día como el reloj.**
 - Este chat: Opus en esfuerzo **medio**; **alto** solo para el plan de F1 y para auditar el diferenciador. Respuestas cortas; no releer documentos ya leídos.
 - Misiones para Mau, Mauski y Sergio: **autocontenidas** (todo lo necesario va en el texto, sin «lee tal documento»), de 30–45 min, sin asumir qué asistente usan, pegables en cualquier chat.
 - Lo de escalón fuerte (el diferenciador, un arreglo devuelto una vez, algo que cruza carriles) va al **Claude Code de Fer**, no a un compañero.
@@ -72,7 +60,7 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 |---|---|
 | Repo GitHub | `luisfernandomtzg/hackathon-3b` · **público** (Vercel Hobby despliega commits de todos; sin secretos ni datos de 3B) |
 | Proyecto Supabase | `hackathon-3b` (ref `pshtomfqgbobxheehoij`) en la org **Hackathon 3B**, plan gratuito, RLS automático. Pausa tras 7 días sin uso: abrirlo el viernes |
-| Proyecto Vercel / URL de la demo | `hackathon-3b` (equipo luisfernandomtzgDeploys, Hobby) · **https://hackathon-3b.vercel.app** · `/salud` `[MEDIDO 17-nov 15:26: commit ec20083, rama main, base ok 482 ms]` · push→Ready ≈ 27 s · control remoto: `repo/remoto-hackathon-3b.ps1` |
+| Proyecto Vercel / URL de la demo | `hackathon-3b` (equipo luisfernandomtzgDeploys, Hobby) · **https://hackathon-3b.vercel.app** · `/salud` `[MEDIDO 20-nov 20:10: commit cdc2c6c, rama main, base ok 1050 ms]` · vista previa por rama: `hackathon-3b-git-<rama>-luisfernandomtzg-deploys.vercel.app` · push→Ready ≈ 27 s · control remoto: `repo/remoto-hackathon-3b.ps1` |
 | Llave de API de modelo | `<<sin crear>>` |
 | Modelos por escalón (rápido · general · fuerte) | `<<anotar los nombres vigentes al crear las cuentas>>` |
 
@@ -107,15 +95,17 @@ Mau, Mauski y Alan los asignó Claude a petición del equipo; se pueden intercam
 
 ## Puntos abiertos
 
-- PA-000.2 · Push de prueba de un compañero (`prueba/<nombre>`) y su vista previa en Vercel: cierra el paso 5 de I0.1 — Fer, al invitar a los cuatro — jueves.
-- ~~PA-000.6 · Quitar `next/font/google` de `app/layout.tsx`~~ — cerrado en S001 con Tarima (build en verde sin Google Fonts). Lo que queda de `U0` (componentes a 44 px, `/tema`) — viernes.
+- ~~PA-000.2~~ · cerrado 20-nov: Alan, Mauski y Sergio empujaron ramas `prueba/*`; vista previa por rama medida en U0. (Antes:) Push de prueba de un compañero (`prueba/<nombre>`) y su vista previa en Vercel: cierra el paso 5 de I0.1 — Fer, al invitar a los cuatro — jueves.
+- ~~PA-000.6 · Quitar `next/font/google` de `app/layout.tsx`~~ — cerrado en S001 con Tarima (build en verde sin Google Fonts). U0 hecha en S001.5.
 - PA-000.5 · Vercel pide verificar identidad con código al correo de reenvío de Apple y no llega: revisar «Ocultar mi correo» en iCloud. Mientras, se despliega por push (funciona) — Fer.
-- PA-000.3 · Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
+- ~~PA-000.3~~ · cerrado 20-nov: los cuatro invitados (Sergio reenviado 20:39); falta el `docs/equipo/` de Mau. (Antes:) Invitar a los cuatro al repo con permiso de escritura y que cada uno anote su asistente aquí — Fer — jueves.
 - PA-000.4 · Ranking de retos acordado por el equipo — todos — viernes.
 - ~~PA-001.1~~ · cerrado 20-nov 19:15: Mau usa Antigravity Pro. (Antes:) Preguntar a Mau, Mauski y Sergio qué IA usarán y si toca el repo o es chat web (planes gratuitos cambiaron en 2026: Gemini CLI → Antigravity para cuentas gratuitas; altas nuevas a Copilot de estudiante pausadas desde el 20-abr) — Fer — miércoles; se confirma en el ensayo `E0`.
-- PA-001.2 · Pasar `.env.local` en privado solo a Sergio (los demás trabajan con datos simulados) — Fer — viernes.
+- ~~PA-001.2~~ · cerrado 20-nov 20:44 (captura de Sergio con base ok). (Antes:) Pasar `.env.local` en privado solo a Sergio (los demás trabajan con datos simulados) — Fer — viernes.
 
 ## No verificado
 
-- `/salud` pública en verde con shadcn incluido. Sin probar todavía: push de un colaborador y vistas previas por rama. El lint de I0.1 es `[REPORTADO]`.
+- `/salud` de producción con `c366e8d` (quedó en «Revisando…» a las 20:59).
+- `/tema` vista en un celular.
+- Vistas previas de Vercel de las ramas `prueba/*` de los compañeros.
 - Retos, criterios, entregables y reglas de la edición de noviembre: no publicados.

@@ -1,17 +1,17 @@
 # Misiones — carril UI
 
-## ESTADO · 2026-11-20 19:21
-Carril ui · dueño Fer (diseño, tema y pantallas del camino dorado) · apoyo Mau · misiones 1 · hechas 0 · siguiente **U0**
-Cola: **U0** → (U1 se escribe en S002, ~10:00 del sábado, con el reto)
-siguiente: **U0**
-Última auditoría: ninguna
-Qué cambió por esa auditoría: nada
-Reescrituras de este documento: 2
-Siguiente con modelo: Sonnet · esfuerzo medium (recomendado) · clasificación requiere pantalla
+## ESTADO · 2026-11-20 20:59
+Carril ui · dueño Fer (diseño, tema y pantallas del camino dorado) · apoyo Mau · misiones 1 · hechas 1 · siguiente **NINGUNO**
+Cola: ~~U0~~ → (U1 se escribe en S002, ~10:00 del sábado, con el reto)
+siguiente: **NINGUNO — BLOQUEADO hasta que S002 escriba U1** (lo libera Fer al elegir el reto)
+Última auditoría: U0 → Aprobado con anotaciones ([MEDIDO 20:51] PR #1 `7ca3494` sobre `2a6606a`; npm ci, lint y build en verde en el contenedor del chat; grep de colores fuera del tema vacío; vista previa: `/salud` 7ca3494 · base ok 669 ms; `/tema` en Chrome de escritorio: 12 botones a 44 px, 3 campos a 44 px y 16 px) · integrada en `main` como `c366e8d` (merge del PR #1, 20:58)
+Qué cambió por esa auditoría: S2 — `app/tema/page.tsx` usa `text-[13px]` (mono) y `text-[35px]` (figure): valores iguales a los tokens de DESIGN.md pero sin clase de utilidad; si U1 los necesita, se agregan clases `text-mono`/`text-figure` al tema. Pendiente de Fer: ver `/tema` en su celular (clasificación requiere pantalla).
+Reescrituras de este documento: 4
+Siguiente con modelo: — (se fija en S002)
 
 ---
 
-## U0 — componentes al sistema Tarima y página `/tema`
+## U0 — componentes al sistema Tarima y página `/tema` [HECHA · Aprobado con anotaciones]
 
 `carril: ui · rama: carril/ui-sp0-tema desde main fresco · cuelga de: cdc2c6c [MEDIDO 20-nov 19:16, clon de origin/main] · tope: 40 min · clasificación: requiere pantalla · modelo: Sonnet · esfuerzo: medium`
 
@@ -61,3 +61,5 @@ Siguiente con modelo: Sonnet · esfuerzo medium (recomendado) · clasificación 
 - 2026-11-17 13:20 · creado en S000, sin misiones.
 - 2026-11-17 14:54 · S000: ESTADO al formato v1.2 (sello del reloj, `BLOQUEADO hasta`).
 - 2026-11-20 19:21 · S001.5: se escribe `U0` (agenda de `PROMPT-APERTURA-S001.md` §3) y se libera el carril; sin auditoría previa.
+- 2026-11-20 20:51 · S001.5: auditoría de U0 (PR #1) → Aprobado con anotaciones; carril bloqueado hasta U1.
+- 2026-11-20 20:59 · S001.5: resellado después del merge de U0 (`c366e8d`).
