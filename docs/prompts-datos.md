@@ -1,13 +1,13 @@
 # Misiones — carril DATOS E IA
 
-## ESTADO · 2026-11-21 11:47
-Carril datos · dueño Sergio (chat web) · misiones 4 · hechas 2 · siguiente **D3.1**
-Cola: ~~D1~~ ~~D2~~ ~~D3~~ (hecho · Devuelto → D3.1) → **D3.1**
-siguiente: **D3.1**
-Última auditoría: D2 → Aprobado con anotaciones (PR #15, fusionado) · D3 → Devuelto ([LEÍDO 11:46]: re-decide sin compuertas; tokens mal sumados; 59 % fijo)
-Qué cambió por esa auditoría: se inserta D3.1 en la misma rama
-Reescrituras de este documento: 4
-Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
+## ESTADO · 2026-11-21 12:36
+Carril datos · dueño Sergio (chat web) · misiones 4 · hechas 4 · siguiente **NINGUNO**
+Cola: ~~D1~~ ~~D2~~ ~~D3~~ (Devuelto) ~~D3.1~~
+siguiente: **NINGUNO — carril cerrado; Sergio apoya el pitch** (cifras con `salidas-sp6.zip`)
+Última auditoría: D3.1 → Aprobado ([REPORTADO 12:02: 10/0, 100 %, 99; tokens solo origen modelo 1,921] · PR #18 fusionado 12:05)
+Qué cambió por esa auditoría: con sp6 las cifras son 104/39 y 2,390 tokens por captura
+Reescrituras de este documento: 5
+Siguiente con modelo: —
 
 ---
 
@@ -95,3 +95,4 @@ Siguiente con modelo: el del asistente de Sergio · clasificación autónoma
 - 2026-11-21 09:55 · S002: reto asignado = Reto 2 · Validat3B; giro a Python por lotes en `ml/validat3b/` (compuerta de Fer 09:16). Se escribe la misión 1 y se libera el carril; sin auditoría previa.
 - 2026-11-21 11:23 · S003 · D1 auditada → se escribe D2 con los hechos de v2 y se sube el sello.
 - 2026-11-21 11:47 · S003 · D2 fusionada (#15); D3 (#18) devuelta → D3.1. Se sube el sello.
+- 2026-11-21 12:36 · S003 · D3.1 fusionada; carril cerrado.

@@ -1,13 +1,13 @@
 # Misiones — carril PITCH Y SEÑALES LOCALES (Alan)
 
-## ESTADO · 2026-11-21 11:47
-Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 3 · hechas 2 · siguiente **P3**
-Cola: ~~P1~~ ~~P2~~ → **P3** (pitch de 3 minutos)
-siguiente: **P3**
-Última auditoría: P2 → Aprobado con anotaciones ([MEDIDO 11:35: 16 capturas bajo 84/82, 0 aprobadas reales] · PR #14 fusionado; **no se conecta al motor**: margen de 1.5 contra 970141)
-Qué cambió por esa auditoría: cifras provisionales del pitch: 100 % de precisión, costo 99 / 38, 1,921 tokens por captura; se confirman con `salidas-sp4.zip` y el marcador de D3.1
-Reescrituras de este documento: 3
-Siguiente con modelo: el del asistente de Alan · clasificación autónoma
+## ESTADO · 2026-11-21 12:36
+Carril pitch · dueño Alan (Antigravity, agente en el repo) · misiones 3 · hechas 3 · siguiente **NINGUNO**
+Cola: ~~P1~~ ~~P2~~ ~~P3~~ (P3.1)
+siguiente: **NINGUNO — ajustar cifras finales a mano** (104/39, 2,390 tokens, «una llamada por captura; tres solo para las que se aprueban») y ensayar
+Última auditoría: P3 → Devuelto (cifras viejas) → P3.1 Aprobado ([LEÍDO 12:30: 434912, 49/100, 5,880, sin caché de fachada, «en desarrollo»] · PR #22 fusionado 12:31)
+Qué cambió por esa auditoría: el motor final cambia costo y tokens; el guion se actualiza con sp6
+Reescrituras de este documento: 4
+Siguiente con modelo: —
 
 ---
 
@@ -78,3 +78,4 @@ Se escribe completa a las 14:45 con el marcador real. Desde ya, Alan guarda en `
 - 2026-11-21 09:55 · S002: creado con P1 (Alan pide tareas de programación) y P2 en espera.
 - 2026-11-21 11:23 · S003 · P1 auditada → se escribe P2 (puerta local, del paquete de Alan); el pitch pasa a P3. Se sube el sello.
 - 2026-11-21 11:47 · S003 · P2 fusionada (#14), no conectada → P3 (pitch). Se sube el sello.
+- 2026-11-21 12:36 · S003 · P3.1 fusionada; quedan cifras finales y ensayo.

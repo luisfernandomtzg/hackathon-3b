@@ -1,9 +1,26 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 10:34 · cierre de S002** · siguiente **S003 (sprint 2)**.
+> Última actualización: **2026-11-21 12:36 · cierre de S003** · siguiente **S004 (sprint 3)**.
 
-## 🟢 Relevo para S003 — escrito al cerrar S002 (2026-11-21 10:34)
+## 🟢 Relevo para S004 — escrito al cerrar S003 (2026-11-21 12:36)
+
+**Abre con `S004 3B. Lee el prompt inicial`** → instrucciones del proyecto → `PROMPT-APERTURA-S003.md` (vale para S004 cambiando el número) → este relevo. Lo de abajo es historia.
+
+- **Regla de sesiones (Fer, 10:33 · rige todo el día):** **una sesión de claude.ai por sprint del equipo, no por tarea.** La sesión audita e integra las entregas de ese sprint y escribe la misión siguiente de Fer; cuando el sprint cierra se cierra con el **protocolo completo** de §4: relevo aquí (carpeta `documentacion/` + `repo/docs/` + copia del proyecto, verificado por contenido), `ESTADO` de cada carril tocado, bloque de git flanqueado por `git status --short` y la línea «Abre S00N+1 con: `S00N+1 3B. Lee el prompt inicial`». Mapa: S004 = sprint 3 (13:45–14:30, congelar 14:30) · S005 = set ciego, entrega y pitch (15:00–17:00). **Todo relevo nuevo copia esta regla tal cual.**
+- **Fase:** F3, sprint 2 cerrado con el camino de punta a punta en verde. Reto 2 · Validat3B. Producto = Python local en `ml/validat3b/` (no se despliega: el entregable es un JSON y los datos son confidenciales; la demo es `salidas/visor.html` y `pitch.html` en la laptop de Fer, sin internet).
+- **`main` = merge del PR #25 (I6)** `[MEDIDO 12:35 en GitHub]`; SHA: medirlo al abrir (`git log --oneline -3` en `repo-docs`). **`main` está tomada por el worktree `..\repo-docs`**: los documentos se commitean desde ahí; en `repo\` Code trabaja en ramas creadas con `git switch -c <rama> origin/main`.
+- **Motor definitivo (`salidas-sp6.zip`, fuera del repo)** `[MEDIDO 12:35 por el arquitecto]`: lectura v2 (`extraer.py`) + señales locales (`local.py`) + `decidir()` de N2 + compuertas (`compuerta.py`: código de barras que no coincide → revisión; aprobada con nitidez de etiqueta < 100 → revisión) + **consenso unánime de 3 lecturas para aprobar** (`consenso.py`). Sobre las 100 de desarrollo: **10 aprobadas, 0 falsas (100 %), costo 104 pesimista / 39 optimista** (todo a revisión: 100 / 67), **2,390 tokens por captura** (124 llamadas), JSON válido 100/100. Matriz real→pred: aprobada 10/2 rech/21 man · rechazada 0/22/12 · manual 0/16/17.
+- **Riesgo vivo (S0 si ocurre):** el endpoint **no acepta `temperature`**: las lecturas cambian entre corridas. CAP-489454 (lejana) se aprueba en ~1 de 2 lecturas; con 3 unánimes se cuela ~1 de 8. Con ~10 aprobadas, una falsa = descalificación. No hay señal local que detecte lejanas.
+- **Entrega del set ciego:** `.venv\Scripts\python -m ml.validat3b.entregar --datos <carpeta> --salida entrega/ [--reanudar]` (I4): localiza archivos aunque cambien de nombre, manda a revisión las capturas sin fotos, aplica `mapa_codigos.json` si existe, valida una por `capture_id` y escribe `entrega/resumen.txt`. Ensayado con las 100 sin etiquetas: VALIDACIÓN OK. 100 capturas nuevas ≈ 70–90 s.
+- **Carriles al cerrar S003:** Integrador ~~I1–I6~~, siguiente **NINGUNO** (I7 se escribe en S004 si hace falta). Núcleo **N4** en curso (Mauski, sello 12:26: motivo correcto en rechazadas —hoy 2/34 aciertan— y quitar `traducir()`). Datos ~~D3.1~~ (Sergio libre: apoya el pitch). UI **U5** pendiente (Mau, sello 11:54: `pitch.html` con Tarima; su #24 fue exportar CSV + ficha, **no** U5). Pitch ~~P3.1~~ (guion fusionado #22; falta poner 104/39, 2,390 y «una llamada; tres solo para aprobar»).
+- **Auditorías de S003:** N1, P1, D1, U1–U4, N2, P2, D2, N3, D3.1, P3.1, I2, I3.1, I4, I5, I6 → aprobadas (con anotaciones) y fusionadas; I3 (verificador) y D3 devueltos y arreglados (I3.1, D3.1).
+- **Pendiente del comité (cambia 14–61 puntos):** ¿cuánto cuesta si la real es revisión manual y la rechazamos o la mandamos a revisión? Hoy se reporta pesimista (rechazar=3, revisión=1) y optimista (0/0). Se lo pidió Fer a Alan.
+- **Disciplina:** el historial del repo tiene datos de 3B (commit `e5aae17`): **nunca hacerlo público**. Los zips de salidas van fuera del repo (`Move-Item ..\`). Vercel no se usa (Hobby; no se invitó a nadie, decisión de Fer 10:47).
+- **No verificado:** el 97 % sobre lecturas nuevas más allá de 3 corridas · costo real de la revisión manual · tamaño y formato del set ciego · puntaje de Rival 3B · `pitch.html` con Tarima.
+- **Primera acción de S004:** acuse §4 · `git log --oneline -3` en `repo-docs` · auditar en orden N4 (Mauski) y U5 (Mau) si llegaron · regenerar el zip final con `correr --desde-extracciones` si N4 cambia códigos (las decisiones no deben cambiar: 10/0, 104/39) · confirmar cifras del guion y la ficha con Alan/Sergio/Mau · a las 14:30 congelar y escribir el relevo para S005 (set ciego).
+
+## Relevo para S003 (histórico) — escrito al cerrar S002 (2026-11-21 10:34)
 
 **Abre con `S003 3B. Lee el prompt inicial`** → lee instrucciones del proyecto → `PROMPT-APERTURA-S003.md` → este relevo. Lo de abajo de este bloque es historia anterior al sábado.
 
