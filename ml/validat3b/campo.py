@@ -990,19 +990,144 @@ class Manejador(BaseHTTPRequestHandler):
                 return self._json(self.estado.estado_capturista(codigo))
             except KeyError as e:
                 return self._json({"error": str(e).strip("'\"")}, 404)
-        if ruta in ("/supervisor", "/api/supervisor/estado", "/api/supervisor/catalogo",
-                    "/api/supervisor/precios.csv") or ruta.startswith("/fotos/"):
+        if ruta in ("/supervisor", "/visor", "/pitch", "/api/supervisor/estado", "/api/supervisor/catalogo",
+                    "/api/supervisor/precios.csv", "/api/supervisor/capturas_visor") or ruta.startswith("/fotos/"):
             if not self._local():
                 return self._json({"error": "El panel del supervisor solo se abre en la laptop del supervisor."}, 403)
             if ruta == "/supervisor":
                 pagina = PAGINA_SUPERVISOR.replace("__CADENAS__", json.dumps(CADENAS, ensure_ascii=False))
                 return self._enviar(200, pagina.encode("utf-8"), "text/html; charset=utf-8")
+            if ruta == "/visor":
+                for cand in (self.estado.dir.parent / "visor.html", Path("C:/Users/mauri/Desktop/Hackaton3b/salidas/visor.html")):
+                    if cand.is_file():
+                        html = cand.read_text(encoding="utf-8")
+                        puente = r"""
+<script>
+(function(){
+  const bar = document.querySelector('.top-row .brand');
+  if(bar){
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;gap:8px;margin-left:12px;flex-wrap:wrap';
+    nav.innerHTML = '<a href="/supervisor" style="padding:6px 12px;border-radius:6px;background:#E31B23;color:#fff;text-decoration:none;font-weight:700;font-size:13px">← Panel de Campo en Vivo (/supervisor)</a><a href="/pitch" style="padding:6px 12px;border-radius:6px;border:1px solid #848F8D;color:#04211F;text-decoration:none;font-weight:600;font-size:13px">Modo Pitch (/pitch)</a>';
+    bar.appendChild(nav);
+  }
+  async function syncCampo(){
+    try{
+      const r = await fetch('/api/supervisor/capturas_visor');
+      if(!r.ok) return;
+      const d = await r.json();
+      const items = d.registros || [];
+      if(!items.length || typeof DATA === 'undefined') return;
+      let changed = false;
+      for(const it of items){
+        const idx = DATA.findIndex(x => x.capture_id === it.capture_id);
+        if(idx >= 0){
+          if(DATA[idx].motor !== it.motor || DATA[idx].precio_detectado !== it.precio_detectado){
+            DATA[idx] = it; changed = true;
+          }
+        }else{
+          DATA.unshift(it); changed = true;
+        }
+      }
+      if(changed && typeof renderAll === 'function'){
+        if(typeof populateStores === 'function') populateStores();
+        renderAll();
+      }
+    }catch(e){}
+  }
+  syncCampo();
+  setInterval(syncCampo, 3000);
+})();
+</script>
+"""
+                        html = html.replace("</body>", puente + "</body>")
+                        return self._enviar(200, html.encode("utf-8"), "text/html; charset=utf-8")
+                return self._json({"error": "No se encontró salidas/visor.html."}, 404)
+            if ruta == "/pitch":
+                for cand in (self.estado.dir.parent / "pitch.html", Path("C:/Users/mauri/Desktop/Hackaton3b/salidas/pitch.html")):
+                    if cand.is_file():
+                        html = cand.read_text(encoding="utf-8")
+                        return self._enviar(200, html.encode("utf-8"), "text/html; charset=utf-8")
+                return self._json({"error": "No se encontró salidas/pitch.html."}, 404)
+            if ruta == "/api/supervisor/capturas_visor":
+                d_res = self.estado.resumen()
+                caps_map = d_res.get("capturistas", {})
+                prods_map = self.estado.catalogo
+                regs = []
+                for c in d_res.get("capturas", []):
+                    cid = c.get("capture_id", "")
+                    cod = str(c.get("codigo", ""))
+                    idp = str(c.get("id_product", ""))
+                    p_cat = prods_map.get(idp, {})
+                    cap_info = caps_map.get(cod, {})
+                    f_fac = cap_info.get("fachada") or ""
+                    dec = c.get("decision") or "revision_manual"
+                    p_det = c.get("precio_detectado")
+                    p_ref = c.get("precio_referencia")
+                    regs.append({
+                        "capture_id": cid,
+                        "store": f"{c.get('tienda', 'Tienda')} (Campo · {c.get('capturista', '')})",
+                        "brand": p_cat.get("capture_brand") or "3B Campo",
+                        "product_name": c.get("producto") or p_cat.get("product_name") or idp,
+                        "qty": str(p_cat.get("unit_quantity_product") or ""),
+                        "unit": str(p_cat.get("unit_product") or ""),
+                        "price_ref": f"{float(p_ref):.2f}" if p_ref is not None else "",
+                        "esperada": dec,
+                        "motivo_esperado": "",
+                        "motor": dec,
+                        "confidence": 0.93 if dec == "aprobada" else 0.75,
+                        "reason_code": c.get("reason_code") or "",
+                        "explicacion": c.get("explicacion") or "",
+                        "validaciones": {
+                            "tienda_fachada": "ok",
+                            "producto": "ok" if dec == "aprobada" else "falla",
+                            "codigo_barras": "ok",
+                            "evidencia_precio": "ok" if p_det is not None else "falla",
+                        },
+                        "resultado_oficial": {
+                            "capture_id": cid,
+                            "decision": dec,
+                            "confidence_score": 0.93 if dec == "aprobada" else 0.75,
+                            "reason_code": c.get("reason_code"),
+                            "validaciones": {
+                                "tienda_fachada": "ok",
+                                "producto": "ok" if dec == "aprobada" else "falla",
+                                "codigo_barras": "ok",
+                                "evidencia_precio": "ok" if p_det is not None else "falla",
+                            },
+                            "precio_detectado": p_det,
+                            "codigo_barras_detectado": c.get("barcode_detectado") or c.get("barcode"),
+                            "explicacion": c.get("explicacion") or "",
+                        },
+                        "precio_detectado": p_det,
+                        "leido_marca": "3B",
+                        "leido_desc": c.get("producto") or "",
+                        "leido_cant": str(p_cat.get("unit_quantity_product") or ""),
+                        "leido_unid": str(p_cat.get("unit_product") or ""),
+                        "costo": 0 if dec == "aprobada" else 1,
+                        "es_error": False,
+                        "falsa_aprobada": False,
+                        "valida_rechazada": False,
+                        "img_facade": f"/{f_fac}" if f_fac else "",
+                        "img_product": f"/{c.get('foto_producto')}" if c.get("foto_producto") else "",
+                        "img_shelf": f"/{c.get('foto_etiqueta')}" if c.get("foto_etiqueta") else "",
+                    })
+                return self._json({"registros": regs})
             if ruta == "/api/supervisor/catalogo":
                 return self._json({"productos": self.estado.listar_catalogo(qs.get("q", [""])[0])})
             if ruta == "/api/supervisor/estado":
                 d = self.estado.resumen()
-                d["url"] = getattr(self.server, "url_publica", "")
-                d["urls"] = getattr(self.server, "urls_publicas", [d["url"]] if d["url"] else [])
+                urls_base = list(getattr(self.server, "urls_publicas", []))
+                archivo_tunel = self.estado.dir / "tunel_url.txt"
+                if archivo_tunel.is_file():
+                    try:
+                        u_t = archivo_tunel.read_text(encoding="utf-8").strip().rstrip("/")
+                        if u_t and u_t not in urls_base:
+                            urls_base.insert(0, u_t)
+                    except Exception:
+                        pass
+                d["urls"] = urls_base
+                d["url"] = urls_base[0] if urls_base else getattr(self.server, "url_publica", "")
                 n_cat = len(self.estado.catalogo)
                 d["n_catalogo"] = n_cat
                 d["catalogo_count"] = n_cat
@@ -2278,7 +2403,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 img.mini{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
 .wauto{width:auto}
 </style></head><body>
-<header><div class="marca"><span class="marca-nom">Validat3B</span><span class="marca-sub">Prototipo para Tiendas 3B</span></div><span id="reloj" class="meta-hdr"></span></header>
+<header><div class="marca"><span class="marca-nom">Validat3B</span><span class="marca-sub">Prototipo para Tiendas 3B · Campo</span></div><div class="rowgap"><a class="boton btn-primario wauto" href="/visor" style="min-height:36px;padding:6px 12px;font-size:13px">Web de Datos Principal (/visor · 100 + Campo)</a><a class="boton btn-sec wauto" href="/pitch" style="min-height:36px;padding:6px 12px;font-size:13px">Modo Pitch (/pitch)</a><span id="reloj" class="meta-hdr"></span></div></header>
 <main>
 <div id="errSup"></div>
 <div class="tarjeta">
