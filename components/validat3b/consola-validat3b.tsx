@@ -1301,7 +1301,7 @@ export function ConsolaValidat3B() {
                 webkitdirectory=""
                 multiple
                 onChange={(e) => manejarCarpeta(e.target.files)}
-                className="block min-h-11 w-full cursor-pointer rounded-md border border-input bg-background p-2.5 text-sm"
+                className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2.5 text-sm"
               />
             </CardContent>
           </Card>
@@ -1311,16 +1311,16 @@ export function ConsolaValidat3B() {
               <CardTitle className="text-base font-bold">2. Cargar archivo CSV o JSON suelto</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-text-secondary">
-              <div>
+              <div className="min-w-0">
                 <label className="mb-1 block font-medium text-foreground">Archivo CSV (capturas.csv)</label>
                 <input
                   type="file"
                   accept=".csv"
                   onChange={(e) => manejarCsv(e.target.files?.[0] || null)}
-                  className="block w-full cursor-pointer rounded-md border border-input bg-background p-2 text-sm"
+                  className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="mb-1 block font-medium text-foreground">
                   Archivo JSON (resultados.json o capturas.json)
                 </label>
@@ -1328,7 +1328,7 @@ export function ConsolaValidat3B() {
                   type="file"
                   accept=".json"
                   onChange={(e) => manejarJson(e.target.files?.[0] || null)}
-                  className="block w-full cursor-pointer rounded-md border border-input bg-background p-2 text-sm"
+                  className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
                 />
               </div>
             </CardContent>
@@ -1339,31 +1339,31 @@ export function ConsolaValidat3B() {
               <CardTitle className="text-base font-bold">3. Simulador rápido de 3 fotos en vivo</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-4 md:items-end">
-              <div>
+              <div className="min-w-0">
                 <label className="mb-1 block text-sm font-medium">Foto de fachada</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setSimFiles((s) => ({ ...s, facade: e.target.files?.[0] }))}
-                  className="block w-full rounded-md border border-input bg-input-bg p-2 text-sm"
+                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="mb-1 block text-sm font-medium">Foto del producto</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setSimFiles((s) => ({ ...s, product: e.target.files?.[0] }))}
-                  className="block w-full rounded-md border border-input bg-input-bg p-2 text-sm"
+                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="mb-1 block text-sm font-medium">Foto de etiqueta</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setSimFiles((s) => ({ ...s, shelf: e.target.files?.[0] }))}
-                  className="block w-full rounded-md border border-input bg-input-bg p-2 text-sm"
+                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
                 />
               </div>
               <Button type="button" onClick={agregarCapturaSimulada} className="w-full">
