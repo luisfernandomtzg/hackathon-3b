@@ -1,12 +1,13 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 14:06 · S005 (en curso)** · siguiente **S006 si hace falta (set ciego y pitch)**.
+> Última actualización: **2026-11-21 14:41 · S005 (en curso)** · siguiente **S006 si hace falta (set ciego y pitch)**.
 
 ## 🟢 S005 en curso — estado y relevo (escrito 2026-11-21 13:43; lo confirma S005 al cerrar)
 
 **Si abres sesión nueva:** `S006 3B. Lee el prompt inicial` → instrucciones → este bloque. Lo de abajo es historia.
 
+- **ACTUALIZACIÓN 14:41 — cifras finales de desarrollo = sp13** `[MEDIDO 14:39 por Code: todo de caché, 0 tokens]`: **16 aprobadas · 0 falsas · costo 84 / 27** · 55 de 100 sin persona · motivo correcto 12 de 26 rechazadas correctas. Contra sp12 cambió 1 decisión: **CAP-231498** (rechazada real, lejana) pasó de revisión a rechazada `CAPTURA_LEJANA`. Causa (leída en el código por el arquitecto): la regla 7a decidía con `"total" in contenido_ambiguo`, es decir, buscando una palabra en el texto de la explicación; la frase de 13:58 decía «La evidencia de total coincide…» y disparaba la regla por accidente. Al corregir la frase (commit `105a8f1`) la regla hace lo que debía. **S2 pendiente:** cambiar esa condición por una bandera explícita; no se toca antes del set ciego. Pitch, cifras, láminas y ficha actualizados a 84/27 y 55. **Tokens medidos: 3,192 por captura** (319,156 en 141 llamadas reales de sp11 + sp12; sp13 salió de caché y su `tokens.csv` original quedó como `tokens_cache.csv`). `salidas/sp13/pitch.html` verificado por el arquitecto en navegador a 1920×1080 (sin errores JS): 0 falsas · 16 aprobadas · 55 de 100 · 84/27; la tarjeta de tokens decía «—» hasta reemplazar `tokens.csv`: **regenerar el pitch** con el comando del visor.
 - **ACTUALIZACIÓN 14:06 — manda sobre las viñetas de abajo donde se contradigan.**
   - **El cierre de proyectos es a las 16:50** `[LEÍDO: temporizador del evento, foto de Fer 13:44]`; el «congelar 14:30» era nuestro, no del comité.
   - **Hallazgo del día** `[MEDIDO 13:55, salidas/sp11 + fotos vistas por el arquitecto]`: los motivos «Capturas lejanas» y «Capturas borrosas» describen la **foto de la etiqueta de precio**, no la del producto. Las 33 aprobadas reales tienen el letrero nítido y a ≥ 25 % del ancho de la foto; con ≤ 20 %, «lejano» o «borroso» hay 16 rechazadas reales, 4 de revisión y 0 aprobadas. CAP-489454 (la falsa de siempre) tiene el letrero al 12 %.
