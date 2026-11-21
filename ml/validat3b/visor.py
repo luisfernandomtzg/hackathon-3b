@@ -587,6 +587,23 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-width: 0;
+      overflow: hidden;
+    }}
+    .drop-card label {{
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      min-width: 0;
+    }}
+    .drop-card input[type="file"] {{
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      margin-top: 4px;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }}
     .alert-box {{
       border: 1px solid var(--border);
