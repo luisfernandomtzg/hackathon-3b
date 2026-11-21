@@ -260,6 +260,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
         <option value="costo-desc">Mayor costo primero</option>
         <option value="costo-asc">Menor costo primero</option>
       </select>
+      <button type="button" id="btn-export">Exportar CSV</button>
       <button type="button" id="btn-reset">Limpiar</button>
     </div>
   </header>
@@ -301,6 +302,8 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
         : `<span class="pill">${{count}}/${{M.total}} tarjetas (sin resultados.json)</span>`;
     }}
 
+    let currentItems = [];
+
     function render() {{
       const esp = fEsperada.value, mot = fMotor.value, err = fErrores.checked, ord = fOrden.value;
       let items = DATA.filter(d => {{
@@ -313,6 +316,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       }});
       if (ord === "costo-desc") items = [...items].sort((a, b) => (b.costo ?? -1) - (a.costo ?? -1));
       else if (ord === "costo-asc") items = [...items].sort((a, b) => (a.costo ?? 999) - (b.costo ?? 999));
+      currentItems = items;
 
       renderScoreboard(items.length);
       grid.innerHTML = items.map(d => {{
@@ -357,6 +361,16 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     btnFp.onclick = () => {{ soloFp = !soloFp; btnFp.classList.toggle("active", soloFp); render(); }};
     btnFn.onclick = () => {{ soloFn = !soloFn; btnFn.classList.toggle("active", soloFn); render(); }};
     [fEsperada, fMotor, fErrores, fOrden].forEach(el => el.addEventListener("change", render));
+    document.getElementById("btn-export").onclick = () => {{
+      const cols = ["capture_id", "store", "brand", "product_name", "price_ref", "precio_detectado", "motor", "reason_code", "confidence", "explicacion"];
+      const csvCell = v => `"${{String(v ?? "").replace(/"/g, '""')}}"`;
+      const rows = [cols.join(","), ...currentItems.map(d => cols.map(c => csvCell(d[c])).join(","))];
+      const blob = new Blob(["\\uFEFF" + rows.join("\\n")], {{ type: "text/csv;charset=utf-8;" }});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "validat3b_vista.csv";
+      a.click();
+    }};
     document.getElementById("btn-reset").onclick = () => {{
       fEsperada.value = ""; fMotor.value = ""; fErrores.checked = false; fOrden.value = "original";
       soloFp = false; soloFn = false; btnFp.classList.remove("active"); btnFn.classList.remove("active");
