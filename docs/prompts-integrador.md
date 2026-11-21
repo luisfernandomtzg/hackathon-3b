@@ -1,18 +1,42 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 12:51
-Carril integrador · dueño Fer (Claude Code) · misiones 10 · hechas 8 · siguiente **I7**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ → **I7** (regenerar con los códigos de N4, desde caché)
-siguiente: **I7**
-Última auditoría: I6 → Aprobado con anotaciones ([MEDIDO 12:35 por el arquitecto sobre salidas-sp6.zip: 10 aprobadas, 0 falsas, 104/39, 2,390 tokens por captura] · PR #25 fusionado). Después: N4 (#27 → aa85b57) y U5 (#26) fusionadas en S004
-Qué cambió por esa auditoría: N4 cambia los reason_code de las rechazadas (2/22 → 8/22 correctos) sin cambiar decisiones; hay que regenerar el zip final. **`correr --desde-extracciones` NO sirve**: sin cliente el consenso no puede pedir las lecturas 2 y 3 y manda las 10 aprobadas a revisión [MEDIDO 12:41]
-Reescrituras de este documento: 13
-Siguiente con modelo: Sonnet 5.5 · esfuerzo medium (recomendado) · clasificación autónoma
-Main: 074ad38 [MEDIDO 12:50 en la terminal de Fer]
+## ESTADO · 2026-11-21 12:58
+Carril integrador · dueño Fer (Claude Code) · misiones 11 · hechas 9 · siguiente **I8**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ → **I8** (repetir I7 con N5)
+siguiente: **I8**
+Última auditoría: I7 → Aprobado ([MEDIDO 12:56 por el arquitecto sobre salidas-sp7.zip: 0 decisiones distintas, mismas 10 aprobadas, códigos idénticos a la re-decisión con N4, 8 motivos correctos, tokens.csv = sp6] · PR #30 fusionado 12:57 → 4bf23de)
+Qué cambió por esa auditoría: I7 corrió antes de N5 (#29, fusionada 12:56): las explicaciones de la regla 7 en sp7 siguen diciendo «no coincide». I8 repite I7 sobre main con N5 para que la rechazada del pitch diga «No se distingue con claridad…»
+Reescrituras de este documento: 14
+Siguiente con modelo: Sonnet 5.5 · esfuerzo low (recomendado) · clasificación autónoma
+Main: 4bf23de [MEDIDO 12:57 en GitHub]
 
 ---
 
-## I7 — Regenerar el zip final con los códigos de N4, desde caché (0 tokens)
+## I8 — Repetir I7 sobre main con N5 (explicaciones nuevas), desde caché
+
+`carril: integrador · rama: carril/integrador-sp3-n5 desde origin/main (git fetch origin && git switch -c carril/integrador-sp3-n5 origin/main) · cuelga de 4bf23de · tope: 10 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: low`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con **sello `12:58`**; `origin/main` debe ser `4bf23de` o posterior y `ml/validat3b/decidir.py` debe contener «No se distingue con claridad». Si ya está hecho, dilo y no lo toques.
+
+**Por qué:** I7 corrió antes de que N5 (#29) entrara a `main`. Las decisiones y los códigos de sp7 son los buenos `[MEDIDO 12:56]`, pero la explicación de la regla 7 todavía dice «…no coincide con lo esperado». Es justo lo que se va a proyectar en la rechazada del pitch.
+
+**Qué hacer** (es el procedimiento de I7; el caché ya está en `salidas/sp7/cache`):
+1. Copia `salidas/sp7/cache` a `salidas/sp8/cache`.
+2. Corre el motor normal (con cliente, `--hilos 4`, `--salida salidas/sp8/resultados.json`, `--datos datos/privado`). **Para y pregunta** si aparece alguna fila `origen == "modelo"`.
+3. Compara contra sp7: **0 decisiones y 0 `reason_code` distintos**; solo cambian explicaciones. **Para y pregunta** si cambia algo más.
+4. Copia el `tokens.csv` de sp6 a sp8 y arma `..\salidas-sp8.zip` (resultados, extracciones, locales, tokens; sin `cache/`).
+
+**No se toca:** código, `datos/`.
+
+**Prueba de cierre:** tabla sp7 → sp8 (decisiones distintas · códigos distintos · explicaciones distintas · tokens nuevos) = 0 · 0 · n · 0, y la explicación de CAP-563575 empieza con «No se distingue con claridad». `evaluar` en sp8: JSON válido 100/100.
+
+**Entregable:** push + PR (solo el reporte) + `docs/reportes/I8-n5.md` (≤ 8 líneas) + `..\salidas-sp8.zip`.
+
+Mensaje de commit sugerido: `docs: I8 zip final con explicaciones de N5 desde caché`
+
+---
+
+## I7 [HECHA · Aprobado] — Regenerar el zip final con los códigos de N4, desde caché (0 tokens)
 
 `carril: integrador · rama: carril/integrador-sp3-codigos desde origin/main (git fetch origin && git switch -c carril/integrador-sp3-codigos origin/main; main la tiene ..\repo-docs) · cuelga de 074ad38 [MEDIDO 12:50] · tope: 20 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: medium`
 
@@ -424,3 +448,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 12:10 · S003 · I4 aprobada y fusionada (#20); su hallazgo (92.3 % con lecturas nuevas) es S0 → I5 (temperatura 0 + consenso).
 - 2026-11-21 12:25 · S003 · I5 aprobada y fusionada (#23; consenso de 2, 0 falsas, 103/38) → I6 (3 lecturas unánimes, decisión de Fer).
 - 2026-11-21 12:51 · S004 · I6 ya estaba fusionada (#25); se tacha. N4 y U5 fusionadas → I7 (regenerar desde caché con los códigos de N4; `--desde-extracciones` no sirve, medido). Se sube el sello.
+- 2026-11-21 12:58 · S004 · I7 aprobada y fusionada (#30 → 4bf23de; sp7 medido). N5 entró después → I8 repite el procedimiento con las explicaciones nuevas. Se sube el sello.
