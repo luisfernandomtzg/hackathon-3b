@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ficha Técnica · Validat3B</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 12mm;
+    }
+    :root {
+      --ink: #04211f;
+      --muted: #4b5d5b;
+      --border: #cfd8d6;
+      --bg-soft: #f5f7f6;
+      --accent: #e31b23;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+      font-size: 10.5pt;
+      line-height: 1.35;
+    }
+    .page {
+      max-width: 190mm;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    h1 {
+      margin: 0;
+      font-size: 16pt;
+      letter-spacing: -0.01em;
+    }
+    .subtitle {
+      font-size: 9pt;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    section {
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin: 0 0 4px 0;
+      font-size: 10.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      border-left: 3px solid var(--accent);
+      padding-left: 6px;
+    }
+    p { margin: 0 0 4px 0; }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .box {
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 9pt;
+    }
+    .box strong {
+      display: block;
+      font-size: 9.5pt;
+      margin-bottom: 2px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+    li { margin-bottom: 2px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      text-align: center;
+      background: var(--bg-soft);
+    }
+    .metric .val {
+      display: block;
+      font-size: 12pt;
+      font-weight: 700;
+      font-family: ui-monospace, monospace;
+    }
+    .metric .lbl {
+      font-size: 8.5pt;
+      color: var(--muted);
+    }
+    pre {
+      margin: 4px 0 0 0;
+      padding: 6px 8px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      font-size: 8.5pt;
+      white-space: pre-wrap;
+    }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Validat3B · Motor de Validación PriceCheck</h1>
+      <span class="subtitle">Ficha Técnica · Reto 2</span>
+    </header>
+
+    <section>
+      <h2>1. Qué es</h2>
+      <p>Motor automático por lotes que valida capturas de precios en campo (fachada, producto y etiqueta) para emitir decisiones auditables (<code>aprobada</code>, <code>rechazada</code> o <code>revision_manual</code>) a mínimo costo operativo.</p>
+    </section>
+
+    <section>
+      <h2>2. Tubería de procesamiento</h2>
+      <div class="pipeline">
+        <div class="box">
+          <strong>1. Señales locales</strong>
+          0 tokens: nitidez, código de barras (<code>zxing-cpp</code>) y huella de fachada.
+        </div>
+        <div class="box">
+          <strong>2. Lectura VLM</strong>
+          <code>claude-haiku-5-5</code> (1 llamada/captura, imágenes reducidas y caché).
+        </div>
+        <div class="box">
+          <strong>3. Reglas puras</strong>
+          Cruce determinista de marca, descripción, contenido y precio.
+        </div>
+        <div class="box">
+          <strong>4. JSON oficial</strong>
+          Salida validada con <code>pydantic</code>, <code>reason_code</code> y confianza.
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div>
+        <h2>3. Cómo decide</h2>
+        <ul>
+          <li><strong>Aprobar:</strong> solo cuando marca, descripción, contenido y precio son legibles y coinciden con certeza.</li>
+          <li><strong>Rechazar:</strong> cuando la evidencia falla con claridad (foto borrosa, lejana o incompleta) con su motivo exacto.</li>
+          <li><strong>Revisión manual:</strong> únicamente en la zona de duda para evitar falsos positivos (10 pts vs. 1 pt).</li>
+        </ul>
+      </div>
+      <div>
+        <h2>4. Tecnologías</h2>
+        <ul>
+          <li><strong>Lenguaje y validación:</strong> Python + <code>pydantic</code></li>
+          <li><strong>IA Multimodal:</strong> Endpoint asignado de Azure AI Foundry (<code>claude-haiku-5-5</code>)</li>
+          <li><strong>Procesamiento local:</strong> <code>zxing-cpp</code> (códigos de barras) y <code>Pillow</code> (imagen y compresión)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Resultados medidos</h2>
+      <div class="metrics">
+        <div class="metric"><span class="val">[[COSTO]]</span><span class="lbl">Costo operativo</span></div>
+        <div class="metric"><span class="val">[[PRECISION]]</span><span class="lbl">Precisión aprobadas</span></div>
+        <div class="metric"><span class="val">[[TOKENS]]</span><span class="lbl">Tokens / captura</span></div>
+        <div class="metric"><span class="val">[[SEGUNDOS]]</span><span class="lbl">Segundos totales</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>6. Cómo correrlo</h2>
+      <pre>python -m ml.validat3b.correr --datos datos/privado --salida salidas/resultados.json
+python -m ml.validat3b.evaluar --datos datos/privado --resultados salidas/resultados.json
+python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html</pre>
+    </section>
+
+    <section>
+      <h2>7. Siguiente paso</h2>
+      <p>Integrar las señales locales de nitidez y encuadre directamente en la app móvil de captura para avisar al momento («foto borrosa, repítela») antes de que la imagen salga de tienda.</p>
+    </section>
+  </div>
+</body>
+</html>
