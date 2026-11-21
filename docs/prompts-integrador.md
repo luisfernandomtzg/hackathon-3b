@@ -1,17 +1,42 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 11:54
-Carril integrador · dueño Fer (Claude Code) · misiones 7 · hechas 5 · siguiente **I4**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ → **I4** (ensayo del set ciego)
-siguiente: **I4**
-Última auditoría: I3.1 → Aprobado con anotaciones ([MEDIDO 11:49 sobre salidas/ de main: 10/10, 100 %, 99/38] · PR #17 fusionado 11:49; `main` = `47c97a4` con docs)
-Qué cambió por esa auditoría: el costo ya no viene de aprobar mal sino de 14 revisión-manual rechazadas y 21 válidas a revisión; eso se decide con la regla oficial del comité. I4 asegura la entrega de las 15:00
-Reescrituras de este documento: 10
-Siguiente con modelo: Sonnet 5.5 · esfuerzo high (recomendado) · clasificación autónoma
+## ESTADO · 2026-11-21 12:10
+Carril integrador · dueño Fer (Claude Code) · misiones 8 · hechas 6 · siguiente **I5**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ → **I5** (estabilidad de la lectura)
+siguiente: **I5**
+Última auditoría: I4 → Aprobado con anotaciones ([LEÍDO 12:09: validación de una por capture_id con prueba que se pone roja; ensayo sin etiquetas en otra estructura; corte y --reanudar medidos] · PR #20 fusionado 12:09)
+Qué cambió por esa auditoría: **S0 para el set ciego** ([REPORTADO por I4]): con 100 lecturas NUEVAS el motor dio 13 aprobadas, 12 correctas, 1 falsa = 92.3 % (descalifica), costo 111/46, contra 10/10 con las lecturas del caché. La calibración está hecha sobre un solo sorteo de lecturas
+Reescrituras de este documento: 11
+Siguiente con modelo: Sonnet 5.5 · esfuerzo high (obligatorio: S0) · clasificación autónoma
 
 ---
 
-## I4 — Ensayo general del set ciego: un comando, una entrega válida
+## I5 — Estabilidad: que el 97 % aguante lecturas nuevas
+
+`carril: integrador · rama: carril/integrador-sp3-estable desde origin/main (git switch -c carril/integrador-sp3-estable origin/main; main la tiene ..\repo-docs) · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high (obligatorio)`
+
+**Primer paso.** `CLAUDE.md` §Disparador; acuse con **sello `12:10`** y la punta de `origin/main`. Si ya está hecho, dilo y no lo toques.
+
+**Hallazgo (tuyo, en I4):** con 100 lecturas nuevas del modelo (temperatura por omisión) el motor dio 13 aprobadas con 1 falsa = **92.3 %**: descalifica. En el set ciego **todas** las lecturas son nuevas. La calibración de N2 y las compuertas se midieron sobre un solo sorteo de lecturas.
+
+**Qué hacer, en este orden, midiendo cada paso con `evaluar.py`:**
+1. **Identifica la aprobada falsa** de la corrida nueva de I4 (o vuelve a correrla): `capture_id`, real, qué leyó, qué regla aprobó, nitidez local de etiqueta. Una línea en el reporte.
+2. **`temperature=0`** en `cliente.py` (y en el verificador), con su propia versión de caché (`v2-t0`) para no mezclar lecturas. Corre las 100 dos veces seguidas en caché frío (dos carpetas de caché distintas): ¿las lecturas coinciden? Reporta cuántas capturas cambian de decisión entre corrida A y B.
+3. **Mide el motor actual** (`decidir()` de N2 + compuertas) sobre A y sobre B: aprobadas, falsas, precisión, costo.
+4. **Si en A o en B hay una aprobada falsa**, agrega la defensa más barata que la quite **sin tocar `decidir.py`**, en `compuerta.py`, en este orden de preferencia: (a) **consenso**: una aprobada solo queda aprobada si la lectura A y la lectura B la aprueban las dos (cuesta una segunda llamada **solo a las que salen aprobadas**, ~10–15 % de llamadas); (b) un endurecimiento con una señal local que la explique. Mide la defensa sobre A y B.
+5. **Criterio de cierre:** 0 aprobadas falsas en A **y** en B. Si para lograrlo bajan más de 4 válidas adicionales, o los tokens por captura suben más de 20 % sobre 1,921, **para y pregunta**.
+
+**No se toca:** `decidir.py`, `normalizar.py`, `mapa_codigos.json`. `datos/`, `salidas/`, `entrega/` no se commitean. Las corridas gastan ~190k tokens cada una: son dos o tres, no más.
+
+**Prueba de cierre:** pruebas en verde (más una de consenso con cliente falso: si una de las dos lecturas no aprueba, sale revisión manual; se pone roja si quitas el consenso); tabla en el reporte: corrida A · corrida B · (A∩B con consenso) → aprobadas, falsas, precisión, costo pesimista/optimista, tokens por captura; `entregar --datos salidas/ensayo` sigue dando VALIDACIÓN: OK.
+
+**Entregable:** push + PR + `docs/reportes/I5-estable.md` (12 líneas) + `salidas-sp5.zip` fuera del repo (`..\salidas-sp5.zip`), con las salidas de la versión final.
+
+Mensaje de commit sugerido: `feat(ml): temperatura 0 y consenso en aprobadas para estabilizar la precisión (I5)`
+
+---
+
+## I4 — Ensayo general del set ciego: un comando, una entrega válida [HECHA · Aprobado con anotaciones]
 
 `carril: integrador · rama: carril/integrador-sp3-entrega desde main fresco (47c97a4 o posterior) · tope: 45 min · clasificación: autónoma · modelo: Sonnet 5.5 · esfuerzo: high`
 
@@ -341,3 +366,4 @@ Firmas entre carriles: `cargar.cargar_capturas(dir_metadatos) -> list[Captura]` 
 - 2026-11-21 11:07 · S003 · auditoría de I2 (PR #12, 87.5 % medido por el arquitecto sobre salidas-sp2.zip) → se escribe I3 (verificador de aprobadas).
 - 2026-11-21 11:28 · S003 · I3 devuelto (85.7 %, 8 válidas bajadas, +19 % tokens; Code paró bien) → I3.1 cambia el verificador por compuertas locales medidas: 13/13 = 100 %, costo 96/35.
 - 2026-11-21 11:54 · S003 · I3.1 aprobada y fusionada (#17; sp4 medido 10/10, 99/38) → se escribe I4 (ensayo del set ciego).
+- 2026-11-21 12:10 · S003 · I4 aprobada y fusionada (#20); su hallazgo (92.3 % con lecturas nuevas) es S0 → I5 (temperatura 0 + consenso).
