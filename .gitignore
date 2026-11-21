@@ -16,6 +16,7 @@ next-env.d.ts
 datos/privado/
 # salidas del motor (derivadas de datos de 3B): nunca al repo
 salidas/
+entrega/
 
 # python
 __pycache__/

@@ -26,6 +26,18 @@ precio: el unitario vigente de la etiqueta."""
 _VERSION = PROMPT_VERSION + "-" + hashlib.sha1(PROMPT.encode()).hexdigest()[:6]  # editar el prompt invalida el caché
 
 
+def resolver_imagen(dir_datos, rel) -> Path | None:
+    """Ruta real de una foto del lote, o None. Tolera `imagenes/` de más o de menos y subcarpetas."""
+    if not rel:
+        return None
+    base, rel = Path(dir_datos), str(rel).replace("\\", "/")
+    for c in (base / "imagenes" / rel, base / rel, base / "imagenes" / "imagenes" / Path(rel).name,
+              base / "imagenes" / Path(rel).name):
+        if c.is_file():
+            return c
+    return None
+
+
 def _jpeg(ruta: Path, lado=768, calidad=80) -> bytes:
     with Image.open(ruta) as im:
         im = im.convert("RGB")
@@ -52,8 +64,10 @@ def sin_modelo(captura: Captura) -> Extraccion:
 
 
 def extraer(captura: Captura, dir_datos, cliente: Cliente | None = None) -> Extraccion:
-    base = Path(dir_datos) / "imagenes"
-    imgs = [_jpeg(base / captura.product_file), _jpeg(base / captura.shelf_file)]
+    rutas = [resolver_imagen(dir_datos, captura.product_file), resolver_imagen(dir_datos, captura.shelf_file)]
+    if None in rutas:
+        raise FileNotFoundError("falta la foto de producto o de etiqueta")
+    imgs = [_jpeg(r) for r in rutas]
     cliente = cliente or Cliente()
     t_in = t_out = 0
     for intento in range(2):  # un reintento si el JSON no valida

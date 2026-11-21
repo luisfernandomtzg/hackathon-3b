@@ -62,8 +62,13 @@ class Cliente:
         `etiqueta` rotula la fila de tokens.csv (p. ej. 'verificar'); el origen devuelto no cambia."""
         t0 = time.time()
         archivo = self.cache_dir / f"{self.clave(prompt_version, imagenes_jpeg)}.json"
+        texto = None
         if archivo.exists():
-            texto = json.loads(archivo.read_text(encoding="utf-8"))["texto"]
+            try:
+                texto = json.loads(archivo.read_text(encoding="utf-8"))["texto"]
+            except Exception:  # caché a medias por una corrida cortada: se trata como falta
+                texto = None
+        if texto is not None:
             self._registrar(capture_id, 0, 0, time.time() - t0, (etiqueta + "_cache") if etiqueta else "cache")
             return texto, 0, 0, "cache"
 
@@ -78,8 +83,10 @@ class Cliente:
                                         messages=[{"role": "user", "content": contenido}])
                 texto = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
                 t_in, t_out = r.usage.input_tokens, r.usage.output_tokens
-                archivo.write_text(json.dumps({"texto": texto, "tokens_entrada": t_in, "tokens_salida": t_out}),
-                                   encoding="utf-8")
+                tmp = archivo.with_suffix(f".{threading.get_ident()}.tmp")  # escritura atómica: Ctrl+C no deja medias
+                tmp.write_text(json.dumps({"texto": texto, "tokens_entrada": t_in, "tokens_salida": t_out}),
+                               encoding="utf-8")
+                os.replace(tmp, archivo)
                 if etiqueta == "verificar":
                     with _lock:
                         self.tokens_verificar += t_in + t_out
