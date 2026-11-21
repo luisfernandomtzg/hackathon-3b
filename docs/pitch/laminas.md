@@ -10,12 +10,12 @@
 
 ---
 
-## Lámina 2 — Cómo decide (19 palabras)
+## Lámina 2 — Cómo decide (20 palabras)
 
-**El modelo lee y las reglas deciden: una llamada por captura, y dos o tres solo para aprobar.**
+**El modelo lee producto y letrero; las reglas deciden: una llamada por captura y dos más solo para aprobar.**
 
 ---
 
-## Lámina 3 — El marcador (19 palabras)
+## Lámina 3 — El marcador (20 palabras)
 
-**En las 100 capturas de desarrollo: 100% precisión (0 falsas), 44/100 sin persona, costo 92/35, 2,390 tokens por captura.**
+**En las 100 capturas de desarrollo: 16 aprobadas y 0 falsas, 54/100 sin persona, costo 85/28, ~3,100 tokens por captura.**

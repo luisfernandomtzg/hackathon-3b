@@ -74,7 +74,7 @@ def _ambiguedad_de_contenido(leido: tuple, esperado: tuple, nombre: Optional[str
     # (S005, sp11) El empaque y el letrero dicen lo mismo y solo el catálogo difiere (p. ej. peso neto contra drenado).
     if _etiqueta_dice_contenido(texto_etiqueta, leido):
         return (f"En la foto se lee {leido[0]:g} {leido[1]} y el letrero dice lo mismo; el catálogo espera "
-                f"{esperado[0]:g} {esperado[1]}. La evidencia de total coincide entre sí, no con el catálogo.")
+                f"{esperado[0]:g} {esperado[1]}. Las dos fotos coinciden entre sí, pero no con el catálogo.")
     return None
 
 

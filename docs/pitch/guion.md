@@ -15,15 +15,13 @@ En Tiendas 3B, ochocientos capturistas recorren tiendas de la competencia tomand
 
 *(Mau muestra las tres tarjetas seleccionadas en `pitch.html`)*
 
-Construimos **Validat3B** bajo un principio estricto: **el modelo lee, las reglas deciden, y todo queda explicado**.
+Construimos **Validat3B** bajo un principio estricto: **el modelo lee, las reglas deciden, y todo queda explicado**. Y en los datos de hoy encontramos algo: cuando el analista dice «captura lejana» o «borrosa» no habla del producto, habla del letrero de precio. El motor mide justo eso.
 
 Veamos tres capturas reales del lote de hoy:
 
-1. **Aprobada (`CAP-434912`, Detergente Precissimo ochocientos gramos):** el modelo lee a ciegas marca, descripción, contenido neto y precio; verificamos en local nitidez y código de barras, y exigimos consenso unánime de tres lecturas antes de aprobar. Todo coincide y se aprueba con cero puntos de costo.
-2. **Rechazada (`CAP-563575`, Chiles jalapeños La Costeña en Bara):** cuando el contenido o el frente no se alcanzan a leer por distancia o desenfoque, las reglas rechazan de inmediato como `CAPTURA_LEJANA` y citan la evidencia.
+1. **Aprobada (`CAP-434912`, Detergente Precissimo ochocientos gramos):** el modelo lee a ciegas marca, descripción, contenido neto y precio, y qué tan cerca y nítido sale el letrero; solo aprueba si tres lecturas independientes coinciden. Todo coincide y se aprueba con cero puntos de costo.
+2. **Rechazada (`CAP-489454`, Leche entera Valley Foods en Soriana):** la foto del producto es impecable, pero el letrero de precio ocupa apenas doce por ciento de la foto. Las reglas la rechazan como `CAPTURA_LEJANA` y dicen por qué.
 3. **Revisión manual (`CAP-350077`, Arroz SOS mil gramos en Walmart):** ante discrepancia parcial, varios precios o nitidez baja, nuestra compuerta local bloquea la aprobación. Aprobar una inválida cuesta diez puntos y descalifica debajo de noventa y siete por ciento; revisar cuesta uno. Ante la duda, nunca aprobamos.
-
-En cada caso: **el modelo lee, las reglas deciden, y todo queda explicado**.
 
 ---
 
@@ -31,13 +29,13 @@ En cada caso: **el modelo lee, las reglas deciden, y todo queda explicado**.
 
 *(Mau cambia a la vista del marcador)*
 
-En las cien capturas de desarrollo, todo se decidió por las fotos, porque los metadatos venían empatados en las cien. Nuestro motor logró **cien por ciento de precisión en aprobadas en las 100 capturas de desarrollo** —diez aprobadas, cero falsas, superando el noventa y siete por ciento obligatorio— y **cien por ciento de JSON válido**. El costo operativo quedó en **noventa y dos puntos** en el escenario pesimista y **treinta y cinco** en el optimista, frente a cien y sesenta y siete de mandar todo a revisión manual, **sin rechazar ninguna captura válida** y resolviendo **cuarenta y cuatro de cien capturas** sin persona —proyectado a **cinco mil doscientas ochenta por semana**— con **dos mil trescientos noventa tokens por captura** *(contra Rival 3B: `[[puntaje_rival_3b]]` · corte 14:30: `[[marcador_final_1430]]`)*.
+En las cien capturas de desarrollo, nuestro motor logró **cien por ciento de precisión en aprobadas en las 100 capturas de desarrollo** —dieciséis aprobadas, cero falsas, superando el noventa y siete por ciento obligatorio— y **cien por ciento de JSON válido**. El costo operativo quedó en **ochenta y cinco puntos** en el escenario pesimista y **veintiocho** en el optimista, frente a cien y sesenta y siete de mandar todo a revisión manual, resolviendo **cincuenta y cuatro de cien capturas** sin persona —proyectado a **seis mil cuatrocientas ochenta por semana**— con **unos tres mil cien tokens por captura** *(contra Rival 3B: `[[puntaje_rival_3b]]` · corte 14:30: `[[marcador_final_1430]]`)*.
 
 ---
 
 ### [2:20–2:45] 4. Por qué encaja en hard discount (~50 palabras)
 
-Esta arquitectura encaja en hard discount: hace **una llamada por captura, y dos o tres solo para las que se aprueban**, a `claude-haiku-5-5`, y lo demás —señales locales de nitidez, lectura local de código de barras y doce reglas puras— corre en una laptop. Cero hardware nuevo y las mismas reglas en todas las regiones.
+Esta arquitectura encaja en hard discount: hace **una llamada por captura, y dos más solo para las que se van a aprobar**, a `claude-haiku-5-5`, y lo demás —señales locales de nitidez, lectura local de código de barras y doce reglas puras— corre en una laptop. Cero hardware nuevo y las mismas reglas en todas las regiones.
 
 ---
 
