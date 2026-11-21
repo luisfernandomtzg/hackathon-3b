@@ -6,7 +6,11 @@ from ml.validat3b.contrato import (
     RC_BORROSA, RC_ETIQUETA_AJENA, RC_INCOMPLETA, RC_LEJANA, RC_NO_COINCIDE, RC_NO_VISIBLE,
     RC_PANTALLA, RC_PRECIO_RANGO, RC_SIN_ETIQUETA, RC_SIN_LECTURA,
 )
-from ml.validat3b.decidir import decidir
+import json
+from pathlib import Path
+
+import ml.validat3b.contrato as contrato
+from ml.validat3b.decidir import decidir, traducir
 
 
 def captura(**cambios):
@@ -142,6 +146,23 @@ class DecidirTest(unittest.TestCase):
         cap = captura()
         r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(otros_precios=[22.0, 17.5])))
         self.assertEqual((r.decision, r.reason_code), ("revision_manual", None))
+
+    def test_17_todo_codigo_de_decidir_es_llave_del_mapa(self):
+        mapa = json.loads((Path(__file__).parent / "mapa_codigos.json").read_text(encoding="utf-8"))
+        codigos = {v for k, v in vars(contrato).items() if k.startswith("RC_") and isinstance(v, str)}
+        self.assertTrue(codigos <= set(mapa), f"faltan en mapa: {codigos - set(mapa)}")
+
+    def test_18_oferta_se_dice_en_la_explicacion(self):
+        cap = captura()
+        r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(tipo_precio="oferta")))
+        self.assertEqual(r.decision, "aprobada")
+        self.assertIn("de oferta", r.explicacion)
+
+    def test_19_traducir_cambia_codigo_solo_si_hay_entrada(self):
+        cap = captura()
+        r = decidir(cap, extraccion(cap, producto=lectura_producto(encuadre="lejano")))
+        self.assertEqual(traducir(r, {"CAPTURA_LEJANA": "OFICIAL_LEJANA"}).reason_code, "OFICIAL_LEJANA")
+        self.assertEqual(traducir(r, {}).reason_code, "CAPTURA_LEJANA")
 
 
 if __name__ == "__main__":

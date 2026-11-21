@@ -56,7 +56,7 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
     # 1. Sin lectura del modelo
     if x.origen in ("error", "sin_modelo"):
         return _resultado(captura, x, "revision_manual", RC_SIN_LECTURA, CONF_REVISION, _val(),
-                          f"No hubo lectura utilizable del modelo (origen: {x.origen})."), 1
+                          "No se pudo leer la captura; hace falta revisarla a mano."), 1
 
     # 2. Foto de pantalla
     if p.foto_de_pantalla:
@@ -156,12 +156,22 @@ def decidir_con_regla(captura: Captura, x: Extraccion) -> tuple[Resultado, int]:
                           "La foto es dudosa (nitidez, encuadre, varios productos) o la etiqueta trae otros precios; pasa a revisión manual."), 11
 
     # 12. Todo claro
+    tipo = {"oferta": " de oferta", "volumen": " por volumen"}.get(e.tipo_precio or "", "")
     return _resultado(
         captura, x, "aprobada", None, CONF_DURA, _val(),
-        f"La etiqueta dice ${e.precio:.2f} y el producto leído coincide con lo esperado "
+        f"La etiqueta dice ${e.precio:.2f}{tipo} y el producto leído coincide con lo esperado "
         f"({p.marca}, {captura.product_name}).",
     ), 12
 
 
 def decidir(captura: Captura, x: Extraccion) -> Resultado:
     return decidir_con_regla(captura, x)[0]
+
+
+def traducir(resultado: Resultado, mapa: dict[str, str]) -> Resultado:
+    """Cambia el reason_code provisional por el oficial según el mapa. Sin mapa o sin código, no cambia nada.
+
+    Pura: el mapa lo carga quien llama (mapa_codigos.json). Cuando llegue la lista oficial, solo se edita el mapa."""
+    if resultado.reason_code is None or resultado.reason_code not in mapa:
+        return resultado
+    return resultado.model_copy(update={"reason_code": mapa[resultado.reason_code]})
