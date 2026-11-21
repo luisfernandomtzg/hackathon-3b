@@ -20,6 +20,47 @@ COSTO_PESIMISTA = {
     "revision_manual": {"aprobada": 10, "revision_manual": 1, "rechazada": 3},
 }
 
+COSTO_OPTIMISTA = {
+    "aprobada": {"aprobada": 0, "revision_manual": 1, "rechazada": 3},
+    "rechazada": {"aprobada": 10, "revision_manual": 1, "rechazada": 0},
+    "revision_manual": {"aprobada": 10, "revision_manual": 0, "rechazada": 0},
+}
+
+_UNIDADES_CORTAS = {
+    "gramo": "g",
+    "gramos": "g",
+    "kilogramo": "kg",
+    "kilogramos": "kg",
+    "mililitro": "ml",
+    "mililitros": "ml",
+    "litro": "l",
+    "litros": "l",
+    "pieza": "pza",
+    "piezas": "pza",
+}
+
+
+def _fmt_contenido(cant: Any, unit: Any) -> str:
+    if cant in (None, ""):
+        return "—"
+    try:
+        num = float(cant)
+        num_str = str(int(num)) if num == int(num) else str(round(num, 2))
+    except (TypeError, ValueError):
+        num_str = str(cant)
+    u = str(unit or "").strip().lower()
+    u_corta = _UNIDADES_CORTAS.get(u, u)
+    return f"{num_str} {u_corta}".strip()
+
+
+def _fmt_precio(val: Any) -> str:
+    if val in (None, ""):
+        return "—"
+    try:
+        return f"${float(val):.2f}"
+    except (TypeError, ValueError):
+        return f"${val}"
+
 TARIMA_VARS = """
     :root {
       --primary: #E31B23;
@@ -51,11 +92,12 @@ TARIMA_VARS = """
 """
 
 
-def calcular_costo(decision_motor: str | None, decision_esperada: str) -> int | None:
-    """Calcula el costo operativo pesimista (0, 1, 3, 10) de una captura."""
+def calcular_costo(decision_motor: str | None, decision_esperada: str, tabla: dict[str, dict[str, int]] | None = None) -> int | None:
+    """Calcula el costo operativo (0, 1, 3, 10) de una captura según la tabla dada."""
     if not decision_motor:
         return None
-    fila = COSTO_PESIMISTA.get(decision_esperada)
+    t = tabla or COSTO_PESIMISTA
+    fila = t.get(decision_esperada)
     if fila and decision_motor in fila:
         return fila[decision_motor]
     if decision_motor == "revision_manual":
@@ -112,6 +154,8 @@ def _construir_registros(
     registros: list[dict[str, Any]] = []
 
     costo_total = 0
+    costo_optimista = 0
+    todo_manual_opt = 0
     aprobadas = 0
     rechazadas = 0
     manuales = 0
@@ -130,9 +174,15 @@ def _construir_registros(
         if res and dec_motor in ("aprobada", "rechazada", "revision_manual") and isinstance(res.get("validaciones"), dict):
             json_validos += 1
 
-        costo = calcular_costo(dec_motor, esperada)
+        costo = calcular_costo(dec_motor, esperada, COSTO_PESIMISTA)
         if costo is not None:
             costo_total += costo
+        costo_opt = calcular_costo(dec_motor, esperada, COSTO_OPTIMISTA)
+        if costo_opt is not None:
+            costo_optimista += costo_opt
+        c_man_opt = calcular_costo("revision_manual", esperada, COSTO_OPTIMISTA)
+        if c_man_opt is not None:
+            todo_manual_opt += c_man_opt
 
         if dec_motor == "aprobada":
             aprobadas += 1
@@ -201,30 +251,36 @@ def _construir_registros(
     tokens_prom: int | None = None
     if tokens_rows:
         modelo_rows = [r for r in tokens_rows if r.get("origen", "modelo") == "modelo"]
-        vals = [
+        cids_modelo = {r.get("capture_id") for r in modelo_rows if r.get("capture_id")}
+        total_tok = sum(
             int(float(r.get("tokens_entrada") or 0) + float(r.get("tokens_salida") or 0))
             for r in modelo_rows
-            if r.get("tokens_entrada") or r.get("tokens_salida")
-        ]
-        if vals:
-            tokens_prom = round(sum(vals) / len(vals))
+        )
+        denom = len(cids_modelo) if cids_modelo else len(modelo_rows)
+        if denom > 0 and total_tok > 0:
+            tokens_prom = round(total_tok / denom)
 
     if tokens_prom is None and extracciones:
-        vals_ext = [
-            int(e.get("tokens_entrada") or 0) + int(e.get("tokens_salida") or 0)
-            for e in extracciones.values()
+        modelo_exts = [
+            e for e in extracciones.values()
             if e.get("origen", "modelo") == "modelo" and (e.get("tokens_entrada") or e.get("tokens_salida"))
         ]
-        if vals_ext:
-            tokens_prom = round(sum(vals_ext) / len(vals_ext))
+        cids_ext = {e.get("capture_id") for e in modelo_exts if e.get("capture_id")}
+        total_ext = sum(int(e.get("tokens_entrada") or 0) + int(e.get("tokens_salida") or 0) for e in modelo_exts)
+        denom_ext = len(cids_ext) if cids_ext else len(modelo_exts)
+        if denom_ext > 0 and total_ext > 0:
+            tokens_prom = round(total_ext / denom_ext)
 
     marcador = {
         "tiene_resultados": bool(resultados),
         "total": len(registros),
         "costo_total": costo_total,
+        "costo_optimista": costo_optimista,
         "costo_todo_manual": len(registros),
+        "costo_todo_manual_opt": todo_manual_opt,
         "aprobadas": aprobadas,
         "aprobadas_correctas": tp,
+        "aprobadas_falsas": fp,
         "rechazadas": rechazadas,
         "manuales": manuales,
         "precision": round(precision, 1),
@@ -716,7 +772,23 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     function esc(s) {{
       return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
     }}
-    function diffCls(a, b) {{
+    const U_MAP = {{ gramo: "g", gramos: "g", kilogramo: "kg", kilogramos: "kg", mililitro: "ml", mililitros: "ml", litro: "l", litros: "l", pieza: "pza", piezas: "pza" }};
+    function fmtCont(cant, unit) {{
+      if (cant === null || cant === undefined || cant === "") return "—";
+      const n = Number(cant);
+      const ns = Number.isFinite(n) ? (Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)))) : String(cant);
+      const u = String(unit ?? "").trim().toLowerCase();
+      return `${{ns}} ${{U_MAP[u] || u}}`.trim();
+    }}
+    function fmtPrecio(val) {{
+      if (val === null || val === undefined || val === "") return "—";
+      const n = Number(val);
+      return Number.isFinite(n) ? `$${{n.toFixed(2)}}` : `$${{val}}`;
+    }}
+    function cellCls(d, key, a, b) {{
+      const v = d.validaciones || {{}};
+      if (key === "producto" && v.producto) return v.producto === "falla" ? "mismatch" : "";
+      if (key === "precio" && v.evidencia_precio) return v.evidencia_precio === "falla" ? "mismatch" : "";
       if (!b) return "";
       return String(a).trim().toLowerCase() !== String(b).trim().toLowerCase() ? "mismatch" : "";
     }}
@@ -901,10 +973,10 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
             <table class="cmp">
               <thead><tr><th>Campo</th><th>Esperado</th><th>Leído por modelo</th></tr></thead>
               <tbody>
-                <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
-                <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
-                <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
+                <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{cellCls(d, "producto", d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{cellCls(d, "producto", d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                <tr><td>Contenido</td><td>${{esc(fmtCont(d.qty, d.unit))}}</td><td class="${{cellCls(d, "producto", fmtCont(d.qty, d.unit), fmtCont(d.leido_cant, d.leido_unid))}}">${{esc(fmtCont(d.leido_cant, d.leido_unid))}}</td></tr>
+                <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{cellCls(d, "precio", d.price_ref, d.precio_detectado)}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
               </tbody>
             </table>
             <p style="font-size:0.88rem;margin:10px 0;"><strong>Motivo / Explicación:</strong> ${{esc(d.reason_code || "—")}} — ${{esc(d.explicacion || "Sin explicación")}}</p>
@@ -962,10 +1034,10 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
               <table class="cmp">
                 <thead><tr><th>Campo</th><th>Esperado</th><th>Leído</th></tr></thead>
                 <tbody>
-                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
-                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                  <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
-                  <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
+                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{cellCls(d, "producto", d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{cellCls(d, "producto", d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                  <tr><td>Contenido</td><td>${{esc(fmtCont(d.qty, d.unit))}}</td><td class="${{cellCls(d, "producto", fmtCont(d.qty, d.unit), fmtCont(d.leido_cant, d.leido_unid))}}">${{esc(fmtCont(d.leido_cant, d.leido_unid))}}</td></tr>
+                  <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{cellCls(d, "precio", d.price_ref, d.precio_detectado)}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
                 </tbody>
               </table>
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1307,9 +1379,9 @@ def generar_pitch(dir_datos: Path, ruta_resultados: Path, ruta_pitch: Path, ids:
     }}
     .hero-grid {{
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 24px;
-      max-width: 1400px;
+      max-width: 1200px;
       width: 100%;
       margin: 0 auto;
     }}
@@ -1482,7 +1554,23 @@ def generar_pitch(dir_datos: Path, ruta_resultados: Path, ruta_pitch: Path, ids:
     function esc(s) {{
       return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
     }}
-    function diffCls(a, b) {{
+    const U_MAP = {{ gramo: "g", gramos: "g", kilogramo: "kg", kilogramos: "kg", mililitro: "ml", mililitros: "ml", litro: "l", litros: "l", pieza: "pza", piezas: "pza" }};
+    function fmtCont(cant, unit) {{
+      if (cant === null || cant === undefined || cant === "") return "—";
+      const n = Number(cant);
+      const ns = Number.isFinite(n) ? (Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)))) : String(cant);
+      const u = String(unit ?? "").trim().toLowerCase();
+      return `${{ns}} ${{U_MAP[u] || u}}`.trim();
+    }}
+    function fmtPrecio(val) {{
+      if (val === null || val === undefined || val === "") return "—";
+      const n = Number(val);
+      return Number.isFinite(n) ? `$${{n.toFixed(2)}}` : `$${{val}}`;
+    }}
+    function cellCls(d, key, a, b) {{
+      const v = d.validaciones || {{}};
+      if (key === "producto" && v.producto) return v.producto === "falla" ? "mismatch" : "";
+      if (key === "precio" && v.evidencia_precio) return v.evidencia_precio === "falla" ? "mismatch" : "";
       if (!b) return "";
       return String(a).trim().toLowerCase() !== String(b).trim().toLowerCase() ? "mismatch" : "";
     }}
@@ -1494,30 +1582,37 @@ def generar_pitch(dir_datos: Path, ruta_resultados: Path, ruta_pitch: Path, ids:
 
       if (idx === 0) {{
         tag.textContent = "Marcador sobre 100 capturas de desarrollo";
-        const prec = Number.isInteger(M.precision) ? `${{M.precision}} %` : `${{M.precision}} %`;
+        const prec = `${{M.precision}} %`;
+        const sinPers = M.aprobadas + M.rechazadas;
         const tok = M.tokens_promedio !== null ? Number(M.tokens_promedio).toLocaleString("en-US") : "—";
         stage.innerHTML = `
           <div class="hero-grid">
             <div class="hero-card ok">
-              <div class="hero-num">${{prec}}</div>
-              <div class="hero-title">Precisión en aprobadas</div>
-              <div class="hero-sub">${{M.aprobadas_correctas}} de ${{M.aprobadas}} aprobadas sin errores (mínimo oficial 97 %)</div>
+              <div class="hero-num">${{M.aprobadas_falsas}}</div>
+              <div class="hero-title">Aprobadas falsas</div>
+              <div class="hero-sub">${{M.aprobadas}} aprobadas · ${{prec}} de precisión (mínimo oficial 97 %)</div>
             </div>
             <div class="hero-card">
-              <div class="hero-num">${{M.costo_total}} vs ${{M.costo_todo_manual}}</div>
-              <div class="hero-title">Costo operativo pesimista</div>
-              <div class="hero-sub">Contra revisar todo a mano (100 pts) · ${{M.aprobadas + M.rechazadas}} resueltas sin persona</div>
+              <div class="hero-num">${{sinPers}} de ${{M.total}}</div>
+              <div class="hero-title">Sin persona</div>
+              <div class="hero-sub">${{M.aprobadas}} aprobadas + ${{M.rechazadas}} rechazadas; ${{M.manuales}} van a revisión</div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-num">${{M.costo_total}} / ${{M.costo_optimista}}</div>
+              <div class="hero-title">Costo operativo (pesimista / optimista)</div>
+              <div class="hero-sub">contra ${{M.costo_todo_manual}} / ${{M.costo_todo_manual_opt}} de revisar todo a mano</div>
             </div>
             <div class="hero-card">
               <div class="hero-num">${{tok}}</div>
               <div class="hero-title">Tokens por captura</div>
-              <div class="hero-sub">Una sola llamada a claude-haiku-5-5 con señales locales a 0 tokens</div>
+              <div class="hero-sub">Una lectura por captura; tres solo para las que se aprueban</div>
             </div>
           </div>`;
       }} else {{
         const d = ITEMS[idx - 1];
         const dec = d.motor || d.esperada;
-        const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+        const espCont = fmtCont(d.qty, d.unit);
+        const leidoCont = fmtCont(d.leido_cant, d.leido_unid);
         tag.textContent = `Caso ${{idx}} de ${{ITEMS.length}} · ${{d.capture_id}}`;
         stage.innerHTML = `
           <div class="cap-wrap">
@@ -1538,10 +1633,10 @@ def generar_pitch(dir_datos: Path, ruta_resultados: Path, ruta_pitch: Path, ids:
               <table class="cmp">
                 <thead><tr><th>Campo</th><th>Esperado</th><th>Leído por el modelo</th></tr></thead>
                 <tbody>
-                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
-                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                  <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
-                  <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
+                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{cellCls(d, "producto", d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{cellCls(d, "producto", d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                  <tr><td>Contenido</td><td>${{esc(espCont)}}</td><td class="${{cellCls(d, "producto", espCont, leidoCont)}}">${{esc(leidoCont)}}</td></tr>
+                  <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{cellCls(d, "precio", d.price_ref, d.precio_detectado)}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
                 </tbody>
               </table>
             </div>
