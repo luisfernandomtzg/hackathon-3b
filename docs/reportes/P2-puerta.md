@@ -1,0 +1,11 @@
+P2 — Puerta local: qué capturas se pueden resolver sin gastar tokens · rama carril/pitch-sp2-puerta · cuelga de 9ac7729 · commit ver PR · modelo Gemini (Antigravity) · esfuerzo medium · ~15 min
+Hecho: ml/validat3b/puerta.py con puerta(senales: dict) -> str | None (devuelve "CAPTURA_BORROSA" si nitidez_producto < 84.0 o nitidez_etiqueta < 82.0, o None si va al modelo / señales None) y CLI python -m ml.validat3b.puerta --locales salidas/locales.csv; ml/validat3b/test_puerta.py (5 pruebas unitarias); docs/pitch/notas.md con cifras de Alfredo (3B).
+Prueba de cierre: python -m unittest ml.validat3b.test_puerta -v → Ran 5 tests in 0.000s OK · python -m ml.validat3b.puerta --locales salidas/locales.csv → tablas de barrido impresas y git status limpio de datos/ y salidas/.
+Tabla nitidez_producto (U: total | %ahorro | rech / man / aprob): 40: 1|1% (0/1/0) · 60: 4|4% (2/2/0) · 76: 5|5% (3/2/0) · 84 (máx seguro): 6|6.0% (3/3/0) · 90: 8|8% (4/3/1 NO) · 120: 15|15% (6/7/2 NO) · 150: 21|21% (7/9/5 NO).
+Tabla nitidez_etiqueta (U: total | %ahorro | rech / man / aprob): 40: 4|4% (2/2/0) · 60: 8|8% (6/2/0) · 70: 11|11% (6/5/0) · 76: 13|13% (8/5/0) · 82 (máx seguro): 14|14.0% (9/5/0) · 84: 15|15% (9/5/1 NO) · 100: 18|18% (11/6/1 NO) · 150: 31|31% (17/11/3 NO).
+Puerta combinada (nitidez_producto < 84.0 OR nitidez_etiqueta < 82.0): rechaza 16/100 capturas sin modelo (16.0 % ahorro de tokens: 10 rechazadas reales y 6 revision_manual reales, 0 aprobadas reales).
+Recomendación: ACTIVAR bajo la regla de la misión (ahorra 16.0 % >= 10 % de llamadas con 0 aprobadas reales rechazadas), con nota de cautela para Fer: en el escenario pesimista de D1 las 6 revision_manual rechazadas sumarían +12 pts de costo (0 pts en optimista), y el margen contra la aprobada más baja (CAP-970141: prod=84.48, etiq=83.02) es estrecho; si se busca margen amplio en el set ciego, usar umbral conservador U=46.0 (7 % ahorro: 5 rechazadas, 2 manuales, 0 aprobadas) o dejar como señal para decidir/clasificador.
+No hecho / simulado: no integrado a correr.py (la misión indica que integrarla al motor es decisión de Fer).
+Archivos fuera de mi carril que toqué: ninguno (solo ml/validat3b/puerta.py, ml/validat3b/test_puerta.py, docs/pitch/notas.md y este reporte).
+¿Tocó la base?: no
+Necesito de otro carril: nada (Fer decide si activa puerta() antes de extraer() en correr.py).
