@@ -128,10 +128,19 @@ def _cargar_json_lista(path: Path) -> dict[str, dict[str, Any]]:
 
 def _resolver_ruta_imagen(dir_datos: Path, rel_file: str, dir_salida: Path) -> str:
     """Resuelve la ruta relativa de la imagen respecto al HTML de salida."""
-    candidato = dir_datos / "imagenes" / rel_file
-    if not candidato.exists():
-        candidato = dir_datos / rel_file
-    return Path(os.path.relpath(candidato, start=dir_salida)).as_posix()
+    nombre = Path(rel_file).name if rel_file else ""
+    candidatos = [
+        dir_datos / "imagenes" / rel_file,
+        dir_datos / rel_file,
+        dir_datos / "imagenes" / "imagenes" / nombre,
+        dir_datos / "imagenes" / nombre,
+    ]
+    elegido = candidatos[0]
+    for c in candidatos:
+        if c.is_file():
+            elegido = c
+            break
+    return Path(os.path.relpath(elegido, start=dir_salida)).as_posix()
 
 
 def _construir_registros(
@@ -141,7 +150,11 @@ def _construir_registros(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     csv_capturas = dir_datos / "metadatos" / "capturas.csv"
     if not csv_capturas.exists():
-        raise FileNotFoundError(f"No se encontró {csv_capturas}")
+        alt_csv = dir_datos / "capturas.csv"
+        if alt_csv.exists():
+            csv_capturas = alt_csv
+        else:
+            raise FileNotFoundError(f"No se encontró {csv_capturas}")
 
     capturas = _cargar_csv(csv_capturas)
     resultados = _cargar_json_lista(ruta_resultados)
@@ -290,13 +303,62 @@ def _construir_registros(
     return registros, marcador
 
 
+def _detectar_lotes_extra(
+    dir_datos: Path,
+    ruta_resultados: Path,
+    dir_salida: Path,
+    registros_base: list[dict[str, Any]],
+    marcador_base: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Prepara lotes pre-cargados (Desarrollo y Set Ciego si existen en disco) para cambio en 1 clic."""
+    es_ciego_base = any(not r.get("esperada") for r in registros_base) and len(registros_base) <= 60
+    clave_base = "ciego" if es_ciego_base else "desarrollo"
+    etiqueta_base = (
+        f"Set Ciego Evaluación ({len(registros_base)} capturas)"
+        if es_ciego_base
+        else f"Set Desarrollo ({len(registros_base)} capturas)"
+    )
+    lotes: dict[str, dict[str, Any]] = {
+        clave_base: {
+            "label": etiqueta_base,
+            "data": registros_base,
+            "m": marcador_base,
+        }
+    }
+
+    raiz_repo = Path(__file__).resolve().parents[2]
+    candidatos_ciego = [
+        (raiz_repo / "datos" / "privado" / "set_ciego_meta_inspect", raiz_repo / "salidas" / "ciego_v3" / "resultados.json"),
+        (raiz_repo / "datos" / "privado" / "set_ciego_meta_inspect", raiz_repo / "entrega" / "resultados.json"),
+        (raiz_repo / "datos" / "ciego", raiz_repo / "entrega" / "resultados.json"),
+    ]
+    if "ciego" not in lotes:
+        for d_ciego, r_ciego in candidatos_ciego:
+            if d_ciego.is_dir() and ((d_ciego / "capturas.csv").is_file() or (d_ciego / "metadatos" / "capturas.csv").is_file()):
+                try:
+                    reg_c, mar_c = _construir_registros(d_ciego, r_ciego, dir_salida)
+                    if reg_c:
+                        lotes["ciego"] = {
+                            "label": f"Set Ciego Evaluación ({len(reg_c)} capturas)",
+                            "data": reg_c,
+                            "m": mar_c,
+                        }
+                        break
+                except Exception:
+                    pass
+    return lotes
+
+
 def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> tuple[int, int]:
     """Genera el HTML estático completo (4 módulos Tarima, 100 % offline)."""
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
-    registros, marcador = _construir_registros(dir_datos, ruta_resultados, ruta_salida.parent.resolve())
+    dir_salida_res = ruta_salida.parent.resolve()
+    registros, marcador = _construir_registros(dir_datos, ruta_resultados, dir_salida_res)
+    lotes = _detectar_lotes_extra(dir_datos, ruta_resultados, dir_salida_res, registros, marcador)
 
     datos_json = json.dumps(registros, ensure_ascii=False)
     marcador_json = json.dumps(marcador, ensure_ascii=False)
+    lotes_json = json.dumps(lotes, ensure_ascii=False)
 
     html_doc = f"""<!DOCTYPE html>
 <html lang="es">
@@ -341,6 +403,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }}
     .brand h1 {{ margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }}
     .brand span.sub {{ font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }}
@@ -572,7 +635,75 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     .chip.revision_manual {{ background: var(--warn-bg); color: var(--warn); }}
     .chip.info {{ background: var(--info-bg); color: var(--info); }}
 
-    /* Módulo 4: Ingesta Set Ciego */
+    /* Módulo 4: Ingesta Set Ciego y Zona Única Inteligente */
+    .preset-bar {{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }}
+    .checklist-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }}
+    .check-card {{
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }}
+    .check-card.ready {{
+      border-color: var(--ok);
+      background: var(--ok-bg);
+    }}
+    .check-card .ck-title {{
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-sec);
+    }}
+    .check-card.ready .ck-title {{ color: var(--ok); }}
+    .check-card .ck-val {{
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }}
+    .smart-dropzone {{
+      background: var(--surface);
+      border: 2px dashed var(--text-sec);
+      border-radius: 8px;
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: background 150ms cubic-bezier(.2,0,0,1), border-color 150ms cubic-bezier(.2,0,0,1);
+    }}
+    .smart-dropzone.dragover {{
+      border-color: var(--primary);
+      background: var(--danger-bg);
+    }}
+    .smart-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 6px;
+    }}
     .ingest-grid {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -726,32 +857,63 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
 
     <!-- MÓDULO 4 -->
     <section id="tab-ingesta" class="tab-panel">
+      <div class="preset-bar">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>Lote activo:</strong>
+          <div id="preset-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          <button type="button" class="ctrl" id="btn-clear-lote">Nuevo lote vacío</button>
+        </div>
+        <button type="button" class="primary" id="btn-go-audit">Ver en 3. Explorador auditoría →</button>
+      </div>
+
       <div id="ingest-status"></div>
-      <div class="ingest-grid">
-        <div class="drop-card">
-          <strong>1. Subir carpeta completa del Set Ciego</strong>
-          <span class="sub">Detecta automáticamente capturas.csv/.json, resultados.json y todas las fotos locales.</span>
-          <input type="file" id="in-folder" webkitdirectory multiple />
-        </div>
-        <div class="drop-card">
-          <strong>2. Subir capturas.csv o tokens.csv</strong>
-          <span class="sub">Carga el padrón de capturas o métricas de tokens.</span>
-          <input type="file" id="in-csv" accept=".csv" />
-        </div>
-        <div class="drop-card">
-          <strong>3. Subir resultados.json / extracciones.json</strong>
-          <span class="sub">Hidrata veredictos oficiales y valida esquema JSON.</span>
-          <input type="file" id="in-json" accept=".json" />
-        </div>
-        <div class="drop-card">
-          <strong>4. Probar 3 fotos sueltas en vivo</strong>
-          <span class="sub">Carga Fachada, Producto y Etiqueta para inspeccionar en la estación.</span>
-          <label>Fachada <input type="file" id="sim-facade" accept="image/*" /></label>
-          <label>Producto <input type="file" id="sim-product" accept="image/*" /></label>
-          <label>Etiqueta <input type="file" id="sim-shelf" accept="image/*" /></label>
-          <button type="button" class="primary" id="btn-sim">Cargar captura al explorador</button>
+      <div class="checklist-grid" id="ingest-checklist"></div>
+
+      <div class="smart-dropzone" id="smart-dropzone">
+        <strong style="font-size:1.05rem;">Carga rápida unificada (Arrastra y suelta aquí todo tu lote)</strong>
+        <span class="sub" style="max-width:720px;">
+          Suelta de una sola vez o por partes tus archivos <span class="mono">.zip</span> (como <span class="mono">Validat3B_evaluacion_imagenes.zip</span> y <span class="mono">Validat3B_evaluacion_metadatos.zip</span>), carpetas, <span class="mono">capturas.csv</span>, <span class="mono">resultados.json</span>, <span class="mono">extracciones.json</span>, <span class="mono">tokens.csv</span> o fotos sueltas. Todo se combina automáticamente sin borrar lo que ya cargaste.
+        </span>
+        <div class="smart-actions">
+          <label class="ctrl" style="display:inline-flex;align-items:center;padding:0 16px;background:var(--primary);color:#fff;border-color:var(--primary);">
+            Seleccionar archivos (.zip, .csv, .json, fotos)
+            <input type="file" id="in-smart-files" multiple accept=".zip,.csv,.json,image/*" style="display:none;" />
+          </label>
+          <label class="ctrl" style="display:inline-flex;align-items:center;padding:0 16px;">
+            Seleccionar carpeta completa
+            <input type="file" id="in-smart-folder" webkitdirectory multiple style="display:none;" />
+          </label>
         </div>
       </div>
+
+      <details style="margin-bottom:16px;">
+        <summary style="cursor:pointer;font-weight:700;padding:8px 0;color:var(--text-sec);">Opciones avanzadas: subir archivos individuales o probar 3 fotos sueltas</summary>
+        <div class="ingest-grid" style="margin-top:12px;">
+          <div class="drop-card">
+            <strong>1. Subir carpeta completa del Set Ciego</strong>
+            <span class="sub">Detecta automáticamente capturas.csv/.json, resultados.json, extracciones.json y fotos locales.</span>
+            <input type="file" id="in-folder" webkitdirectory multiple />
+          </div>
+          <div class="drop-card">
+            <strong>2. Subir capturas.csv o tokens.csv</strong>
+            <span class="sub">Carga el padrón de capturas o métricas de tokens sin borrar las fotos.</span>
+            <input type="file" id="in-csv" accept=".csv,.zip" multiple />
+          </div>
+          <div class="drop-card">
+            <strong>3. Subir resultados.json / extracciones.json</strong>
+            <span class="sub">Hidrata veredictos oficiales y lecturas del modelo (Marca, Producto, Contenido, Precio).</span>
+            <input type="file" id="in-json" accept=".json,.zip" multiple />
+          </div>
+          <div class="drop-card">
+            <strong>4. Probar 3 fotos sueltas en vivo</strong>
+            <span class="sub">Carga Fachada, Producto y Etiqueta para inspeccionar en la estación.</span>
+            <label>Fachada <input type="file" id="sim-facade" accept="image/*" /></label>
+            <label>Producto <input type="file" id="sim-product" accept="image/*" /></label>
+            <label>Etiqueta <input type="file" id="sim-shelf" accept="image/*" /></label>
+            <button type="button" class="primary" id="btn-sim">Cargar captura al explorador</button>
+          </div>
+        </div>
+      </details>
     </section>
   </div>
 
@@ -777,6 +939,8 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
   </div>
 
   <script>
+    const PRESETS = {lotes_json};
+    let activePresetKey = Object.keys(PRESETS)[0] || "desarrollo";
     let DATA = {datos_json};
     let M = {marcador_json};
     let currentItems = [];
@@ -785,6 +949,11 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
     let hitlIdx = 0;
     let rotations = {{}};
     let hitlDecisions = JSON.parse(localStorage.getItem("validat3b_hitl_v1") || "{{}}");
+
+    // Cachés incrementales para que el orden de subida nunca borre fotos ni lecturas previas
+    let IMG_CACHE = {{}};
+    let RES_CACHE = {{}};
+    let EXT_CACHE = {{}};
 
     function esc(s) {{
       return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
@@ -802,12 +971,43 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       const n = Number(val);
       return Number.isFinite(n) ? `$${{n.toFixed(2)}}` : `$${{val}}`;
     }}
-    function cellCls(d, key, a, b) {{
-      const v = d.validaciones || {{}};
-      if (key === "producto" && v.producto) return v.producto === "falla" ? "mismatch" : "";
-      if (key === "precio" && v.evidencia_precio) return v.evidencia_precio === "falla" ? "mismatch" : "";
-      if (!b) return "";
-      return String(a).trim().toLowerCase() !== String(b).trim().toLowerCase() ? "mismatch" : "";
+    function normText(s) {{
+      return String(s ?? "")
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }}
+    function toBaseUnit(str) {{
+      const m = String(str ?? "").trim().toLowerCase().match(/^(\\d+(?:\\.\\d+)?)\\s*(g|gr|gramo|gramos|kg|kilo|kilos|ml|mililitro|mililitros|l|lt|lts|litro|litros|pza|pz|pieza|piezas)$/);
+      if (!m) return null;
+      const val = Number(m[1]), u = m[2];
+      if (["kg", "kilo", "kilos"].includes(u)) return {{ v: val * 1000, u: "g" }};
+      if (["g", "gr", "gramo", "gramos"].includes(u)) return {{ v: val, u: "g" }};
+      if (["l", "lt", "lts", "litro", "litros"].includes(u)) return {{ v: val * 1000, u: "ml" }};
+      if (["ml", "mililitro", "mililitros"].includes(u)) return {{ v: val, u: "ml" }};
+      return {{ v: val, u: "pza" }};
+    }}
+    function diffCls(a, b, kind = "texto") {{
+      if (b === null || b === undefined || b === "" || b === "—") return "";
+      if (kind === "precio") {{
+        const na = Number(String(a ?? "").replace(/[^0-9.-]+/g, ""));
+        const nb = Number(String(b ?? "").replace(/[^0-9.-]+/g, ""));
+        if (Number.isFinite(na) && Number.isFinite(nb)) return Math.abs(na - nb) > 0.01 ? "mismatch" : "";
+      }}
+      if (kind === "contenido") {{
+        const qa = toBaseUnit(a), qb = toBaseUnit(b);
+        if (qa && qb) {{
+          if (qa.u !== qb.u) return "mismatch";
+          const maxV = Math.max(qa.v, qb.v, 1);
+          return Math.abs(qa.v - qb.v) / maxV > 0.02 ? "mismatch" : "";
+        }}
+      }}
+      const sa = normText(a), sb = normText(b);
+      if (!sa || !sb) return "";
+      if (sa === sb || sa.replace(/\\s+/g, "") === sb.replace(/\\s+/g, "")) return "";
+      return "mismatch";
     }}
 
     function populateStores() {{
@@ -815,7 +1015,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       const cur = sel.value;
       const stores = [...new Set(DATA.map(d => d.store).filter(Boolean))].sort();
       sel.innerHTML = `<option value="">Cadena: Todas</option>` + stores.map(s => `<option value="${{esc(s)}}">${{esc(s)}}</option>`).join("");
-      sel.value = cur;
+      sel.value = stores.includes(cur) ? cur : "";
     }}
 
     function computeMetrics(items) {{
@@ -950,7 +1150,8 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       if (hitlIdx < 0) hitlIdx = queue.length - 1;
       const d = queue[hitlIdx];
       const analista = hitlDecisions[d.capture_id] || "";
-      const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+      const espCont = fmtCont(d.qty, d.unit);
+      const leidoCont = fmtCont(d.leido_cant, d.leido_unid);
 
       head.innerHTML = `
         <div>
@@ -990,10 +1191,10 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
             <table class="cmp">
               <thead><tr><th>Campo</th><th>Esperado</th><th>Leído por modelo</th></tr></thead>
               <tbody>
-                <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{cellCls(d, "producto", d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
-                <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{cellCls(d, "producto", d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                <tr><td>Contenido</td><td>${{esc(fmtCont(d.qty, d.unit))}}</td><td class="${{cellCls(d, "producto", fmtCont(d.qty, d.unit), fmtCont(d.leido_cant, d.leido_unid))}}">${{esc(fmtCont(d.leido_cant, d.leido_unid))}}</td></tr>
-                <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{cellCls(d, "precio", d.price_ref, d.precio_detectado)}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
+                <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca, "marca")}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc, "producto")}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                <tr><td>Contenido</td><td>${{esc(espCont)}}</td><td class="${{diffCls(espCont, leidoCont, "contenido")}}">${{esc(leidoCont)}}</td></tr>
+                <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{diffCls(d.price_ref, d.precio_detectado, "precio")}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
               </tbody>
             </table>
             <p style="font-size:0.88rem;margin:10px 0;"><strong>Motivo / Explicación:</strong> ${{esc(d.reason_code || "—")}} — ${{esc(d.explicacion || "Sin explicación")}}</p>
@@ -1024,7 +1225,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
                     <td class="mono"><strong>${{esc(d.capture_id)}}</strong></td>
                     <td>${{esc(d.store)}}</td>
                     <td>${{esc(d.brand)}} — ${{esc(d.product_name)}}</td>
-                    <td class="mono">$${{esc(d.price_ref)}} / ${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td>
+                    <td class="mono">${{esc(fmtPrecio(d.price_ref))}} / ${{esc(fmtPrecio(d.precio_detectado))}}</td>
                     <td><span class="chip ${{esc(d.esperada || "info")}}">${{esc(d.esperada || "ciego")}}</span></td>
                     <td>${{d.motor ? `<span class="chip ${{esc(d.motor)}}">${{esc(d.motor)}}</span>` : "—"}}</td>
                     <td class="mono" style="font-size:0.78rem;">${{esc(d.reason_code || "—")}}</td>
@@ -1036,7 +1237,8 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
           </div>`;
       }} else {{
         body.innerHTML = `<div class="cards-grid">${{items.map(d => {{
-          const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+          const espCont = fmtCont(d.qty, d.unit);
+          const leidoCont = fmtCont(d.leido_cant, d.leido_unid);
           return `
             <article class="card ${{d.es_error ? "is-error" : ""}}">
               <div class="card-head">
@@ -1051,10 +1253,10 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
               <table class="cmp">
                 <thead><tr><th>Campo</th><th>Esperado</th><th>Leído</th></tr></thead>
                 <tbody>
-                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{cellCls(d, "producto", d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
-                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{cellCls(d, "producto", d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                  <tr><td>Contenido</td><td>${{esc(fmtCont(d.qty, d.unit))}}</td><td class="${{cellCls(d, "producto", fmtCont(d.qty, d.unit), fmtCont(d.leido_cant, d.leido_unid))}}">${{esc(fmtCont(d.leido_cant, d.leido_unid))}}</td></tr>
-                  <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{cellCls(d, "precio", d.price_ref, d.precio_detectado)}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
+                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca, "marca")}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc, "producto")}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                  <tr><td>Contenido</td><td>${{esc(espCont)}}</td><td class="${{diffCls(espCont, leidoCont, "contenido")}}">${{esc(leidoCont)}}</td></tr>
+                  <tr><td>Precio</td><td>${{esc(fmtPrecio(d.price_ref))}}</td><td class="${{diffCls(d.price_ref, d.precio_detectado, "precio")}}">${{esc(fmtPrecio(d.precio_detectado))}}</td></tr>
                 </tbody>
               </table>
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1067,11 +1269,58 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       }}
     }}
 
+    function renderChecklist() {{
+      const total = DATA.length;
+      const conFotos = DATA.filter(d => d.img_facade && d.img_product && d.img_shelf).length;
+      const conRes = DATA.filter(d => Boolean(d.motor)).length;
+      const conExt = DATA.filter(d => Boolean(d.leido_marca || d.leido_desc || d.leido_cant)).length;
+      const tok = M.tokens_promedio ? `${{Number(M.tokens_promedio).toLocaleString("en-US")}} tok/cap` : "sin tokens.csv";
+      const el = document.getElementById("ingest-checklist");
+      if (!el) return;
+      el.innerHTML = `
+        <div class="check-card ${{total > 0 ? "ready" : ""}}">
+          <span class="ck-title">1. Padrón (capturas.csv)</span>
+          <span class="ck-val">${{total > 0 ? `${{total}} capturas cargadas` : "Pendiente de subir"}}</span>
+        </div>
+        <div class="check-card ${{total > 0 && conFotos === total ? "ready" : ""}}">
+          <span class="ck-title">2. Fotografías (3 por captura)</span>
+          <span class="ck-val">${{total > 0 ? `${{conFotos}} de ${{total}} con 3 fotos` : "Pendiente de subir"}}</span>
+        </div>
+        <div class="check-card ${{total > 0 && conRes === total ? "ready" : ""}}">
+          <span class="ck-title">3. Veredictos (resultados.json)</span>
+          <span class="ck-val">${{total > 0 ? `${{conRes}} de ${{total}} con decisión` : "Pendiente de subir"}}</span>
+        </div>
+        <div class="check-card ${{total > 0 && conExt > 0 ? "ready" : ""}}">
+          <span class="ck-title">4. Lecturas (extracciones.json)</span>
+          <span class="ck-val">${{total > 0 ? `${{conExt}} con lectura · ${{tok}}` : "Pendiente de subir"}}</span>
+        </div>`;
+
+      const pBtns = document.getElementById("preset-buttons");
+      if (pBtns) {{
+        pBtns.innerHTML = Object.entries(PRESETS).map(([k, v]) => `
+          <button type="button" class="ctrl ${{activePresetKey === k ? "active" : ""}}" onclick="activatePreset('${{esc(k)}}')">${{esc(v.label)}}</button>
+        `).join("");
+      }}
+    }}
+
+    window.activatePreset = key => {{
+      const p = PRESETS[key];
+      if (!p) return;
+      activePresetKey = key;
+      DATA = JSON.parse(JSON.stringify(p.data));
+      M = JSON.parse(JSON.stringify(p.m));
+      hitlIdx = 0;
+      populateStores();
+      renderAll();
+      showIngestMsg(true, `Lote cambiado a ${{p.label}} (${{DATA.length}} capturas listas para auditar).`);
+    }};
+
     function renderAll() {{
       const items = getFiltered();
       renderResumen(items);
       renderHitl(items);
       renderAuditoria(items);
+      renderChecklist();
     }}
 
     window.rotateImg = k => {{ rotations[k] = ((rotations[k] || 0) + 90) % 360; renderHitl(currentItems); }};
@@ -1113,15 +1362,28 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       setTimeout(() => document.getElementById("btn-copy-json").textContent = "Copiar JSON", 1200);
     }};
 
+    function activateTab(tabId) {{
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + tabId));
+    }}
+
     // Tabs
     document.querySelectorAll(".tab-btn").forEach(btn => {{
-      btn.onclick = () => {{
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-        btn.classList.add("active");
-        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-      }};
+      btn.onclick = () => activateTab(btn.dataset.tab);
     }});
+
+    document.getElementById("btn-go-audit").onclick = () => activateTab("auditoria");
+    document.getElementById("btn-clear-lote").onclick = () => {{
+      activePresetKey = "custom";
+      DATA = [];
+      M = {{ tiene_resultados: false, total: 0, costo_total: 0, costo_optimista: 0, costo_todo_manual: 0, costo_todo_manual_opt: 0, aprobadas: 0, aprobadas_correctas: 0, aprobadas_falsas: 0, rechazadas: 0, manuales: 0, precision: 100, pct_json: 0, tokens_promedio: null }};
+      IMG_CACHE = {{}};
+      RES_CACHE = {{}};
+      EXT_CACHE = {{}};
+      populateStores();
+      renderAll();
+      showIngestMsg(true, "Lote limpio. Arrastra o selecciona tus archivos en la zona inferior.");
+    }};
 
     document.getElementById("view-cards").onclick = () => {{
       viewMode = "cards";
@@ -1167,7 +1429,7 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       renderAll();
     }};
 
-    // Ingesta CSV / JSON / Carpeta Set Ciego (100% client-side)
+    // Ingesta CSV / JSON / ZIP / Carpeta Set Ciego (100% client-side, fusión no destructiva)
     function parseCsv(text) {{
       const lines = text.replace(/^\\uFEFF/, "").split(/\\r?\\n/).filter(Boolean);
       if (!lines.length) return [];
@@ -1195,96 +1457,317 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       document.getElementById("ingest-status").innerHTML = `<div class="alert-box ${{ok ? "ok" : "err"}}" role="${{ok ? "status" : "alert"}}">${{esc(msg)}}</div>`;
     }}
 
-    function applyResultados(arr) {{
-      const byId = Object.fromEntries(arr.filter(x => x && x.capture_id).map(x => [x.capture_id, x]));
-      DATA = DATA.map(d => {{
-        const r = byId[d.capture_id];
-        if (!r) return d;
-        const costo = d.esperada ? (r.decision === "revision_manual" ? 1 : (r.decision === d.esperada ? 0 : (r.decision === "aprobada" ? 10 : 3))) : null;
-        return {{
-          ...d,
-          motor: r.decision || d.motor,
-          confidence: r.confidence_score ?? d.confidence,
-          reason_code: r.reason_code || "",
-          explicacion: r.explicacion || d.explicacion,
-          validaciones: r.validaciones || d.validaciones,
-          precio_detectado: r.precio_detectado ?? d.precio_detectado,
-          resultado_oficial: r,
-          costo,
-          es_error: Boolean(d.esperada && r.decision && r.decision !== d.esperada),
-          falsa_aprobada: Boolean(r.decision === "aprobada" && d.esperada && d.esperada !== "aprobada"),
-          valida_rechazada: Boolean(r.decision === "rechazada" && d.esperada === "aprobada")
-        }};
-      }});
-      renderAll();
+    function calcCostoItem(decision, esperada) {{
+      if (!decision || !esperada) return null;
+      if (decision === "revision_manual") return 1;
+      if (decision === esperada) return 0;
+      return decision === "aprobada" ? 10 : 3;
+    }}
+
+    function syncCachesOntoRecord(d) {{
+      const fName = d.facade_name || String(d.img_facade || "").split("/").pop() || `${{d.capture_id}}_facade.jpg`;
+      const pName = d.product_name_file || String(d.img_product || "").split("/").pop() || `${{d.capture_id}}_product.jpg`;
+      const sName = d.shelf_name || String(d.img_shelf || "").split("/").pop() || `${{d.capture_id}}_shelf.jpg`;
+      if (IMG_CACHE[fName]) d.img_facade = IMG_CACHE[fName];
+      if (IMG_CACHE[pName]) d.img_product = IMG_CACHE[pName];
+      if (IMG_CACHE[sName]) d.img_shelf = IMG_CACHE[sName];
+
+      const ext = EXT_CACHE[d.capture_id];
+      if (ext) {{
+        const prod = ext.producto || {{}};
+        const etiq = ext.etiqueta || {{}};
+        d.leido_marca = prod.marca ?? d.leido_marca ?? "";
+        d.leido_desc = prod.descripcion ?? d.leido_desc ?? "";
+        d.leido_cant = prod.contenido_cantidad ?? d.leido_cant ?? "";
+        d.leido_unid = prod.contenido_unidad ?? d.leido_unid ?? "";
+        d.contenido_legible = prod.contenido_legible ?? d.contenido_legible;
+        d.nitidez = prod.nitidez || d.nitidez || "";
+        d.encuadre = prod.encuadre || d.encuadre || "";
+        if (d.precio_detectado === null || d.precio_detectado === undefined || d.precio_detectado === "") {{
+          d.precio_detectado = etiq.precio ?? null;
+        }}
+        d.tipo_precio = etiq.tipo_precio || d.tipo_precio || "";
+      }}
+
+      const r = RES_CACHE[d.capture_id];
+      if (r) {{
+        d.motor = r.decision || d.motor;
+        d.confidence = r.confidence_score ?? d.confidence;
+        d.reason_code = r.reason_code || "";
+        d.explicacion = r.explicacion || d.explicacion;
+        d.validaciones = r.validaciones || d.validaciones;
+        if (r.precio_detectado !== null && r.precio_detectado !== undefined) d.precio_detectado = r.precio_detectado;
+        if (r.codigo_barras_detectado) d.barcode_detectado = r.codigo_barras_detectado;
+        d.resultado_oficial = r;
+        d.costo = calcCostoItem(d.motor, d.esperada);
+        d.es_error = Boolean(d.esperada && d.motor && d.motor !== d.esperada);
+        d.falsa_aprobada = Boolean(d.motor === "aprobada" && d.esperada && d.esperada !== "aprobada");
+        d.valida_rechazada = Boolean(d.motor === "rechazada" && d.esperada === "aprobada");
+      }}
+      return d;
     }}
 
     function applyCapturas(rows, imgMap = {{}}) {{
+      Object.assign(IMG_CACHE, imgMap);
+      const prevById = Object.fromEntries(DATA.map(d => [d.capture_id, d]));
       DATA = rows.map(r => {{
-        const fName = String(r.facade_file || "").split("/").pop();
-        const pName = String(r.product_file || "").split("/").pop();
-        const sName = String(r.shelf_file || "").split("/").pop();
-        return {{
-          capture_id: r.capture_id || "",
-          store: r.capture_store_name || "",
-          brand: r.capture_brand || "",
-          product_name: r.product_name || "",
-          qty: r.unit_quantity_product || "",
-          unit: r.unit_product || "",
-          price_ref: r.capture_price || "",
-          esperada: r.decision_esperada || "",
-          motivo_esperado: r.motivo_rechazo || "",
-          motor: "", confidence: null, reason_code: "", explicacion: "", validaciones: {{}},
-          resultado_oficial: null, precio_detectado: null, leido_marca: "", leido_desc: "", leido_cant: "", leido_unid: "",
-          costo: null, es_error: false, falsa_aprobada: false, valida_rechazada: false,
-          img_facade: imgMap[fName] || r.facade_url || "",
-          img_product: imgMap[pName] || r.product_url || "",
-          img_shelf: imgMap[sName] || r.shelf_url || ""
+        const cid = r.capture_id || "";
+        const prev = prevById[cid] || {{}};
+        const fName = String(r.facade_file || prev.facade_name || `${{cid}}_facade.jpg`).split("/").pop();
+        const pName = String(r.product_file || prev.product_name_file || `${{cid}}_product.jpg`).split("/").pop();
+        const sName = String(r.shelf_file || prev.shelf_name || `${{cid}}_shelf.jpg`).split("/").pop();
+        const item = {{
+          capture_id: cid,
+          store: r.capture_store_name || prev.store || "",
+          capture_date: r.capture_date || prev.capture_date || "",
+          brand: r.capture_brand || prev.brand || "",
+          product_name: r.product_name || prev.product_name || "",
+          qty: r.unit_quantity_product ?? prev.qty ?? "",
+          unit: r.unit_product || prev.unit || "",
+          price_ref: r.capture_price ?? prev.price_ref ?? "",
+          capture_barcode: r.capture_barcode || prev.capture_barcode || "",
+          esperada: r.decision_esperada ?? prev.esperada ?? "",
+          motivo_esperado: r.motivo_rechazo ?? prev.motivo_esperado ?? "",
+          motor: prev.motor || "",
+          confidence: prev.confidence ?? null,
+          reason_code: prev.reason_code || "",
+          explicacion: prev.explicacion || "",
+          validaciones: prev.validaciones || {{}},
+          resultado_oficial: prev.resultado_oficial || null,
+          precio_detectado: prev.precio_detectado ?? null,
+          tipo_precio: prev.tipo_precio || "",
+          barcode_detectado: prev.barcode_detectado || r.capture_barcode || "",
+          leido_marca: prev.leido_marca || "",
+          leido_desc: prev.leido_desc || "",
+          leido_cant: prev.leido_cant ?? "",
+          leido_unid: prev.leido_unid || "",
+          nitidez: prev.nitidez || "",
+          encuadre: prev.encuadre || "",
+          costo: prev.costo ?? null,
+          es_error: prev.es_error || false,
+          falsa_aprobada: prev.falsa_aprobada || false,
+          valida_rechazada: prev.valida_rechazada || false,
+          facade_name: fName,
+          product_name_file: pName,
+          shelf_name: sName,
+          img_facade: IMG_CACHE[fName] || prev.img_facade || r.facade_url || "",
+          img_product: IMG_CACHE[pName] || prev.img_product || r.product_url || "",
+          img_shelf: IMG_CACHE[sName] || prev.img_shelf || r.shelf_url || ""
         }};
+        return syncCachesOntoRecord(item);
       }});
+      activePresetKey = "custom";
       populateStores();
       renderAll();
     }}
 
-    document.getElementById("in-folder").addEventListener("change", async e => {{
-      const files = [...e.target.files];
-      if (!files.length) return;
-      const imgMap = {{}};
-      let capFile = null, resFile = null;
-      files.forEach(f => {{
-        const low = f.name.toLowerCase();
-        if (low === "capturas.csv" || low === "capturas.json") capFile = f;
-        else if (low === "resultados.json") resFile = f;
-        else if (/\\.(jpg|jpeg|png|webp)$/.test(low)) imgMap[f.name] = URL.createObjectURL(f);
-      }});
-      if (!capFile && !resFile) return showIngestMsg(false, "La carpeta no contiene capturas.csv, capturas.json ni resultados.json.");
-      if (capFile) {{
-        const txt = await capFile.text();
-        const rows = capFile.name.endsWith(".json") ? (JSON.parse(txt).capturas || JSON.parse(txt)) : parseCsv(txt);
-        applyCapturas(rows, imgMap);
+    function applyResultados(arr) {{
+      arr.filter(x => x && x.capture_id).forEach(x => {{ RES_CACHE[x.capture_id] = x; }});
+      if (!DATA.length) {{
+        DATA = arr.filter(x => x && x.capture_id).map(r => syncCachesOntoRecord({{
+          capture_id: r.capture_id,
+          store: "Lote cargado",
+          brand: "—",
+          product_name: "Subir capturas.csv para ver esperado",
+          qty: "", unit: "", price_ref: r.precio_detectado ?? "",
+          esperada: "", motivo_esperado: "",
+          motor: "", confidence: null, reason_code: "", explicacion: "", validaciones: {{}},
+          resultado_oficial: null, precio_detectado: null, leido_marca: "", leido_desc: "", leido_cant: "", leido_unid: "",
+          costo: null, es_error: false, falsa_aprobada: false, valida_rechazada: false,
+          facade_name: `${{r.capture_id}}_facade.jpg`,
+          product_name_file: `${{r.capture_id}}_product.jpg`,
+          shelf_name: `${{r.capture_id}}_shelf.jpg`,
+          img_facade: "", img_product: "", img_shelf: ""
+        }}));
+      }} else {{
+        DATA = DATA.map(d => syncCachesOntoRecord({{ ...d }}));
       }}
-      if (resFile) {{
-        applyResultados(JSON.parse(await resFile.text()));
+      renderAll();
+    }}
+
+    function applyExtracciones(arr) {{
+      arr.filter(x => x && x.capture_id).forEach(x => {{ EXT_CACHE[x.capture_id] = x; }});
+      DATA = DATA.map(d => syncCachesOntoRecord({{ ...d }}));
+      const modeloExts = arr.filter(e => e && e.origen === "modelo" && (e.tokens_entrada || e.tokens_salida));
+      if (modeloExts.length && !M.tokens_promedio) {{
+        const cids = new Set(modeloExts.map(e => e.capture_id).filter(Boolean));
+        const sum = modeloExts.reduce((a, e) => a + Number(e.tokens_entrada || 0) + Number(e.tokens_salida || 0), 0);
+        if (cids.size > 0) M.tokens_promedio = Math.round(sum / cids.size);
       }}
-      showIngestMsg(true, `Carpeta cargada en memoria: ${{DATA.length}} capturas y ${{Object.keys(imgMap).length}} imágenes enlazadas.`);
+      renderAll();
+    }}
+
+    function applyTokensCsv(rows) {{
+      const modRows = rows.filter(r => (!r.origen || r.origen === "modelo") && (r.tokens_entrada || r.tokens_salida));
+      if (!modRows.length) return;
+      const cids = new Set(modRows.map(r => r.capture_id).filter(Boolean));
+      const sum = modRows.reduce((a, r) => a + Number(r.tokens_entrada || 0) + Number(r.tokens_salida || 0), 0);
+      const denom = cids.size || modRows.length;
+      if (denom > 0) M.tokens_promedio = Math.round(sum / denom);
+      renderAll();
+    }}
+
+    // Lector ZIP ligero 100% navegador (Store y Deflate-raw con DecompressionStream)
+    async function extractZipEntries(file) {{
+      const buf = await file.arrayBuffer();
+      const view = new DataView(buf);
+      const bytes = new Uint8Array(buf);
+      let eocd = -1;
+      for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {{
+        if (view.getUint32(i, true) === 0x06054b50) {{ eocd = i; break; }}
+      }}
+      if (eocd < 0) throw new Error(`El archivo ${{file.name}} no es un ZIP válido.`);
+      const totalEntries = view.getUint16(eocd + 10, true);
+      let cdOffset = view.getUint32(eocd + 16, true);
+      const dec = new TextDecoder("utf-8");
+      const out = [];
+
+      for (let i = 0; i < totalEntries; i++) {{
+        if (view.getUint32(cdOffset, true) !== 0x02014b50) break;
+        const method = view.getUint16(cdOffset + 10, true);
+        const compSize = view.getUint32(cdOffset + 20, true);
+        const nameLen = view.getUint16(cdOffset + 28, true);
+        const extraLen = view.getUint16(cdOffset + 30, true);
+        const commentLen = view.getUint16(cdOffset + 32, true);
+        const localOffset = view.getUint32(cdOffset + 42, true);
+        const fullName = dec.decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + nameLen));
+        cdOffset += 46 + nameLen + extraLen + commentLen;
+
+        if (fullName.endsWith("/")) continue;
+        const baseName = fullName.split("/").pop();
+        if (!baseName || baseName.startsWith(".")) continue;
+
+        const lNameLen = view.getUint16(localOffset + 26, true);
+        const lExtraLen = view.getUint16(localOffset + 28, true);
+        const dataStart = localOffset + 30 + lNameLen + lExtraLen;
+        const slice = bytes.subarray(dataStart, dataStart + compSize);
+
+        let rawBytes = null;
+        if (method === 0) {{
+          rawBytes = slice;
+        }} else if (method === 8 && typeof DecompressionStream !== "undefined") {{
+          const ds = new DecompressionStream("deflate-raw");
+          const writer = ds.writable.getWriter();
+          writer.write(slice);
+          writer.close();
+          rawBytes = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+        }}
+        if (rawBytes) out.push({{ name: baseName, bytes: rawBytes }});
+      }}
+      return out;
+    }}
+
+    async function ingestUnifiedFiles(fileList) {{
+      const rawFiles = [...fileList];
+      if (!rawFiles.length) return;
+      const virtualFiles = [];
+
+      for (const f of rawFiles) {{
+        if (f.name.toLowerCase().endsWith(".zip")) {{
+          try {{
+            const entries = await extractZipEntries(f);
+            for (const ent of entries) {{
+              virtualFiles.push({{
+                name: ent.name,
+                getText: () => Promise.resolve(new TextDecoder("utf-8").decode(ent.bytes)),
+                getBlobUrl: () => URL.createObjectURL(new Blob([ent.bytes]))
+              }});
+            }}
+          }} catch (err) {{
+            showIngestMsg(false, err.message || "No se pudo descomprimir el archivo ZIP.");
+            return;
+          }}
+        }} else {{
+          virtualFiles.push({{
+            name: f.name,
+            getText: () => f.text(),
+            getBlobUrl: () => URL.createObjectURL(f)
+          }});
+        }}
+      }}
+
+      let nImgs = 0, nCaps = 0, nRes = 0, nExt = 0, nTok = 0;
+      const singleRes = [];
+
+      // 1. Imágenes primero
+      for (const vf of virtualFiles) {{
+        const low = vf.name.toLowerCase();
+        if (/\\.(jpg|jpeg|png|webp)$/.test(low)) {{
+          IMG_CACHE[vf.name] = vf.getBlobUrl();
+          nImgs++;
+        }}
+      }}
+      if (nImgs > 0 && DATA.length > 0) {{
+        DATA = DATA.map(d => syncCachesOntoRecord({{ ...d }}));
+      }}
+
+      // 2. CSVs y JSONs
+      for (const vf of virtualFiles) {{
+        const low = vf.name.toLowerCase();
+        if (low.endsWith(".csv") && !low.includes("catalogo")) {{
+          const rows = parseCsv(await vf.getText());
+          if (!rows.length) continue;
+          if ("tokens_entrada" in rows[0]) {{
+            applyTokensCsv(rows);
+            nTok = rows.length;
+          }} else if ("capture_id" in rows[0] && ("product_name" in rows[0] || "capture_store_name" in rows[0])) {{
+            applyCapturas(rows);
+            nCaps = rows.length;
+          }}
+        }} else if (low.endsWith(".json")) {{
+          try {{
+            const parsed = JSON.parse(await vf.getText());
+            if (Array.isArray(parsed) || Array.isArray(parsed?.capturas)) {{
+              const arr = Array.isArray(parsed) ? parsed : parsed.capturas;
+              if (!arr.length) continue;
+              if (arr[0].producto || arr[0].etiqueta) {{
+                applyExtracciones(arr);
+                nExt = arr.length;
+              }} else if (arr[0].decision) {{
+                applyResultados(arr);
+                nRes = arr.length;
+              }} else if (arr[0].capture_id) {{
+                applyCapturas(arr);
+                nCaps = arr.length;
+              }}
+            }} else if (parsed && parsed.capture_id && parsed.decision) {{
+              singleRes.push(parsed);
+            }}
+          }} catch (e) {{}}
+        }}
+      }}
+
+      if (singleRes.length) {{
+        applyResultados(singleRes);
+        nRes += singleRes.length;
+      }}
+
+      renderAll();
+      const partes = [];
+      if (nCaps) partes.push(`${{nCaps}} capturas`);
+      if (nImgs) partes.push(`${{nImgs}} fotos`);
+      if (nRes) partes.push(`${{nRes}} veredictos`);
+      if (nExt) partes.push(`${{nExt}} lecturas del modelo`);
+      if (nTok) partes.push(`métricas de tokens`);
+      if (!partes.length) {{
+        showIngestMsg(false, "No se encontraron archivos compatibles (.zip, capturas.csv, resultados.json, extracciones.json o fotos).");
+      }} else {{
+        showIngestMsg(true, `Lote actualizado sin perder datos previos: ${{partes.join(" · ")}}. Total activo: ${{DATA.length}} capturas.`);
+      }}
+    }}
+
+    const dz = document.getElementById("smart-dropzone");
+    ["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => {{ e.preventDefault(); dz.classList.add("dragover"); }}));
+    ["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, e => {{ e.preventDefault(); dz.classList.remove("dragover"); }}));
+    dz.addEventListener("drop", e => {{
+      if (e.dataTransfer?.files?.length) ingestUnifiedFiles(e.dataTransfer.files);
     }});
 
-    document.getElementById("in-csv").addEventListener("change", async e => {{
-      const f = e.target.files[0]; if (!f) return;
-      const rows = parseCsv(await f.text());
-      if (!rows.length || !rows[0].capture_id) return showIngestMsg(false, "El CSV no tiene columna capture_id.");
-      applyCapturas(rows);
-      showIngestMsg(true, `CSV cargado: ${{rows.length}} capturas.`);
-    }});
-
-    document.getElementById("in-json").addEventListener("change", async e => {{
-      const f = e.target.files[0]; if (!f) return;
-      const parsed = JSON.parse(await f.text());
-      const arr = Array.isArray(parsed) ? parsed : (parsed.capturas || []);
-      if (!arr.length) return showIngestMsg(false, "El JSON está vacío o no tiene formato lista.");
-      if (arr[0].decision) {{ applyResultados(arr); showIngestMsg(true, `resultados.json aplicado (${{arr.length}} veredictos).`); }}
-      else {{ applyCapturas(arr); showIngestMsg(true, `capturas.json cargado (${{arr.length}} capturas).`); }}
-    }});
+    document.getElementById("in-smart-files").addEventListener("change", e => ingestUnifiedFiles(e.target.files));
+    document.getElementById("in-smart-folder").addEventListener("change", e => ingestUnifiedFiles(e.target.files));
+    document.getElementById("in-folder").addEventListener("change", e => ingestUnifiedFiles(e.target.files));
+    document.getElementById("in-csv").addEventListener("change", e => ingestUnifiedFiles(e.target.files));
+    document.getElementById("in-json").addEventListener("change", e => ingestUnifiedFiles(e.target.files));
 
     document.getElementById("btn-sim").onclick = () => {{
       const f1 = document.getElementById("sim-facade").files[0];
