@@ -1,4 +1,4 @@
-"""Visor local estático de capturas y modo pitch con identidad Tarima (U5).
+"""Visor ejecutivo local, consola HITL y modo pitch con identidad Tarima (Validat3B).
 
 Uso:
     python -m ml.validat3b.visor --datos datos/privado --resultados salidas/resultados.json --salida salidas/visor.html
@@ -24,10 +24,14 @@ TARIMA_VARS = """
     :root {
       --primary: #E31B23;
       --primary-hover: #C4101A;
+      --primary-active: #9D0812;
       --text: #04211F;
       --text-sec: #31413F;
+      --text-ter: #4C5857;
+      --text-muted: #667170;
       --bg: #FFFFFF;
       --surface: #F9FAFA;
+      --muted: #EAEEED;
       --border: #DADFDF;
       --ok: #1F7A4D;
       --ok-bg: #E3F3EA;
@@ -35,6 +39,13 @@ TARIMA_VARS = """
       --warn-bg: #FBF1DC;
       --danger: #9D0812;
       --danger-bg: #FEF3F1;
+      --info: #1C244B;
+      --info-bg: #E8EBF5;
+      --chart-1: #1C244B;
+      --chart-2: #0E7C6B;
+      --chart-3: #B4690E;
+      --chart-4: #7A4E9C;
+      --chart-5: #667170;
       --font: Montserrat, "Segoe UI", system-ui, sans-serif;
     }
 """
@@ -106,6 +117,7 @@ def _construir_registros(
     manuales = 0
     tp = 0
     fp = 0
+    json_validos = 0
 
     for row in capturas:
         cid = row["capture_id"]
@@ -115,6 +127,9 @@ def _construir_registros(
         loc = locales.get(cid, {})
 
         dec_motor = res.get("decision")
+        if res and dec_motor in ("aprobada", "rechazada", "revision_manual") and isinstance(res.get("validaciones"), dict):
+            json_validos += 1
+
         costo = calcular_costo(dec_motor, esperada)
         if costo is not None:
             costo_total += costo
@@ -133,33 +148,40 @@ def _construir_registros(
         prod_ext = ext.get("producto") or {}
         etiq_ext = ext.get("etiqueta") or {}
 
-        es_error = bool(dec_motor and dec_motor != esperada)
-        falsa_aprobada = bool(dec_motor == "aprobada" and esperada != "aprobada")
+        es_error = bool(dec_motor and esperada and dec_motor != esperada)
+        falsa_aprobada = bool(dec_motor == "aprobada" and esperada and esperada != "aprobada")
         valida_rechazada = bool(dec_motor == "rechazada" and esperada == "aprobada")
 
         registros.append(
             {
                 "capture_id": cid,
                 "store": row.get("capture_store_name", ""),
+                "capture_date": row.get("capture_date", ""),
                 "brand": row.get("capture_brand", ""),
                 "product_name": row.get("product_name", ""),
                 "qty": row.get("unit_quantity_product", ""),
                 "unit": row.get("unit_product", ""),
                 "price_ref": row.get("capture_price", ""),
+                "capture_barcode": row.get("capture_barcode", ""),
                 "esperada": esperada,
                 "motivo_esperado": row.get("motivo_rechazo", ""),
                 "motor": dec_motor or "",
                 "confidence": res.get("confidence_score"),
                 "reason_code": res.get("reason_code") or "",
                 "explicacion": res.get("explicacion", ""),
+                "validaciones": res.get("validaciones") or {},
+                "resultado_oficial": res if res else None,
                 "precio_detectado": res.get("precio_detectado") if res.get("precio_detectado") is not None else etiq_ext.get("precio"),
+                "tipo_precio": etiq_ext.get("tipo_precio") or "",
                 "barcode_detectado": res.get("codigo_barras_detectado") or loc.get("codigo_barras_leido", ""),
                 "leido_marca": prod_ext.get("marca", ""),
                 "leido_desc": prod_ext.get("descripcion", ""),
                 "leido_cant": prod_ext.get("contenido_cantidad", ""),
                 "leido_unid": prod_ext.get("contenido_unidad", ""),
+                "contenido_legible": prod_ext.get("contenido_legible"),
                 "nitidez": prod_ext.get("nitidez") or loc.get("nitidez_producto", ""),
                 "encuadre": prod_ext.get("encuadre", ""),
+                "nitidez_local": loc.get("nitidez_producto") or (ext.get("senales") or {}).get("nitidez_producto", ""),
                 "costo": costo,
                 "es_error": es_error,
                 "falsa_aprobada": falsa_aprobada,
@@ -167,12 +189,15 @@ def _construir_registros(
                 "img_facade": _resolver_ruta_imagen(dir_datos_res, row.get("facade_file", ""), dir_salida),
                 "img_product": _resolver_ruta_imagen(dir_datos_res, row.get("product_file", ""), dir_salida),
                 "img_shelf": _resolver_ruta_imagen(dir_datos_res, row.get("shelf_file", ""), dir_salida),
+                "facade_name": Path(row.get("facade_file", "")).name,
+                "product_name_file": Path(row.get("product_file", "")).name,
+                "shelf_name": Path(row.get("shelf_file", "")).name,
             }
         )
 
     precision = (tp / (tp + fp)) * 100.0 if (tp + fp) > 0 else 100.0
+    pct_json = (json_validos / len(registros)) * 100.0 if registros else 0.0
 
-    # Promedio de tokens desde tokens.csv (solo filas origen == "modelo")
     tokens_prom: int | None = None
     if tokens_rows:
         modelo_rows = [r for r in tokens_rows if r.get("origen", "modelo") == "modelo"]
@@ -203,13 +228,14 @@ def _construir_registros(
         "rechazadas": rechazadas,
         "manuales": manuales,
         "precision": round(precision, 1),
+        "pct_json": round(pct_json, 1),
         "tokens_promedio": tokens_prom,
     }
     return registros, marcador
 
 
 def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> tuple[int, int]:
-    """Genera el HTML estático del visor con tokens Tarima."""
+    """Genera el HTML estático completo (4 módulos Tarima, 100 % offline)."""
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
     registros, marcador = _construir_registros(dir_datos, ruta_resultados, ruta_salida.parent.resolve())
 
@@ -221,182 +247,813 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Visor Validat3B</title>
+  <title>Consola Validat3B · Tarima</title>
   <style>
 {TARIMA_VARS}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: var(--font); background: var(--surface); color: var(--text); line-height: 1.4; }}
-    header {{ position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 2px solid var(--border); padding: 14px 20px; }}
-    .top-row {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }}
-    .brand-title {{ display: flex; align-items: center; gap: 10px; }}
-    .accent-bar {{ width: 4px; height: 22px; background: var(--primary); border-radius: 2px; }}
-    h1 {{ margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }}
-    .scoreboard {{ display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }}
-    .pill {{ background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; color: var(--text); }}
-    .pill.ok {{ background: var(--ok-bg); color: var(--ok); border-color: transparent; }}
-    .filters {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
-    select, button, label.btn-check {{ min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 0.88rem; font-weight: 600; cursor: pointer; }}
-    button:hover, select:hover {{ border-color: var(--text-sec); }}
-    button.primary {{ background: var(--primary); color: #FFFFFF; border-color: var(--primary); }}
+    body {{
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }}
+    button, select, input {{ font-family: inherit; }}
+    .topbar {{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+    }}
+    .topbar-inner {{
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }}
+    .top-row {{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }}
+    .brand {{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }}
+    .brand h1 {{ margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }}
+    .brand span.sub {{ font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }}
+    .nav-tabs {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }}
+    .tab-btn {{
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-sec);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }}
+    .tab-btn.active {{
+      background: var(--text);
+      color: #FFFFFF;
+      border-color: var(--text);
+    }}
+    .filters-bar {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }}
+    select, input[type="search"], input[type="text"], input[type="number"], button.ctrl {{
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }}
+    input[type="search"] {{ min-width: 240px; flex: 1; max-width: 360px; }}
+    button.primary {{
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      background: var(--primary);
+      color: #FFFFFF;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }}
     button.primary:hover {{ background: var(--primary-hover); }}
-    label.btn-check {{ display: inline-flex; align-items: center; gap: 6px; }}
-    button.active {{ border-color: var(--primary); color: var(--primary); background: var(--danger-bg); }}
-    main {{ max-width: 1320px; margin: 18px auto; padding: 0 16px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 16px; }}
-    .card {{ background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }}
-    .card.is-error {{ border-color: var(--primary); }}
-    .card-head {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.9rem; }}
-    .cid {{ font-family: ui-monospace, monospace; font-weight: 800; }}
-    .costo-badge {{ padding: 2px 10px; border-radius: 999px; font-weight: 800; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }}
-    .costo-badge.high {{ background: var(--danger-bg); color: var(--danger); border-color: transparent; }}
+    button.ctrl {{ cursor: pointer; font-weight: 600; }}
+    button.ctrl.active {{ border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }}
+    label.check-ctrl {{
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }}
+    .container {{
+      max-width: 1280px;
+      margin: 20px auto;
+      padding: 0 24px 48px;
+    }}
+    .tab-panel {{ display: none; }}
+    .tab-panel.active {{ display: block; }}
+
+    /* Módulo 1: KPIs y Gráficas */
+    .kpi-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }}
+    .kpi-card {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }}
+    .kpi-lbl {{ font-size: 0.8rem; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.03em; }}
+    .kpi-val {{
+      font-size: 2.1rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      width: fit-content;
+    }}
+    .kpi-val.focus-underline {{
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 2px;
+    }}
+    .kpi-sub {{ font-size: 0.82rem; color: var(--text-muted); }}
+    .charts-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px;
+    }}
+    .panel {{
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }}
+    .panel h2 {{ margin: 0 0 12px 0; font-size: 1rem; font-weight: 700; }}
+    .bar-row {{
+      display: grid;
+      grid-template-columns: 130px 1fr 48px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }}
+    .bar-track {{ height: 14px; background: var(--muted); border-radius: 999px; overflow: hidden; }}
+    .bar-fill {{ height: 100%; border-radius: 999px; }}
+    .mono {{ font-family: ui-monospace, monospace; }}
+
+    /* Módulo 2: Cola Human-in-the-Loop */
+    .hitl-head {{
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }}
+    .hitl-layout {{
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 16px;
+    }}
+    @media (max-width: 960px) {{
+      .hitl-layout {{ grid-template-columns: 1fr; }}
+    }}
+    .ev-grid {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }}
+    .ev-box {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }}
+    .ev-head {{ display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700; }}
+    .ev-img-wrap {{
+      height: 240px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }}
+    .ev-img-wrap img {{ max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }}
+    .hitl-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }}
+    button.btn-ok {{ min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--ok); background: var(--ok-bg); color: var(--ok); font-weight: 700; cursor: pointer; }}
+    button.btn-danger-outline {{ min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--danger); background: var(--bg); color: var(--danger); font-weight: 700; cursor: pointer; }}
+
+    /* Módulo 3: Explorador y Tabla 52px */
+    .cards-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 16px;
+    }}
+    .card {{
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }}
+    .card.is-error {{ border-color: var(--danger); }}
+    .card-head {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
     .photos {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }}
-    .photos img {{ width: 100%; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; background: var(--surface); }}
-    table.cmp {{ width: 100%; border-collapse: collapse; font-size: 0.82rem; }}
-    table.cmp th, table.cmp td {{ border-bottom: 1px solid var(--border); padding: 4px 6px; text-align: left; }}
-    table.cmp th {{ color: var(--text-sec); font-weight: 700; }}
+    .photos img {{ width: 100%; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; background: var(--surface); }}
+    table.cmp {{ width: 100%; border-collapse: collapse; font-size: 0.84rem; }}
+    table.cmp th, table.cmp td {{ border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }}
+    table.cmp th {{ color: var(--text-sec); font-weight: 600; background: var(--surface); }}
     .mismatch {{ color: var(--danger); font-weight: 700; }}
-    .decisions {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; background: var(--surface); padding: 8px; border-radius: 6px; }}
-    .tag {{ display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; }}
-    .tag.aprobada {{ background: var(--ok-bg); color: var(--ok); }}
-    .tag.rechazada {{ background: var(--danger-bg); color: var(--danger); }}
-    .tag.revision_manual {{ background: var(--warn-bg); color: var(--warn); }}
-    .extra {{ font-size: 0.82rem; color: var(--text-sec); }}
-    #modal {{ display: none; position: fixed; inset: 0; background: rgba(4, 33, 31, 0.88); z-index: 100; align-items: center; justify-content: center; padding: 20px; }}
-    #modal.open {{ display: flex; }}
-    #modal img {{ max-width: 95vw; max-height: 90vh; border-radius: 8px; background: #fff; }}
-    #modal-close {{ position: fixed; top: 16px; right: 16px; min-height: 44px; min-width: 44px; font-weight: 700; }}
+    .audit-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }}
+    table.audit {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}
+    table.audit th {{ background: var(--surface); padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 700; }}
+    table.audit tr.audit-row {{ height: 52px; border-bottom: 1px solid var(--border); }}
+    table.audit tr.audit-row:hover {{ background: var(--surface); }}
+    table.audit td {{ padding: 6px 12px; }}
+    .chip {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }}
+    .chip::before {{ content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }}
+    .chip.aprobada {{ background: var(--ok-bg); color: var(--ok); }}
+    .chip.rechazada {{ background: var(--danger-bg); color: var(--danger); }}
+    .chip.revision_manual {{ background: var(--warn-bg); color: var(--warn); }}
+    .chip.info {{ background: var(--info-bg); color: var(--info); }}
+
+    /* Módulo 4: Ingesta Set Ciego */
+    .ingest-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }}
+    .drop-card {{
+      background: var(--surface);
+      border: 1px dashed var(--text-muted);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }}
+    .alert-box {{
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }}
+    .alert-box.ok {{ border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }}
+    .alert-box.err {{ border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }}
+    .empty-state {{
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      color: var(--text-sec);
+    }}
+
+    /* Modales */
+    .modal-bg {{
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 33, 31, 0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }}
+    .modal-bg.open {{ display: flex; }}
+    .modal-card {{
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 760px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: 0 8px 24px rgba(4, 33, 31, 0.14);
+    }}
+    pre.json-pre {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }}
   </style>
 </head>
 <body>
-  <header>
-    <div class="top-row">
-      <div class="brand-title">
-        <span class="accent-bar"></span>
-        <h1>Validat3B · Visor de auditoría</h1>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="top-row">
+        <div class="brand">
+          <h1>Validat3B · Consola Operativa</h1>
+          <span class="sub">Prototipo para Tiendas 3B · Modo offline sin dependencias</span>
+        </div>
+        <div class="nav-tabs" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="resumen">1. Resumen ejecutivo</button>
+          <button type="button" class="tab-btn" data-tab="cola">2. Cola revisión manual</button>
+          <button type="button" class="tab-btn" data-tab="auditoria">3. Explorador auditoría</button>
+          <button type="button" class="tab-btn" data-tab="ingesta">4. Cargar set ciego</button>
+        </div>
       </div>
-      <div class="scoreboard" id="scoreboard"></div>
-    </div>
-    <div class="filters">
-      <select id="f-esperada" aria-label="Filtrar por decisión esperada">
-        <option value="">Esperada: Todas</option>
-        <option value="aprobada">Esperada: aprobada</option>
-        <option value="rechazada">Esperada: rechazada</option>
-        <option value="revision_manual">Esperada: revision_manual</option>
-      </select>
-      <select id="f-motor" aria-label="Filtrar por decisión del motor">
-        <option value="">Motor: Todas</option>
-        <option value="aprobada">Motor: aprobada</option>
-        <option value="rechazada">Motor: rechazada</option>
-        <option value="revision_manual">Motor: revision_manual</option>
-      </select>
-      <label class="btn-check"><input type="checkbox" id="f-errores" /> Solo errores</label>
-      <button type="button" id="btn-fp">Solo aprobadas falsas</button>
-      <button type="button" id="btn-fn">Solo válidas rechazadas</button>
-      <select id="f-orden" aria-label="Ordenar por costo">
-        <option value="original">Orden: Original</option>
-        <option value="costo-desc">Mayor costo primero</option>
-        <option value="costo-asc">Menor costo primero</option>
-      </select>
-      <button type="button" class="primary" id="btn-export">Exportar CSV</button>
-      <button type="button" id="btn-reset">Limpiar</button>
+      <div class="filters-bar">
+        <input type="search" id="f-q" placeholder="Buscar capture_id, marca, producto o tienda..." aria-label="Buscar captura" />
+        <select id="f-store" aria-label="Filtrar por cadena"><option value="">Cadena: Todas</option></select>
+        <select id="f-esperada" aria-label="Filtrar por esperada">
+          <option value="">Esperada: Todas</option>
+          <option value="aprobada">Esperada: aprobada</option>
+          <option value="rechazada">Esperada: rechazada</option>
+          <option value="revision_manual">Esperada: revision_manual</option>
+        </select>
+        <select id="f-motor" aria-label="Filtrar por motor">
+          <option value="">Motor: Todas</option>
+          <option value="aprobada">Motor: aprobada</option>
+          <option value="rechazada">Motor: rechazada</option>
+          <option value="revision_manual">Motor: revision_manual</option>
+        </select>
+        <label class="check-ctrl"><input type="checkbox" id="f-errores" /> Solo errores</label>
+        <button type="button" class="ctrl" id="btn-fp">Aprobadas falsas</button>
+        <button type="button" class="ctrl" id="btn-fn">Válidas rechazadas</button>
+        <button type="button" class="primary" id="btn-export">Exportar CSV</button>
+        <button type="button" class="ctrl" id="btn-reset">Limpiar</button>
+      </div>
     </div>
   </header>
-  <main id="grid"></main>
-  <div id="modal" role="dialog" aria-modal="true">
-    <button type="button" id="modal-close">Cerrar</button>
-    <img id="modal-img" src="" alt="Vista ampliada" />
+
+  <div class="container">
+    <!-- MÓDULO 1 -->
+    <section id="tab-resumen" class="tab-panel active">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="charts-grid" id="charts-grid"></div>
+    </section>
+
+    <!-- MÓDULO 2 -->
+    <section id="tab-cola" class="tab-panel">
+      <div class="hitl-head" id="hitl-head"></div>
+      <div id="hitl-body"></div>
+    </section>
+
+    <!-- MÓDULO 3 -->
+    <section id="tab-auditoria" class="tab-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <span id="audit-count" style="font-weight:700;"></span>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="ctrl active" id="view-cards">Vista tarjetas</button>
+          <button type="button" class="ctrl" id="view-table">Vista tabla (52 px)</button>
+          <select id="f-orden" aria-label="Ordenar">
+            <option value="original">Orden: Original</option>
+            <option value="costo-desc">Mayor costo primero</option>
+            <option value="costo-asc">Menor costo primero</option>
+          </select>
+        </div>
+      </div>
+      <div id="audit-body"></div>
+    </section>
+
+    <!-- MÓDULO 4 -->
+    <section id="tab-ingesta" class="tab-panel">
+      <div id="ingest-status"></div>
+      <div class="ingest-grid">
+        <div class="drop-card">
+          <strong>1. Subir carpeta completa del Set Ciego</strong>
+          <span class="sub">Detecta automáticamente capturas.csv/.json, resultados.json y todas las fotos locales.</span>
+          <input type="file" id="in-folder" webkitdirectory multiple />
+        </div>
+        <div class="drop-card">
+          <strong>2. Subir capturas.csv o tokens.csv</strong>
+          <span class="sub">Carga el padrón de capturas o métricas de tokens.</span>
+          <input type="file" id="in-csv" accept=".csv" />
+        </div>
+        <div class="drop-card">
+          <strong>3. Subir resultados.json / extracciones.json</strong>
+          <span class="sub">Hidrata veredictos oficiales y valida esquema JSON.</span>
+          <input type="file" id="in-json" accept=".json" />
+        </div>
+        <div class="drop-card">
+          <strong>4. Probar 3 fotos sueltas en vivo</strong>
+          <span class="sub">Carga Fachada, Producto y Etiqueta para inspeccionar en la estación.</span>
+          <label>Fachada <input type="file" id="sim-facade" accept="image/*" /></label>
+          <label>Producto <input type="file" id="sim-product" accept="image/*" /></label>
+          <label>Etiqueta <input type="file" id="sim-shelf" accept="image/*" /></label>
+          <button type="button" class="primary" id="btn-sim">Cargar captura al explorador</button>
+        </div>
+      </div>
+    </section>
   </div>
+
+  <!-- Modal Foto -->
+  <div id="modal-foto" class="modal-bg" role="dialog" aria-modal="true">
+    <button type="button" class="ctrl" id="modal-foto-close" style="position:fixed;top:16px;right:16px;">Cerrar (Esc)</button>
+    <img id="modal-foto-img" src="" alt="Vista ampliada" style="max-width:94vw;max-height:88vh;border-radius:8px;background:#fff;" />
+  </div>
+
+  <!-- Modal JSON Oficial -->
+  <div id="modal-json" class="modal-bg" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <strong id="modal-json-title">JSON Oficial (Resultado)</strong>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="primary" id="btn-copy-json">Copiar JSON</button>
+          <button type="button" class="ctrl" id="modal-json-close">Cerrar</button>
+        </div>
+      </div>
+      <div id="modal-json-valid" style="margin-bottom:8px;"></div>
+      <pre class="json-pre" id="modal-json-pre"></pre>
+    </div>
+  </div>
+
   <script>
-    const DATA = {datos_json};
-    const M = {marcador_json};
-    const grid = document.getElementById("grid");
-    const sb = document.getElementById("scoreboard");
-    const fEsperada = document.getElementById("f-esperada");
-    const fMotor = document.getElementById("f-motor");
-    const fErrores = document.getElementById("f-errores");
-    const fOrden = document.getElementById("f-orden");
-    const btnFp = document.getElementById("btn-fp");
-    const btnFn = document.getElementById("btn-fn");
-    let soloFp = false, soloFn = false;
+    let DATA = {datos_json};
+    let M = {marcador_json};
     let currentItems = [];
+    let viewMode = "cards";
+    let soloFp = false, soloFn = false;
+    let hitlIdx = 0;
+    let rotations = {{}};
+    let hitlDecisions = JSON.parse(localStorage.getItem("validat3b_hitl_v1") || "{{}}");
 
     function esc(s) {{
       return String(s ?? "").replace(/[&<>"']/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]));
     }}
-
     function diffCls(a, b) {{
       if (!b) return "";
       return String(a).trim().toLowerCase() !== String(b).trim().toLowerCase() ? "mismatch" : "";
     }}
 
-    function renderScoreboard(count) {{
-      const tok = M.tokens_promedio !== null ? `${{Number(M.tokens_promedio).toLocaleString("en-US")}} tok/cap` : "— tok/cap";
-      const precTxt = Number.isInteger(M.precision) ? `${{M.precision}}%` : `${{M.precision}}%`;
-      sb.innerHTML = M.tiene_resultados
-        ? `<span class="pill">${{count}}/${{M.total}}</span>
-           <span class="pill">Costo: ${{M.costo_total}} vs ${{M.costo_todo_manual}}</span>
-           <span class="pill">Aprob: ${{M.aprobadas}} · Rech: ${{M.rechazadas}} · Man: ${{M.manuales}}</span>
-           <span class="pill ok">Precisión aprob: ${{precTxt}}</span>
-           <span class="pill">${{tok}}</span>`
-        : `<span class="pill">${{count}}/${{M.total}} tarjetas (sin resultados.json)</span>`;
+    function populateStores() {{
+      const sel = document.getElementById("f-store");
+      const cur = sel.value;
+      const stores = [...new Set(DATA.map(d => d.store).filter(Boolean))].sort();
+      sel.innerHTML = `<option value="">Cadena: Todas</option>` + stores.map(s => `<option value="${{esc(s)}}">${{esc(s)}}</option>`).join("");
+      sel.value = cur;
     }}
 
-    function render() {{
-      const esp = fEsperada.value, mot = fMotor.value, err = fErrores.checked, ord = fOrden.value;
+    function computeMetrics(items) {{
+      const total = items.length;
+      let costo = 0, aprob = 0, tp = 0, fp = 0, rech = 0, man = 0, jsonOk = 0;
+      items.forEach(d => {{
+        if (d.costo !== null && d.costo !== undefined) costo += Number(d.costo);
+        if (d.motor) jsonOk++;
+        if (d.motor === "aprobada") {{
+          aprob++;
+          if (!d.esperada || d.esperada === "aprobada") tp++; else fp++;
+        }} else if (d.motor === "rechazada") rech++;
+        else if (d.motor === "revision_manual") man++;
+      }});
+      const prec = aprob > 0 ? (tp / aprob) * 100 : 100;
+      const autoPct = total > 0 ? ((aprob + rech) / total) * 100 : 0;
+      const jsonPct = total > 0 ? (jsonOk / total) * 100 : 0;
+      return {{ total, costo, aprob, tp, fp, rech, man, prec, autoPct, jsonPct }};
+    }}
+
+    function getFiltered() {{
+      const q = document.getElementById("f-q").value.trim().toLowerCase();
+      const st = document.getElementById("f-store").value;
+      const esp = document.getElementById("f-esperada").value;
+      const mot = document.getElementById("f-motor").value;
+      const err = document.getElementById("f-errores").checked;
+      const ord = document.getElementById("f-orden").value;
+
       let items = DATA.filter(d => {{
+        if (st && d.store !== st) return false;
         if (esp && d.esperada !== esp) return false;
         if (mot && d.motor !== mot) return false;
         if (err && !d.es_error) return false;
         if (soloFp && !d.falsa_aprobada) return false;
         if (soloFn && !d.valida_rechazada) return false;
+        if (q) {{
+          const hay = `${{d.capture_id}} ${{d.store}} ${{d.brand}} ${{d.product_name}} ${{d.reason_code}}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }}
         return true;
       }});
       if (ord === "costo-desc") items = [...items].sort((a, b) => (b.costo ?? -1) - (a.costo ?? -1));
       else if (ord === "costo-asc") items = [...items].sort((a, b) => (a.costo ?? 999) - (b.costo ?? 999));
       currentItems = items;
+      return items;
+    }}
 
-      renderScoreboard(items.length);
-      grid.innerHTML = items.map(d => {{
-        const costoTxt = d.costo === null ? "—" : `${{d.costo}} pts`;
-        const costoCls = (d.costo ?? 0) >= 3 ? "costo-badge high" : "costo-badge";
-        const confTxt = d.confidence !== null && d.confidence !== undefined ? Number(d.confidence).toFixed(2) : "—";
-        const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "";
-        return `
-          <article class="card ${{d.es_error ? "is-error" : ""}}">
-            <div class="card-head">
-              <span class="cid">${{esc(d.capture_id)}} · ${{esc(d.store)}}</span>
-              <span class="${{costoCls}}">Costo: ${{costoTxt}}</span>
-            </div>
-            <div class="photos">
-              <img src="${{esc(d.img_facade)}}" alt="Fachada" loading="lazy" onclick="openModal(this.src)" />
-              <img src="${{esc(d.img_product)}}" alt="Producto" loading="lazy" onclick="openModal(this.src)" />
-              <img src="${{esc(d.img_shelf)}}" alt="Etiqueta" loading="lazy" onclick="openModal(this.src)" />
+    function renderResumen(items) {{
+      const m = computeMetrics(items);
+      const tok = M.tokens_promedio ? Number(M.tokens_promedio).toLocaleString("en-US") : "—";
+      const proySem = Math.round(12000 * (m.autoPct / 100)).toLocaleString("en-US");
+      document.getElementById("kpi-grid").innerHTML = `
+        <div class="kpi-card">
+          <span class="kpi-lbl">Precisión en aprobadas</span>
+          <span class="kpi-val focus-underline">${{m.prec.toFixed(1)}} %</span>
+          <span class="kpi-sub">${{m.tp}} de ${{m.aprob}} aprobadas · meta oficial ≥ 97 %</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Costo operativo pesimista</span>
+          <span class="kpi-val">${{m.costo}} pts</span>
+          <span class="kpi-sub">vs. ${{m.total}} pts de mandar todo a revisión</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Automatización sin persona</span>
+          <span class="kpi-val">${{m.autoPct.toFixed(0)}} %</span>
+          <span class="kpi-sub">~${{proySem}} capturas/sem ahorradas (de 12,000)</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Salud JSON · Eficiencia</span>
+          <span class="kpi-val">${{m.jsonPct.toFixed(0)}} %</span>
+          <span class="kpi-sub">Meta JSON ≥ 99 % · ${{tok}} tok/captura</span>
+        </div>`;
+
+      const decCounts = [
+        ["aprobada", m.aprob, "var(--ok)"],
+        ["rechazada", m.rech, "var(--danger)"],
+        ["revision_manual", m.man, "var(--warn)"],
+      ];
+      const storeMap = {{}};
+      const rcMap = {{}};
+      items.forEach(d => {{
+        if (d.store) storeMap[d.store] = (storeMap[d.store] || 0) + 1;
+        if (d.reason_code) rcMap[d.reason_code] = (rcMap[d.reason_code] || 0) + 1;
+      }});
+      const stores = Object.entries(storeMap).sort((a, b) => b[1] - a[1]);
+      const rcs = Object.entries(rcMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const maxS = Math.max(1, ...stores.map(x => x[1]));
+      const maxR = Math.max(1, ...rcs.map(x => x[1]));
+
+      document.getElementById("charts-grid").innerHTML = `
+        <div class="panel">
+          <h2>Distribución de decisiones (clic para filtrar)</h2>
+          ${{decCounts.map(([k, v, col]) => `
+            <div class="bar-row" onclick="document.getElementById('f-motor').value='${{k}}';renderAll();">
+              <span>${{k}}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${{m.total ? (v/m.total*100) : 0}}%;background:${{col}};"></div></div>
+              <strong class="mono">${{v}}</strong>
+            </div>`).join("")}}
+        </div>
+        <div class="panel">
+          <h2>Capturas por cadena competidora</h2>
+          ${{stores.map(([k, v]) => `
+            <div class="bar-row" onclick="document.getElementById('f-store').value='${{esc(k)}}';renderAll();">
+              <span>${{esc(k)}}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${{(v/maxS*100)}}%;background:var(--chart-1);"></div></div>
+              <strong class="mono">${{v}}</strong>
+            </div>`).join("")}}
+        </div>
+        <div class="panel">
+          <h2>Motivos de rechazo / alerta (reason_code)</h2>
+          ${{rcs.length ? rcs.map(([k, v]) => `
+            <div class="bar-row" onclick="document.getElementById('f-q').value='${{esc(k)}}';renderAll();">
+              <span class="mono" style="font-size:0.75rem;">${{esc(k)}}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${{(v/maxR*100)}}%;background:var(--chart-3);"></div></div>
+              <strong class="mono">${{v}}</strong>
+            </div>`).join("") : `<p class="sub">Sin códigos activos en esta vista.</p>`}}
+        </div>`;
+    }}
+
+    function renderHitl(items) {{
+      const queue = items.filter(d => d.motor === "revision_manual" || !d.motor);
+      const head = document.getElementById("hitl-head");
+      const body = document.getElementById("hitl-body");
+      const revisadas = Object.keys(hitlDecisions).length;
+
+      if (!queue.length) {{
+        head.innerHTML = `<strong>Cola de revisión manual vacía en el filtro actual</strong><span>Revisadas por analista: ${{revisadas}}</span>`;
+        body.innerHTML = `<div class="empty-state">No hay capturas pendientes de revisión manual en este filtro.</div>`;
+        return;
+      }}
+      if (hitlIdx >= queue.length) hitlIdx = 0;
+      if (hitlIdx < 0) hitlIdx = queue.length - 1;
+      const d = queue[hitlIdx];
+      const analista = hitlDecisions[d.capture_id] || "";
+      const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+
+      head.innerHTML = `
+        <div>
+          <strong>Caso ${{hitlIdx + 1}} de ${{queue.length}} en cola</strong>
+          <span class="mono" style="margin-left:8px;">${{esc(d.capture_id)}} · ${{esc(d.store)}}</span>
+          ${{analista ? `<span class="chip ${{analista === "aprobada_analista" ? "aprobada" : "rechazada"}}" style="margin-left:8px;">Analista: ${{analista}}</span>` : ""}}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:0.85rem;">Revisadas: <strong>${{revisadas}}</strong></span>
+          <button type="button" class="ctrl" onclick="hitlIdx--;renderHitl(currentItems);">← Anterior</button>
+          <button type="button" class="ctrl" onclick="hitlIdx++;renderHitl(currentItems);">Siguiente (S) →</button>
+        </div>`;
+
+      const imgs = [["Fachada", d.img_facade, "f"], ["Producto", d.img_product, "p"], ["Etiqueta", d.img_shelf, "s"]];
+      body.innerHTML = `
+        <div class="hitl-layout">
+          <div class="ev-grid">
+            ${{imgs.map(([lbl, src, k]) => {{
+              const deg = rotations[`${{d.capture_id}}_${{k}}`] || 0;
+              return `
+                <div class="ev-box">
+                  <div class="ev-head">
+                    <span>${{lbl}}</span>
+                    <button type="button" class="ctrl" style="min-height:32px;padding:0 8px;font-size:0.75rem;" onclick="rotateImg('${{esc(d.capture_id)}}_${{k}}')">Rotar 90°</button>
+                  </div>
+                  <div class="ev-img-wrap">
+                    <img src="${{esc(src)}}" alt="${{lbl}}" style="transform:rotate(${{deg}}deg);" onclick="openFoto(this.src)" />
+                  </div>
+                </div>`;
+            }}).join("")}}
+          </div>
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span class="chip ${{esc(d.motor || "info")}}">${{esc(d.motor || "sin veredicto")}}</span>
+              <span style="font-size:0.85rem;">Confianza: <strong>${{d.confidence != null ? Number(d.confidence).toFixed(2) : "—"}}</strong> · Riesgo evitar FP: 10 pts</span>
             </div>
             <table class="cmp">
-              <thead><tr><th>Campo</th><th>Esperado</th><th>Leído</th></tr></thead>
+              <thead><tr><th>Campo</th><th>Esperado</th><th>Leído por modelo</th></tr></thead>
               <tbody>
                 <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
                 <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
-                <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont || "—")}}</td></tr>
+                <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
                 <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
               </tbody>
             </table>
-            <div class="decisions">
-              <div><div>Esperada:</div><span class="tag ${{esc(d.esperada)}}">${{esc(d.esperada)}}</span><div class="extra">${{esc(d.motivo_esperado || "Sin motivo")}}</div></div>
-              <div><div>Motor:</div>${{d.motor ? `<span class="tag ${{esc(d.motor)}}">${{esc(d.motor)}}</span>` : "—"}}<div class="extra">Conf: ${{confTxt}} · ${{esc(d.reason_code || "—")}}</div></div>
+            <p style="font-size:0.88rem;margin:10px 0;"><strong>Motivo / Explicación:</strong> ${{esc(d.reason_code || "—")}} — ${{esc(d.explicacion || "Sin explicación")}}</p>
+            <div class="hitl-actions">
+              <button type="button" class="btn-ok" onclick="markHitl('${{esc(d.capture_id)}}','aprobada_analista')">Aprobar (A)</button>
+              <button type="button" class="btn-danger-outline" onclick="markHitl('${{esc(d.capture_id)}}','rechazada_analista')">Rechazar (R)</button>
+              <button type="button" class="ctrl" onclick="openJsonModal('${{esc(d.capture_id)}}')">Ver JSON oficial</button>
             </div>
-            ${{(d.nitidez || d.encuadre) ? `<div class="extra">Nitidez: ${{esc(d.nitidez || "—")}} · Encuadre: ${{esc(d.encuadre || "—")}}</div>` : ""}}
-            ${{d.explicacion ? `<div class="extra"><strong>Explicación:</strong> ${{esc(d.explicacion)}}</div>` : ""}}
-          </article>
-        `;
-      }}).join("");
+          </div>
+        </div>`;
     }}
 
-    window.openModal = src => {{ document.getElementById("modal-img").src = src; document.getElementById("modal").classList.add("open"); }};
-    document.getElementById("modal-close").onclick = () => document.getElementById("modal").classList.remove("open");
-    document.getElementById("modal").onclick = e => {{ if (e.target.id === "modal") document.getElementById("modal").classList.remove("open"); }};
-    btnFp.onclick = () => {{ soloFp = !soloFp; btnFp.classList.toggle("active", soloFp); render(); }};
-    btnFn.onclick = () => {{ soloFn = !soloFn; btnFn.classList.toggle("active", soloFn); render(); }};
-    [fEsperada, fMotor, fErrores, fOrden].forEach(el => el.addEventListener("change", render));
+    function renderAuditoria(items) {{
+      document.getElementById("audit-count").textContent = `${{items.length}} de ${{DATA.length}} capturas`;
+      const body = document.getElementById("audit-body");
+      if (!items.length) {{
+        body.innerHTML = `<div class="empty-state">Ninguna captura coincide con los filtros.</div>`;
+        return;
+      }}
+      if (viewMode === "table") {{
+        body.innerHTML = `
+          <div class="audit-table-wrap">
+            <table class="audit">
+              <thead><tr><th>ID</th><th>Cadena</th><th>Producto</th><th>Precio Esp/Det</th><th>Esperada</th><th>Motor</th><th>Motivo</th><th>Costo</th><th>Acción</th></tr></thead>
+              <tbody>
+                ${{items.map(d => `
+                  <tr class="audit-row">
+                    <td class="mono"><strong>${{esc(d.capture_id)}}</strong></td>
+                    <td>${{esc(d.store)}}</td>
+                    <td>${{esc(d.brand)}} — ${{esc(d.product_name)}}</td>
+                    <td class="mono">$${{esc(d.price_ref)}} / ${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td>
+                    <td><span class="chip ${{esc(d.esperada || "info")}}">${{esc(d.esperada || "ciego")}}</span></td>
+                    <td>${{d.motor ? `<span class="chip ${{esc(d.motor)}}">${{esc(d.motor)}}</span>` : "—"}}</td>
+                    <td class="mono" style="font-size:0.78rem;">${{esc(d.reason_code || "—")}}</td>
+                    <td class="mono">${{d.costo !== null ? d.costo + " pts" : "—"}}</td>
+                    <td><button type="button" class="ctrl" style="min-height:36px;" onclick="openJsonModal('${{esc(d.capture_id)}}')">JSON</button></td>
+                  </tr>`).join("")}}
+              </tbody>
+            </table>
+          </div>`;
+      }} else {{
+        body.innerHTML = `<div class="cards-grid">${{items.map(d => {{
+          const leidoCont = d.leido_cant ? `${{d.leido_cant}} ${{d.leido_unid}}` : "—";
+          return `
+            <article class="card ${{d.es_error ? "is-error" : ""}}">
+              <div class="card-head">
+                <span class="mono"><strong>${{esc(d.capture_id)}}</strong> · ${{esc(d.store)}}</span>
+                <button type="button" class="ctrl" style="min-height:32px;padding:0 8px;font-size:0.78rem;" onclick="openJsonModal('${{esc(d.capture_id)}}')">JSON · ${{d.costo !== null ? d.costo + " pts" : "—"}}</button>
+              </div>
+              <div class="photos">
+                <img src="${{esc(d.img_facade)}}" alt="Fachada" loading="lazy" onclick="openFoto(this.src)" />
+                <img src="${{esc(d.img_product)}}" alt="Producto" loading="lazy" onclick="openFoto(this.src)" />
+                <img src="${{esc(d.img_shelf)}}" alt="Etiqueta" loading="lazy" onclick="openFoto(this.src)" />
+              </div>
+              <table class="cmp">
+                <thead><tr><th>Campo</th><th>Esperado</th><th>Leído</th></tr></thead>
+                <tbody>
+                  <tr><td>Marca</td><td>${{esc(d.brand)}}</td><td class="${{diffCls(d.brand, d.leido_marca)}}">${{esc(d.leido_marca || "—")}}</td></tr>
+                  <tr><td>Producto</td><td>${{esc(d.product_name)}}</td><td class="${{diffCls(d.product_name, d.leido_desc)}}">${{esc(d.leido_desc || "—")}}</td></tr>
+                  <tr><td>Contenido</td><td>${{esc(d.qty)}} ${{esc(d.unit)}}</td><td>${{esc(leidoCont)}}</td></tr>
+                  <tr><td>Precio</td><td>$${{esc(d.price_ref)}}</td><td>${{d.precio_detectado != null ? "$" + esc(d.precio_detectado) : "—"}}</td></tr>
+                </tbody>
+              </table>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>Esp: <span class="chip ${{esc(d.esperada || "info")}}">${{esc(d.esperada || "ciego")}}</span></span>
+                <span>Mot: ${{d.motor ? `<span class="chip ${{esc(d.motor)}}">${{esc(d.motor)}}</span>` : "—"}}</span>
+              </div>
+              ${{d.explicacion ? `<div style="font-size:0.82rem;color:var(--text-sec);">${{esc(d.explicacion)}}</div>` : ""}}
+            </article>`;
+        }}).join("")}}</div>`;
+      }}
+    }}
+
+    function renderAll() {{
+      const items = getFiltered();
+      renderResumen(items);
+      renderHitl(items);
+      renderAuditoria(items);
+    }}
+
+    window.rotateImg = k => {{ rotations[k] = ((rotations[k] || 0) + 90) % 360; renderHitl(currentItems); }};
+    window.markHitl = (cid, val) => {{
+      hitlDecisions[cid] = val;
+      localStorage.setItem("validat3b_hitl_v1", JSON.stringify(hitlDecisions));
+      hitlIdx++;
+      renderHitl(currentItems);
+    }};
+    window.openFoto = src => {{
+      document.getElementById("modal-foto-img").src = src;
+      document.getElementById("modal-foto").classList.add("open");
+    }};
+    window.openJsonModal = cid => {{
+      const d = DATA.find(x => x.capture_id === cid);
+      if (!d) return;
+      const obj = d.resultado_oficial || {{
+        capture_id: d.capture_id,
+        decision: d.motor || "revision_manual",
+        confidence_score: d.confidence ?? 0.0,
+        reason_code: d.reason_code || null,
+        validaciones: d.validaciones || {{ tienda_fachada: "ok", producto: "ok", codigo_barras: "ok", evidencia_precio: "ok" }},
+        precio_detectado: d.precio_detectado ?? null,
+        codigo_barras_detectado: d.barcode_detectado || null,
+        explicacion: d.explicacion || "Sin resultado oficial cargado."
+      }};
+      const valido = Boolean(obj.capture_id && ["aprobada","rechazada","revision_manual"].includes(obj.decision) && obj.validaciones);
+      document.getElementById("modal-json-title").textContent = `JSON Oficial · ${{cid}}`;
+      document.getElementById("modal-json-valid").innerHTML = `<span class="chip ${{valido ? "aprobada" : "rechazada"}}">${{valido ? "Esquema Resultado válido" : "Esquema incompleto"}}</span>`;
+      document.getElementById("modal-json-pre").textContent = JSON.stringify(obj, null, 2);
+      document.getElementById("modal-json").classList.add("open");
+    }};
+
+    document.getElementById("modal-foto-close").onclick = () => document.getElementById("modal-foto").classList.remove("open");
+    document.getElementById("modal-json-close").onclick = () => document.getElementById("modal-json").classList.remove("open");
+    document.getElementById("btn-copy-json").onclick = () => {{
+      navigator.clipboard.writeText(document.getElementById("modal-json-pre").textContent);
+      document.getElementById("btn-copy-json").textContent = "Copiado";
+      setTimeout(() => document.getElementById("btn-copy-json").textContent = "Copiar JSON", 1200);
+    }};
+
+    // Tabs
+    document.querySelectorAll(".tab-btn").forEach(btn => {{
+      btn.onclick = () => {{
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      }};
+    }});
+
+    document.getElementById("view-cards").onclick = () => {{
+      viewMode = "cards";
+      document.getElementById("view-cards").classList.add("active");
+      document.getElementById("view-table").classList.remove("active");
+      renderAuditoria(currentItems);
+    }};
+    document.getElementById("view-table").onclick = () => {{
+      viewMode = "table";
+      document.getElementById("view-table").classList.add("active");
+      document.getElementById("view-cards").classList.remove("active");
+      renderAuditoria(currentItems);
+    }};
+
+    document.getElementById("btn-fp").onclick = e => {{ soloFp = !soloFp; e.target.classList.toggle("active", soloFp); renderAll(); }};
+    document.getElementById("btn-fn").onclick = e => {{ soloFn = !soloFn; e.target.classList.toggle("active", soloFn); renderAll(); }};
+    ["f-q", "f-store", "f-esperada", "f-motor", "f-errores", "f-orden"].forEach(id => {{
+      document.getElementById(id).addEventListener("input", renderAll);
+      document.getElementById(id).addEventListener("change", renderAll);
+    }});
+
     document.getElementById("btn-export").onclick = () => {{
       const cols = ["capture_id", "store", "brand", "product_name", "price_ref", "precio_detectado", "motor", "reason_code", "confidence", "explicacion"];
       const csvCell = v => `"${{String(v ?? "").replace(/"/g, '""')}}"`;
@@ -404,15 +1061,180 @@ def generar_html(dir_datos: Path, ruta_resultados: Path, ruta_salida: Path) -> t
       const blob = new Blob(["\\uFEFF" + rows.join("\\n")], {{ type: "text/csv;charset=utf-8;" }});
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "validat3b_vista.csv";
+      a.download = "validat3b_auditoria.csv";
       a.click();
     }};
+
     document.getElementById("btn-reset").onclick = () => {{
-      fEsperada.value = ""; fMotor.value = ""; fErrores.checked = false; fOrden.value = "original";
-      soloFp = false; soloFn = false; btnFp.classList.remove("active"); btnFn.classList.remove("active");
-      render();
+      document.getElementById("f-q").value = "";
+      document.getElementById("f-store").value = "";
+      document.getElementById("f-esperada").value = "";
+      document.getElementById("f-motor").value = "";
+      document.getElementById("f-errores").checked = false;
+      document.getElementById("f-orden").value = "original";
+      soloFp = false; soloFn = false;
+      document.getElementById("btn-fp").classList.remove("active");
+      document.getElementById("btn-fn").classList.remove("active");
+      renderAll();
     }};
-    render();
+
+    // Ingesta CSV / JSON / Carpeta Set Ciego (100% client-side)
+    function parseCsv(text) {{
+      const lines = text.replace(/^\\uFEFF/, "").split(/\\r?\\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const splitLine = line => {{
+        const out = []; let cur = "", inQ = false;
+        for (let i = 0; i < line.length; i++) {{
+          const c = line[i];
+          if (c === '"') {{ if (inQ && line[i+1] === '"') {{ cur += '"'; i++; }} else inQ = !inQ; }}
+          else if (c === "," && !inQ) {{ out.push(cur); cur = ""; }}
+          else cur += c;
+        }}
+        out.push(cur);
+        return out;
+      }};
+      const hdr = splitLine(lines[0]);
+      return lines.slice(1).map(l => {{
+        const vals = splitLine(l);
+        const obj = {{}};
+        hdr.forEach((h, idx) => obj[h.trim()] = vals[idx] ?? "");
+        return obj;
+      }});
+    }}
+
+    function showIngestMsg(ok, msg) {{
+      document.getElementById("ingest-status").innerHTML = `<div class="alert-box ${{ok ? "ok" : "err"}}" role="${{ok ? "status" : "alert"}}">${{esc(msg)}}</div>`;
+    }}
+
+    function applyResultados(arr) {{
+      const byId = Object.fromEntries(arr.filter(x => x && x.capture_id).map(x => [x.capture_id, x]));
+      DATA = DATA.map(d => {{
+        const r = byId[d.capture_id];
+        if (!r) return d;
+        const costo = d.esperada ? (r.decision === "revision_manual" ? 1 : (r.decision === d.esperada ? 0 : (r.decision === "aprobada" ? 10 : 3))) : null;
+        return {{
+          ...d,
+          motor: r.decision || d.motor,
+          confidence: r.confidence_score ?? d.confidence,
+          reason_code: r.reason_code || "",
+          explicacion: r.explicacion || d.explicacion,
+          validaciones: r.validaciones || d.validaciones,
+          precio_detectado: r.precio_detectado ?? d.precio_detectado,
+          resultado_oficial: r,
+          costo,
+          es_error: Boolean(d.esperada && r.decision && r.decision !== d.esperada),
+          falsa_aprobada: Boolean(r.decision === "aprobada" && d.esperada && d.esperada !== "aprobada"),
+          valida_rechazada: Boolean(r.decision === "rechazada" && d.esperada === "aprobada")
+        }};
+      }});
+      renderAll();
+    }}
+
+    function applyCapturas(rows, imgMap = {{}}) {{
+      DATA = rows.map(r => {{
+        const fName = String(r.facade_file || "").split("/").pop();
+        const pName = String(r.product_file || "").split("/").pop();
+        const sName = String(r.shelf_file || "").split("/").pop();
+        return {{
+          capture_id: r.capture_id || "",
+          store: r.capture_store_name || "",
+          brand: r.capture_brand || "",
+          product_name: r.product_name || "",
+          qty: r.unit_quantity_product || "",
+          unit: r.unit_product || "",
+          price_ref: r.capture_price || "",
+          esperada: r.decision_esperada || "",
+          motivo_esperado: r.motivo_rechazo || "",
+          motor: "", confidence: null, reason_code: "", explicacion: "", validaciones: {{}},
+          resultado_oficial: null, precio_detectado: null, leido_marca: "", leido_desc: "", leido_cant: "", leido_unid: "",
+          costo: null, es_error: false, falsa_aprobada: false, valida_rechazada: false,
+          img_facade: imgMap[fName] || r.facade_url || "",
+          img_product: imgMap[pName] || r.product_url || "",
+          img_shelf: imgMap[sName] || r.shelf_url || ""
+        }};
+      }});
+      populateStores();
+      renderAll();
+    }}
+
+    document.getElementById("in-folder").addEventListener("change", async e => {{
+      const files = [...e.target.files];
+      if (!files.length) return;
+      const imgMap = {{}};
+      let capFile = null, resFile = null;
+      files.forEach(f => {{
+        const low = f.name.toLowerCase();
+        if (low === "capturas.csv" || low === "capturas.json") capFile = f;
+        else if (low === "resultados.json") resFile = f;
+        else if (/\\.(jpg|jpeg|png|webp)$/.test(low)) imgMap[f.name] = URL.createObjectURL(f);
+      }});
+      if (!capFile && !resFile) return showIngestMsg(false, "La carpeta no contiene capturas.csv, capturas.json ni resultados.json.");
+      if (capFile) {{
+        const txt = await capFile.text();
+        const rows = capFile.name.endsWith(".json") ? (JSON.parse(txt).capturas || JSON.parse(txt)) : parseCsv(txt);
+        applyCapturas(rows, imgMap);
+      }}
+      if (resFile) {{
+        applyResultados(JSON.parse(await resFile.text()));
+      }}
+      showIngestMsg(true, `Carpeta cargada en memoria: ${{DATA.length}} capturas y ${{Object.keys(imgMap).length}} imágenes enlazadas.`);
+    }});
+
+    document.getElementById("in-csv").addEventListener("change", async e => {{
+      const f = e.target.files[0]; if (!f) return;
+      const rows = parseCsv(await f.text());
+      if (!rows.length || !rows[0].capture_id) return showIngestMsg(false, "El CSV no tiene columna capture_id.");
+      applyCapturas(rows);
+      showIngestMsg(true, `CSV cargado: ${{rows.length}} capturas.`);
+    }});
+
+    document.getElementById("in-json").addEventListener("change", async e => {{
+      const f = e.target.files[0]; if (!f) return;
+      const parsed = JSON.parse(await f.text());
+      const arr = Array.isArray(parsed) ? parsed : (parsed.capturas || []);
+      if (!arr.length) return showIngestMsg(false, "El JSON está vacío o no tiene formato lista.");
+      if (arr[0].decision) {{ applyResultados(arr); showIngestMsg(true, `resultados.json aplicado (${{arr.length}} veredictos).`); }}
+      else {{ applyCapturas(arr); showIngestMsg(true, `capturas.json cargado (${{arr.length}} capturas).`); }}
+    }});
+
+    document.getElementById("btn-sim").onclick = () => {{
+      const f1 = document.getElementById("sim-facade").files[0];
+      const f2 = document.getElementById("sim-product").files[0];
+      const f3 = document.getElementById("sim-shelf").files[0];
+      if (!f1 || !f2 || !f3) return showIngestMsg(false, "Selecciona las 3 fotos (Fachada, Producto y Etiqueta) para probar.");
+      const simId = "CAP-DEMO-" + String(Date.now()).slice(-4);
+      DATA.unshift({{
+        capture_id: simId, store: "Prueba en vivo", brand: "Muestra local", product_name: "Captura cargada en vivo",
+        qty: "1", unit: "pza", price_ref: "0.00", esperada: "", motivo_esperado: "",
+        motor: "revision_manual", confidence: 0.5, reason_code: "SIN_LECTURA",
+        explicacion: "Captura cargada en vivo en el navegador; lista para inspección o envío al backend.",
+        validaciones: {{ tienda_fachada: "ok", producto: "ok", codigo_barras: "ok", evidencia_precio: "ok" }},
+        resultado_oficial: null, precio_detectado: null, leido_marca: "", leido_desc: "", leido_cant: "", leido_unid: "",
+        costo: 1, es_error: false, falsa_aprobada: false, valida_rechazada: false,
+        img_facade: URL.createObjectURL(f1), img_product: URL.createObjectURL(f2), img_shelf: URL.createObjectURL(f3)
+      }});
+      renderAll();
+      showIngestMsg(true, `Captura ${{simId}} agregada al inicio de la Cola de Revisión Manual y Explorador.`);
+    }};
+
+    window.addEventListener("keydown", e => {{
+      if (e.key === "Escape") {{
+        document.getElementById("modal-foto").classList.remove("open");
+        document.getElementById("modal-json").classList.remove("open");
+      }}
+      if (!document.getElementById("tab-cola").classList.contains("active")) return;
+      if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+      const queue = currentItems.filter(d => d.motor === "revision_manual" || !d.motor);
+      const cur = queue[hitlIdx];
+      if (!cur) return;
+      if (e.key === "a" || e.key === "A") markHitl(cur.capture_id, "aprobada_analista");
+      else if (e.key === "r" || e.key === "R") markHitl(cur.capture_id, "rechazada_analista");
+      else if (e.key === "s" || e.key === "S" || e.key === "ArrowRight") {{ hitlIdx++; renderHitl(currentItems); }}
+      else if (e.key === "ArrowLeft") {{ hitlIdx--; renderHitl(currentItems); }}
+    }});
+
+    populateStores();
+    renderAll();
   </script>
 </body>
 </html>
