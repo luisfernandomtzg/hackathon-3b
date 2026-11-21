@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Copy,
@@ -10,6 +10,7 @@ import {
   ImagePlus,
   RotateCw,
   Search,
+  Upload,
   ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
 export type Decision = "aprobada" | "rechazada" | "revision_manual";
 type TabId = "resumen" | "cola" | "auditoria" | "ingesta";
 type ViewMode = "cards" | "table";
+type OrdenId = "original" | "costo-desc" | "costo-asc";
 
 export interface Validaciones {
   tienda_fachada: "ok" | "falla";
@@ -53,6 +55,25 @@ export interface ResultadoOficial {
   explicacion: string;
 }
 
+export interface ExtraccionItem {
+  capture_id: string;
+  producto?: {
+    marca?: string | null;
+    descripcion?: string | null;
+    contenido_cantidad?: number | string | null;
+    contenido_unidad?: string | null;
+    nitidez?: string | null;
+    encuadre?: string | null;
+  };
+  etiqueta?: {
+    precio?: number | null;
+    tipo_precio?: string | null;
+  };
+  origen?: string;
+  tokens_entrada?: number;
+  tokens_salida?: number;
+}
+
 export interface RegistroConsola {
   capture_id: string;
   store: string;
@@ -62,6 +83,7 @@ export interface RegistroConsola {
   unit: string;
   price_ref: string;
   esperada: Decision | "";
+  motivo_esperado?: string;
   motor: Decision | "";
   confidence: number | null;
   reason_code: string;
@@ -73,6 +95,9 @@ export interface RegistroConsola {
   leido_cant: string;
   leido_unid: string;
   validaciones: Validaciones;
+  facade_name?: string;
+  product_name_file?: string;
+  shelf_name?: string;
   img_facade: string;
   img_product: string;
   img_shelf: string;
@@ -232,6 +257,88 @@ const DEMO_INICIAL: RegistroConsola[] = [
   },
 ];
 
+const U_MAP: Record<string, string> = {
+  gramo: "g",
+  gramos: "g",
+  kilogramo: "kg",
+  kilogramos: "kg",
+  mililitro: "ml",
+  mililitros: "ml",
+  litro: "l",
+  litros: "l",
+  pieza: "pza",
+  piezas: "pza",
+};
+
+function fmtCont(cant: unknown, unit: unknown): string {
+  if (cant === null || cant === undefined || cant === "") return "—";
+  const n = Number(cant);
+  const ns = Number.isFinite(n)
+    ? Number.isInteger(n)
+      ? String(n)
+      : String(Number(n.toFixed(2)))
+    : String(cant);
+  const u = String(unit ?? "").trim().toLowerCase();
+  return `${ns} ${U_MAP[u] || u}`.trim();
+}
+
+function fmtPrecio(val: unknown): string {
+  if (val === null || val === undefined || val === "") return "—";
+  const n = Number(val);
+  return Number.isFinite(n) ? `$${n.toFixed(2)}` : `$${val}`;
+}
+
+function normText(s: unknown): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function toBaseUnit(str: unknown): { v: number; u: string } | null {
+  const m = String(str ?? "")
+    .trim()
+    .toLowerCase()
+    .match(
+      /^(\d+(?:\.\d+)?)\s*(g|gr|gramo|gramos|kg|kilo|kilos|ml|mililitro|mililitros|l|lt|lts|litro|litros|pza|pz|pieza|piezas)$/
+    );
+  if (!m) return null;
+  const val = Number(m[1]);
+  const u = m[2];
+  if (["kg", "kilo", "kilos"].includes(u)) return { v: val * 1000, u: "g" };
+  if (["g", "gr", "gramo", "gramos"].includes(u)) return { v: val, u: "g" };
+  if (["l", "lt", "lts", "litro", "litros"].includes(u)) return { v: val * 1000, u: "ml" };
+  if (["ml", "mililitro", "mililitros"].includes(u)) return { v: val, u: "ml" };
+  return { v: val, u: "pza" };
+}
+
+function diffCampoCls(a: unknown, b: unknown, kind: "marca" | "producto" | "contenido" | "precio"): string {
+  if (b === null || b === undefined || b === "" || b === "—") return "";
+  if (kind === "precio") {
+    const na = Number(String(a ?? "").replace(/[^0-9.-]+/g, ""));
+    const nb = Number(String(b ?? "").replace(/[^0-9.-]+/g, ""));
+    if (Number.isFinite(na) && Number.isFinite(nb)) {
+      return Math.abs(na - nb) > 0.01 ? "font-bold text-danger" : "";
+    }
+  }
+  if (kind === "contenido") {
+    const qa = toBaseUnit(a);
+    const qb = toBaseUnit(b);
+    if (qa && qb) {
+      if (qa.u !== qb.u) return "font-bold text-danger";
+      const maxV = Math.max(qa.v, qb.v, 1);
+      return Math.abs(qa.v - qb.v) / maxV > 0.02 ? "font-bold text-danger" : "";
+    }
+  }
+  const sa = normText(a);
+  const sb = normText(b);
+  if (!sa || !sb) return "";
+  if (sa === sb || sa.replace(/\s+/g, "") === sb.replace(/\s+/g, "")) return "";
+  return "font-bold text-danger";
+}
+
 function calcularCostoPesimista(motor: Decision | "", esperada: Decision | ""): number | null {
   if (!motor || !esperada) return null;
   if (motor === "revision_manual") return 1;
@@ -277,12 +384,64 @@ function parseCsvTexto(text: string): Record<string, string>[] {
   });
 }
 
-function ChipDecision({ decision }: { decision: Decision | "" }) {
+async function extractZipEntriesBrowser(file: File): Promise<{ name: string; bytes: Uint8Array }[]> {
+  const buf = await file.arrayBuffer();
+  const view = new DataView(buf);
+  const bytes = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error(`El archivo ${file.name} no es un ZIP válido.`);
+  const totalEntries = view.getUint16(eocd + 10, true);
+  let cdOffset = view.getUint32(eocd + 16, true);
+  const dec = new TextDecoder("utf-8");
+  const out: { name: string; bytes: Uint8Array }[] = [];
+
+  for (let i = 0; i < totalEntries; i++) {
+    if (view.getUint32(cdOffset, true) !== 0x02014b50) break;
+    const method = view.getUint16(cdOffset + 10, true);
+    const compSize = view.getUint32(cdOffset + 20, true);
+    const nameLen = view.getUint16(cdOffset + 28, true);
+    const extraLen = view.getUint16(cdOffset + 30, true);
+    const commentLen = view.getUint16(cdOffset + 32, true);
+    const localOffset = view.getUint32(cdOffset + 42, true);
+    const fullName = dec.decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + nameLen));
+    cdOffset += 46 + nameLen + extraLen + commentLen;
+
+    if (fullName.endsWith("/")) continue;
+    const baseName = fullName.split("/").pop() || "";
+    if (!baseName || baseName.startsWith(".")) continue;
+
+    const lNameLen = view.getUint16(localOffset + 26, true);
+    const lExtraLen = view.getUint16(localOffset + 28, true);
+    const dataStart = localOffset + 30 + lNameLen + lExtraLen;
+    const slice = bytes.subarray(dataStart, dataStart + compSize);
+
+    let rawBytes: Uint8Array | null = null;
+    if (method === 0) {
+      rawBytes = slice;
+    } else if (method === 8 && typeof DecompressionStream !== "undefined") {
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(slice);
+      writer.close();
+      rawBytes = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+    }
+    if (rawBytes) out.push({ name: baseName, bytes: rawBytes });
+  }
+  return out;
+}
+
+function ChipDecision({ decision, fallbackLabel = "ciego" }: { decision: Decision | ""; fallbackLabel?: string }) {
   if (!decision) {
     return (
-      <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-muted px-2.5 text-xs font-medium text-text-tertiary">
+      <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-info-bg px-2.5 text-xs font-bold text-info">
         <span aria-hidden className="size-2 rounded-full bg-current" />
-        Sin resultado
+        {fallbackLabel}
       </span>
     );
   }
@@ -292,7 +451,7 @@ function ChipDecision({ decision }: { decision: Decision | "" }) {
     revision_manual: "bg-warning-bg text-warning",
   };
   return (
-    <span className={`inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ${styles[decision]}`}>
+    <span className={`inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold ${styles[decision]}`}>
       <span aria-hidden className="size-2 rounded-full bg-current" />
       {decision}
     </span>
@@ -304,15 +463,25 @@ export function ConsolaValidat3B() {
   const [esDemoSintetico, setEsDemoSintetico] = useState(true);
   const [tokensPromedio, setTokensPromedio] = useState<number | null>(null);
   const [tab, setTab] = useState<TabId>("resumen");
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [cargando, setCargando] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [alerta, setAlerta] = useState<{ tipo: "ok" | "err"; msg: string } | null>(null);
+
+  // Cachés persistentes en sesión para fusión no destructiva sin importar el orden de subida
+  const imgCacheRef = useRef<Record<string, string>>({});
+  const resCacheRef = useRef<Record<string, ResultadoOficial>>({});
+  const extCacheRef = useRef<Record<string, ExtraccionItem>>({});
 
   // Filtros globales
   const [query, setQuery] = useState("");
   const [filtroTienda, setFiltroTienda] = useState("");
+  const [filtroEsperada, setFiltroEsperada] = useState("");
   const [filtroMotor, setFiltroMotor] = useState("");
   const [soloErrores, setSoloErrores] = useState(false);
+  const [soloFp, setSoloFp] = useState(false);
+  const [soloFn, setSoloFn] = useState(false);
+  const [orden, setOrden] = useState<OrdenId>("original");
 
   // Cola HITL
   const [hitlIdx, setHitlIdx] = useState(0);
@@ -334,17 +503,26 @@ export function ConsolaValidat3B() {
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return registros.filter((r) => {
+    let items = registros.filter((r) => {
       if (filtroTienda && r.store !== filtroTienda) return false;
+      if (filtroEsperada && r.esperada !== filtroEsperada) return false;
       if (filtroMotor && r.motor !== filtroMotor) return false;
       if (soloErrores && (!r.esperada || !r.motor || r.esperada === r.motor)) return false;
+      if (soloFp && !(r.motor === "aprobada" && r.esperada && r.esperada !== "aprobada")) return false;
+      if (soloFn && !(r.motor === "rechazada" && r.esperada === "aprobada")) return false;
       if (q) {
         const hay = `${r.capture_id} ${r.store} ${r.brand} ${r.product_name} ${r.reason_code}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [registros, query, filtroTienda, filtroMotor, soloErrores]);
+    if (orden === "costo-desc") {
+      items = [...items].sort((a, b) => (b.costo ?? -1) - (a.costo ?? -1));
+    } else if (orden === "costo-asc") {
+      items = [...items].sort((a, b) => (a.costo ?? 999) - (b.costo ?? 999));
+    }
+    return items;
+  }, [registros, query, filtroTienda, filtroEsperada, filtroMotor, soloErrores, soloFp, soloFn, orden]);
 
   const metricas = useMemo(() => {
     const total = filtrados.length;
@@ -394,6 +572,18 @@ export function ConsolaValidat3B() {
     };
   }, [filtrados]);
 
+  const estadoIngesta = useMemo(() => {
+    const total = esDemoSintetico ? 0 : registros.length;
+    const conFotos = esDemoSintetico
+      ? 0
+      : registros.filter((d) => Boolean(d.img_facade && d.img_product && d.img_shelf)).length;
+    const conRes = esDemoSintetico ? 0 : registros.filter((d) => Boolean(d.motor)).length;
+    const conExt = esDemoSintetico
+      ? 0
+      : registros.filter((d) => Boolean(d.leido_marca || d.leido_desc || d.leido_cant)).length;
+    return { total, conFotos, conRes, conExt };
+  }, [registros, esDemoSintetico]);
+
   const colaManual = useMemo(
     () => filtrados.filter((r) => r.motor === "revision_manual" || !r.motor),
     [filtrados]
@@ -401,13 +591,10 @@ export function ConsolaValidat3B() {
 
   const casoActual = colaManual.length ? colaManual[hitlIdx % colaManual.length] : null;
 
-  const marcarHitl = useCallback(
-    (cid: string, decision: "aprobada" | "rechazada") => {
-      setDictamenAnalista((prev) => ({ ...prev, [cid]: decision }));
-      setHitlIdx((i) => i + 1);
-    },
-    []
-  );
+  const marcarHitl = useCallback((cid: string, decision: "aprobada" | "rechazada") => {
+    setDictamenAnalista((prev) => ({ ...prev, [cid]: decision }));
+    setHitlIdx((i) => i + 1);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -423,197 +610,290 @@ export function ConsolaValidat3B() {
     return () => window.removeEventListener("keydown", onKey);
   }, [tab, casoActual, marcarHitl]);
 
-  function aplicarCapturas(rows: Record<string, string>[], imgMap: Record<string, string> = {}) {
-    const nuevos: RegistroConsola[] = rows.map((r) => {
-      const fName = (r.facade_file || "").split("/").pop() || "";
-      const pName = (r.product_file || "").split("/").pop() || "";
-      const sName = (r.shelf_file || "").split("/").pop() || "";
-      const esperada = (r.decision_esperada || "") as Decision | "";
-      return {
-        capture_id: r.capture_id || "",
-        store: r.capture_store_name || "",
-        brand: r.capture_brand || "",
-        product_name: r.product_name || "",
-        qty: r.unit_quantity_product || "",
-        unit: r.unit_product || "",
-        price_ref: r.capture_price || "",
-        esperada,
-        motor: "",
-        confidence: null,
-        reason_code: "",
-        explicacion: "",
-        precio_detectado: null,
-        codigo_barras_detectado: r.capture_barcode || "",
-        leido_marca: "",
-        leido_desc: "",
-        leido_cant: "",
-        leido_unid: "",
-        validaciones: { tienda_fachada: "ok", producto: "ok", codigo_barras: "ok", evidencia_precio: "ok" },
-        img_facade: imgMap[fName] || "",
-        img_product: imgMap[pName] || "",
-        img_shelf: imgMap[sName] || "",
-        costo: null,
-      };
-    });
-    setRegistros(nuevos);
-    setEsDemoSintetico(false);
-    setHitlIdx(0);
-  }
+  const sincronizarRegistroConCaches = useCallback((reg: RegistroConsola): RegistroConsola => {
+    const imgMap = imgCacheRef.current;
+    const extMap = extCacheRef.current;
+    const resMap = resCacheRef.current;
 
-  function aplicarResultados(arr: ResultadoOficial[]) {
-    const mapa = new Map(arr.map((x) => [x.capture_id, x]));
-    setRegistros((prev) => {
-      const actualizado = prev.map((reg) => {
-        const res = mapa.get(reg.capture_id);
-        if (!res) return reg;
-        return {
-          ...reg,
-          motor: res.decision,
-          confidence: res.confidence_score,
-          reason_code: res.reason_code || "",
-          explicacion: res.explicacion || "",
-          precio_detectado: res.precio_detectado,
-          codigo_barras_detectado: res.codigo_barras_detectado || reg.codigo_barras_detectado,
-          validaciones: res.validaciones || reg.validaciones,
-          costo: calcularCostoPesimista(res.decision, reg.esperada),
-        };
-      });
-      if (prev.length === DEMO_INICIAL.length && !mapa.has(prev[0].capture_id)) {
-        return arr.map((res) => ({
-          capture_id: res.capture_id,
-          store: "Set cargado",
-          brand: "—",
-          product_name: "Captura desde resultados.json",
-          qty: "",
-          unit: "",
-          price_ref: res.precio_detectado != null ? String(res.precio_detectado) : "0",
-          esperada: "",
-          motor: res.decision,
-          confidence: res.confidence_score,
-          reason_code: res.reason_code || "",
-          explicacion: res.explicacion || "",
-          precio_detectado: res.precio_detectado,
-          codigo_barras_detectado: res.codigo_barras_detectado || "",
-          leido_marca: "",
-          leido_desc: "",
-          leido_cant: "",
-          leido_unid: "",
-          validaciones: res.validaciones,
-          img_facade: "",
-          img_product: "",
-          img_shelf: "",
-          costo: null,
-        }));
+    const fName = reg.facade_name || `${reg.capture_id}_facade.jpg`;
+    const pName = reg.product_name_file || `${reg.capture_id}_product.jpg`;
+    const sName = reg.shelf_name || `${reg.capture_id}_shelf.jpg`;
+
+    const next: RegistroConsola = {
+      ...reg,
+      facade_name: fName,
+      product_name_file: pName,
+      shelf_name: sName,
+      img_facade: imgMap[fName] || reg.img_facade || "",
+      img_product: imgMap[pName] || reg.img_product || "",
+      img_shelf: imgMap[sName] || reg.img_shelf || "",
+    };
+
+    const ext = extMap[reg.capture_id];
+    if (ext) {
+      const prod = ext.producto || {};
+      const etiq = ext.etiqueta || {};
+      next.leido_marca = prod.marca ?? next.leido_marca ?? "";
+      next.leido_desc = prod.descripcion ?? next.leido_desc ?? "";
+      next.leido_cant = prod.contenido_cantidad != null ? String(prod.contenido_cantidad) : next.leido_cant;
+      next.leido_unid = prod.contenido_unidad ?? next.leido_unid ?? "";
+      if (next.precio_detectado === null && etiq.precio != null) {
+        next.precio_detectado = Number(etiq.precio);
       }
-      return actualizado;
-    });
-    setEsDemoSintetico(false);
-  }
+    }
 
-  async function manejarCarpeta(files: FileList | null) {
-    if (!files || !files.length) return;
-    setCargando(true);
-    setAlerta(null);
-    try {
-      const imgMap: Record<string, string> = {};
-      let capFile: File | null = null;
-      let resFile: File | null = null;
-      let tokFile: File | null = null;
+    const res = resMap[reg.capture_id];
+    if (res) {
+      next.motor = res.decision || next.motor;
+      next.confidence = res.confidence_score ?? next.confidence;
+      next.reason_code = res.reason_code || "";
+      next.explicacion = res.explicacion || next.explicacion;
+      next.validaciones = res.validaciones || next.validaciones;
+      if (res.precio_detectado !== null && res.precio_detectado !== undefined) {
+        next.precio_detectado = res.precio_detectado;
+      }
+      if (res.codigo_barras_detectado) {
+        next.codigo_barras_detectado = res.codigo_barras_detectado;
+      }
+      next.costo = calcularCostoPesimista(next.motor, next.esperada);
+    }
+    return next;
+  }, []);
 
-      Array.from(files).forEach((f) => {
-        const low = f.name.toLowerCase();
-        if (low === "capturas.csv" || low === "capturas.json") capFile = f;
-        else if (low === "resultados.json") resFile = f;
-        else if (low === "tokens.csv") tokFile = f;
-        else if (/\.(jpg|jpeg|png|webp)$/.test(low)) {
-          imgMap[f.name] = URL.createObjectURL(f);
+  const procesarArchivosUnificados = useCallback(
+    async (fileList: FileList | File[] | null) => {
+      if (!fileList) return;
+      const rawFiles = Array.from(fileList);
+      if (!rawFiles.length) return;
+
+      setCargando(true);
+      setAlerta(null);
+      try {
+        interface VirtualEntry {
+          name: string;
+          getText: () => Promise<string>;
+          getBlobUrl: () => string;
         }
-      });
+        const virtualFiles: VirtualEntry[] = [];
 
-      if (!capFile && !resFile) {
+        for (const f of rawFiles) {
+          if (f.name.toLowerCase().endsWith(".zip")) {
+            const entries = await extractZipEntriesBrowser(f);
+            for (const ent of entries) {
+              virtualFiles.push({
+                name: ent.name,
+                getText: () => Promise.resolve(new TextDecoder("utf-8").decode(ent.bytes)),
+                getBlobUrl: () => URL.createObjectURL(new Blob([ent.bytes as unknown as BlobPart])),
+              });
+            }
+          } else {
+            virtualFiles.push({
+              name: f.name,
+              getText: () => f.text(),
+              getBlobUrl: () => URL.createObjectURL(f),
+            });
+          }
+        }
+
+        let nImgs = 0;
+        let nCaps = 0;
+        let nRes = 0;
+        let nExt = 0;
+        let nTok = 0;
+        let nuevasFilasBase: Record<string, string>[] | null = null;
+
+        // 1. Imágenes
+        for (const vf of virtualFiles) {
+          const low = vf.name.toLowerCase();
+          if (/\.(jpg|jpeg|png|webp)$/.test(low)) {
+            imgCacheRef.current[vf.name] = vf.getBlobUrl();
+            nImgs++;
+          }
+        }
+
+        // 2. CSV y JSON
+        for (const vf of virtualFiles) {
+          const low = vf.name.toLowerCase();
+          if (low.endsWith(".csv") && !low.includes("catalogo")) {
+            const rows = parseCsvTexto(await vf.getText());
+            if (!rows.length) continue;
+            if ("tokens_entrada" in rows[0]) {
+              const tRows = rows.filter((r) => (!r.origen || r.origen === "modelo") && (r.tokens_entrada || r.tokens_salida));
+              if (tRows.length) {
+                const cids = new Set(tRows.map((r) => r.capture_id).filter(Boolean));
+                const sum = tRows.reduce(
+                  (acc, r) => acc + Number(r.tokens_entrada || 0) + Number(r.tokens_salida || 0),
+                  0
+                );
+                const denom = cids.size || tRows.length;
+                setTokensPromedio(Math.round(sum / denom));
+                nTok = tRows.length;
+              }
+            } else if ("capture_id" in rows[0]) {
+              nuevasFilasBase = rows;
+              nCaps = rows.length;
+            }
+          } else if (low.endsWith(".json")) {
+            try {
+              const parsed = JSON.parse(await vf.getText());
+              if (Array.isArray(parsed) || Array.isArray(parsed?.capturas)) {
+                const arr = Array.isArray(parsed) ? parsed : parsed.capturas;
+                if (!arr.length) continue;
+                if (arr[0].producto || arr[0].etiqueta) {
+                  for (const item of arr as ExtraccionItem[]) {
+                    if (item && item.capture_id) extCacheRef.current[item.capture_id] = item;
+                  }
+                  nExt = arr.length;
+                } else if (arr[0].decision) {
+                  for (const item of arr as ResultadoOficial[]) {
+                    if (item && item.capture_id) resCacheRef.current[item.capture_id] = item;
+                  }
+                  nRes = arr.length;
+                } else if (arr[0].capture_id) {
+                  nuevasFilasBase = arr;
+                  nCaps = arr.length;
+                }
+              } else if (parsed && parsed.capture_id && parsed.decision) {
+                resCacheRef.current[parsed.capture_id] = parsed as ResultadoOficial;
+                nRes++;
+              }
+            } catch {
+              // Ignorar JSON ajeno al esquema
+            }
+          }
+        }
+
+        setRegistros((prev) => {
+          const base =esDemoSintetico ? [] : prev;
+          const prevMap = new Map(base.map((r) => [r.capture_id, r]));
+
+          if (nuevasFilasBase) {
+            return nuevasFilasBase.map((r) => {
+              const cid = String(r.capture_id || "");
+              const old = prevMap.get(cid);
+              const fName = String(r.facade_file || old?.facade_name || `${cid}_facade.jpg`).split("/").pop() || "";
+              const pName = String(r.product_file || old?.product_name_file || `${cid}_product.jpg`).split("/").pop() || "";
+              const sName = String(r.shelf_file || old?.shelf_name || `${cid}_shelf.jpg`).split("/").pop() || "";
+              const esperada = (r.decision_esperada ?? old?.esperada ?? "") as Decision | "";
+              const merged: RegistroConsola = {
+                capture_id: cid,
+                store: r.capture_store_name || old?.store || "",
+                brand: r.capture_brand || old?.brand || "",
+                product_name: r.product_name || old?.product_name || "",
+                qty: String(r.unit_quantity_product ?? old?.qty ?? ""),
+                unit: r.unit_product || old?.unit || "",
+                price_ref: String(r.capture_price ?? old?.price_ref ?? ""),
+                esperada,
+                motivo_esperado: r.motivo_rechazo ?? old?.motivo_esperado ?? "",
+                motor: old?.motor || "",
+                confidence: old?.confidence ?? null,
+                reason_code: old?.reason_code || "",
+                explicacion: old?.explicacion || "",
+                precio_detectado: old?.precio_detectado ?? null,
+                codigo_barras_detectado: r.capture_barcode || old?.codigo_barras_detectado || "",
+                leido_marca: old?.leido_marca || "",
+                leido_desc: old?.leido_desc || "",
+                leido_cant: old?.leido_cant || "",
+                leido_unid: old?.leido_unid || "",
+                validaciones: old?.validaciones || {
+                  tienda_fachada: "ok",
+                  producto: "ok",
+                  codigo_barras: "ok",
+                  evidencia_precio: "ok",
+                },
+                facade_name: fName,
+                product_name_file: pName,
+                shelf_name: sName,
+                img_facade: old?.img_facade || r.facade_url || "",
+                img_product: old?.img_product || r.product_url || "",
+                img_shelf: old?.img_shelf || r.shelf_url || "",
+                costo: old?.costo ?? null,
+              };
+              return sincronizarRegistroConCaches(merged);
+            });
+          }
+
+          if (!base.length && Object.keys(resCacheRef.current).length > 0) {
+            return Object.values(resCacheRef.current).map((res) =>
+              sincronizarRegistroConCaches({
+                capture_id: res.capture_id,
+                store: "Set cargado",
+                brand: "—",
+                product_name: "Sube capturas.csv para ver producto esperado",
+                qty: "",
+                unit: "",
+                price_ref: res.precio_detectado != null ? String(res.precio_detectado) : "0",
+                esperada: "",
+                motor: res.decision,
+                confidence: res.confidence_score,
+                reason_code: res.reason_code || "",
+                explicacion: res.explicacion || "",
+                precio_detectado: res.precio_detectado,
+                codigo_barras_detectado: res.codigo_barras_detectado || "",
+                leido_marca: "",
+                leido_desc: "",
+                leido_cant: "",
+                leido_unid: "",
+                validaciones: res.validaciones,
+                facade_name: `${res.capture_id}_facade.jpg`,
+                product_name_file: `${res.capture_id}_product.jpg`,
+                shelf_name: `${res.capture_id}_shelf.jpg`,
+                img_facade: "",
+                img_product: "",
+                img_shelf: "",
+                costo: null,
+              })
+            );
+          }
+
+          return base.map((reg) => sincronizarRegistroConCaches(reg));
+        });
+
+        setEsDemoSintetico(false);
+        setHitlIdx(0);
+
+        const partes: string[] = [];
+        if (nCaps) partes.push(`${nCaps} capturas`);
+        if (nImgs) partes.push(`${nImgs} fotos`);
+        if (nRes) partes.push(`${nRes} veredictos`);
+        if (nExt) partes.push(`${nExt} lecturas del modelo`);
+        if (nTok) partes.push("métricas de tokens");
+
+        if (!partes.length) {
+          setAlerta({
+            tipo: "err",
+            msg: "No se detectaron archivos compatibles (.zip, capturas.csv, resultados.json, extracciones.json o fotos).",
+          });
+        } else {
+          setAlerta({
+            tipo: "ok",
+            msg: `Lote actualizado sin perder datos previos: ${partes.join(" · ")}.`,
+          });
+        }
+      } catch (err) {
         setAlerta({
           tipo: "err",
-          msg: "La carpeta no contiene capturas.csv, capturas.json ni resultados.json.",
+          msg: err instanceof Error ? err.message : "No se pudieron procesar los archivos seleccionados.",
         });
-        return;
+      } finally {
+        setCargando(false);
       }
+    },
+    [esDemoSintetico, sincronizarRegistroConCaches]
+  );
 
-      if (capFile) {
-        const txt = await (capFile as File).text();
-        const rows = (capFile as File).name.endsWith(".json")
-          ? JSON.parse(txt).capturas || JSON.parse(txt)
-          : parseCsvTexto(txt);
-        aplicarCapturas(rows, imgMap);
-      }
-      if (resFile) {
-        const arr = JSON.parse(await (resFile as File).text());
-        aplicarResultados(arr);
-      }
-      if (tokFile) {
-        const tRows = parseCsvTexto(await (tokFile as File).text()).filter(
-          (r) => !r.origen || r.origen === "modelo"
-        );
-        if (tRows.length) {
-          const sum = tRows.reduce(
-            (acc, r) => acc + Number(r.tokens_entrada || 0) + Number(r.tokens_salida || 0),
-            0
-          );
-          setTokensPromedio(Math.round(sum / tRows.length));
-        }
-      }
-      setAlerta({
-        tipo: "ok",
-        msg: `Carpeta procesada en el navegador con ${Object.keys(imgMap).length} imágenes enlazadas.`,
-      });
-    } catch {
-      setAlerta({ tipo: "err", msg: "No se pudo leer la carpeta seleccionada. Revisa el formato." });
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  async function manejarCsv(file: File | null) {
-    if (!file) return;
-    setCargando(true);
-    setAlerta(null);
-    try {
-      const rows = parseCsvTexto(await file.text());
-      if (!rows.length || !rows[0].capture_id) {
-        setAlerta({ tipo: "err", msg: "El archivo CSV debe incluir la columna capture_id." });
-        return;
-      }
-      aplicarCapturas(rows);
-      setAlerta({ tipo: "ok", msg: `Archivo CSV cargado con ${rows.length} capturas.` });
-    } catch {
-      setAlerta({ tipo: "err", msg: "No se pudo interpretar el archivo CSV." });
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  async function manejarJson(file: File | null) {
-    if (!file) return;
-    setCargando(true);
-    setAlerta(null);
-    try {
-      const parsed = JSON.parse(await file.text());
-      const arr = Array.isArray(parsed) ? parsed : parsed.capturas || [];
-      if (!arr.length) {
-        setAlerta({ tipo: "err", msg: "El JSON está vacío o no tiene formato de lista." });
-        return;
-      }
-      if (arr[0].decision) {
-        aplicarResultados(arr);
-        setAlerta({ tipo: "ok", msg: `Veredictos cargados desde ${file.name} (${arr.length}).` });
-      } else {
-        aplicarCapturas(arr);
-        setAlerta({ tipo: "ok", msg: `Capturas cargadas desde ${file.name} (${arr.length}).` });
-      }
-    } catch {
-      setAlerta({ tipo: "err", msg: "El archivo no es un JSON válido." });
-    } finally {
-      setCargando(false);
-    }
+  function limpiarLoteParaSubir() {
+    imgCacheRef.current = {};
+    resCacheRef.current = {};
+    extCacheRef.current = {};
+    setRegistros([]);
+    setTokensPromedio(null);
+    setEsDemoSintetico(false);
+    setHitlIdx(0);
+    setAlerta({
+      tipo: "ok",
+      msg: "Lote reiniciado. Arrastra o selecciona tus archivos .zip, carpetas o JSON/CSV en la zona unificada.",
+    });
   }
 
   function agregarCapturaSimulada() {
@@ -647,7 +927,7 @@ export function ConsolaValidat3B() {
       img_facade: URL.createObjectURL(simFiles.facade),
       img_product: URL.createObjectURL(simFiles.product),
       img_shelf: URL.createObjectURL(simFiles.shelf),
-      costo: null,
+      costo: 1,
     };
     setRegistros((prev) => [nueva, ...prev]);
     setEsDemoSintetico(false);
@@ -681,6 +961,17 @@ export function ConsolaValidat3B() {
     a.click();
   }
 
+  function limpiarFiltros() {
+    setQuery("");
+    setFiltroTienda("");
+    setFiltroEsperada("");
+    setFiltroMotor("");
+    setSoloErrores(false);
+    setSoloFp(false);
+    setSoloFn(false);
+    setOrden("original");
+  }
+
   function abrirJson(r: RegistroConsola) {
     setJsonModal({
       capture_id: r.capture_id,
@@ -703,21 +994,21 @@ export function ConsolaValidat3B() {
       <div className="flex flex-col gap-4 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">
-            Consola Validat3B
+            Validat3B · Consola Operativa
           </h1>
           <p className="text-sm text-text-tertiary">
             {esDemoSintetico
-              ? "Vista con datos de ejemplo inventados. Sube tu carpeta de datos o set ciego en la pestaña Cargar set ciego."
-              : `Mostrando ${filtrados.length} de ${registros.length} capturas cargadas localmente en este navegador.`}
+              ? "Prototipo para Tiendas 3B · Modo offline sin dependencias (Sube tu lote o .zip en 4. Cargar set ciego)"
+              : `Prototipo para Tiendas 3B · ${filtrados.length} de ${registros.length} capturas cargadas`}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Módulos de Validat3B">
           {(
             [
-              ["resumen", "1. Resumen"],
-              ["cola", `2. Cola manual (${colaManual.length})`],
-              ["auditoria", "3. Auditoría"],
+              ["resumen", "1. Resumen ejecutivo"],
+              ["cola", "2. Cola revisión manual"],
+              ["auditoria", "3. Explorador auditoría"],
               ["ingesta", "4. Cargar set ciego"],
             ] as const
           ).map(([id, label]) => (
@@ -725,7 +1016,7 @@ export function ConsolaValidat3B() {
               key={id}
               type="button"
               variant={tab === id ? "secondary" : "outline"}
-              className={tab === id ? "border-foreground font-semibold" : undefined}
+              className={tab === id ? "border-foreground bg-foreground font-semibold text-background hover:bg-foreground" : undefined}
               onClick={() => setTab(id)}
             >
               {label}
@@ -748,15 +1039,15 @@ export function ConsolaValidat3B() {
         </div>
       )}
 
-      {/* Filtros globales */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-2 p-3">
+      {/* Filtros globales (idénticos al visor) */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-2 p-3">
         <div className="relative min-w-60 flex-1">
           <Search className="pointer-events-none absolute top-3.5 left-3 size-4 text-text-muted" />
           <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar ID, tienda, marca o motivo..."
+            placeholder="Buscar capture_id, marca, producto o tienda..."
             className="pl-9"
             aria-label="Buscar captura"
           />
@@ -764,10 +1055,10 @@ export function ConsolaValidat3B() {
         <select
           value={filtroTienda}
           onChange={(e) => setFiltroTienda(e.target.value)}
-          aria-label="Filtrar por tienda"
-          className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          aria-label="Filtrar por cadena"
+          className="h-11 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground"
         >
-          <option value="">Todas las tiendas</option>
+          <option value="">Cadena: Todas</option>
           {tiendas.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -775,26 +1066,55 @@ export function ConsolaValidat3B() {
           ))}
         </select>
         <select
+          value={filtroEsperada}
+          onChange={(e) => setFiltroEsperada(e.target.value)}
+          aria-label="Filtrar por esperada"
+          className="h-11 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground"
+        >
+          <option value="">Esperada: Todas</option>
+          <option value="aprobada">Esperada: aprobada</option>
+          <option value="rechazada">Esperada: rechazada</option>
+          <option value="revision_manual">Esperada: revision_manual</option>
+        </select>
+        <select
           value={filtroMotor}
           onChange={(e) => setFiltroMotor(e.target.value)}
-          aria-label="Filtrar por decisión"
-          className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          aria-label="Filtrar por motor"
+          className="h-11 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground"
         >
-          <option value="">Todas las decisiones</option>
-          <option value="aprobada">aprobada</option>
-          <option value="rechazada">rechazada</option>
-          <option value="revision_manual">revision_manual</option>
+          <option value="">Motor: Todas</option>
+          <option value="aprobada">Motor: aprobada</option>
+          <option value="rechazada">Motor: rechazada</option>
+          <option value="revision_manual">Motor: revision_manual</option>
         </select>
+        <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-semibold text-foreground">
+          <input
+            type="checkbox"
+            checked={soloErrores}
+            onChange={(e) => setSoloErrores(e.target.checked)}
+          />
+          Solo errores
+        </label>
         <Button
           type="button"
-          variant={soloErrores ? "destructive" : "outline"}
-          onClick={() => setSoloErrores((s) => !s)}
+          variant={soloFp ? "destructive" : "outline"}
+          onClick={() => setSoloFp((v) => !v)}
         >
-          Solo discrepancias
+          Aprobadas falsas
         </Button>
-        <Button type="button" variant="outline" onClick={exportarCsv}>
+        <Button
+          type="button"
+          variant={soloFn ? "destructive" : "outline"}
+          onClick={() => setSoloFn((v) => !v)}
+        >
+          Válidas rechazadas
+        </Button>
+        <Button type="button" onClick={exportarCsv}>
           <Download className="size-4" />
           Exportar CSV
+        </Button>
+        <Button type="button" variant="outline" onClick={limpiarFiltros}>
+          Limpiar
         </Button>
       </div>
 
@@ -910,7 +1230,7 @@ export function ConsolaValidat3B() {
 
             <Card className="border border-border shadow-none">
               <CardHeader>
-                <CardTitle className="text-base font-bold">Capturas por tienda</CardTitle>
+                <CardTitle className="text-base font-bold">Capturas por cadena competidora</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {metricas.tiendasOrdenadas.map(([st, count]) => (
@@ -935,7 +1255,7 @@ export function ConsolaValidat3B() {
 
             <Card className="border border-border shadow-none">
               <CardHeader>
-                <CardTitle className="text-base font-bold">Motivos detectados (reason_code)</CardTitle>
+                <CardTitle className="text-base font-bold">Motivos de rechazo / alerta (reason_code)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {metricas.motivosOrdenados.length ? (
@@ -971,7 +1291,7 @@ export function ConsolaValidat3B() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-heading text-base font-bold">
-                Cola de revisión manual: {colaManual.length ? `${(hitlIdx % colaManual.length) + 1} de ${colaManual.length}` : "0"}
+                Caso {colaManual.length ? `${(hitlIdx % colaManual.length) + 1} de ${colaManual.length}` : "0"} en cola
               </span>
               {casoActual && (
                 <span className="font-mono text-sm text-text-tertiary">
@@ -992,7 +1312,7 @@ export function ConsolaValidat3B() {
                 onClick={() => setHitlIdx((i) => (i > 0 ? i - 1 : 0))}
                 disabled={!colaManual.length}
               >
-                Anterior
+                ← Anterior
               </Button>
               <Button
                 type="button"
@@ -1000,7 +1320,7 @@ export function ConsolaValidat3B() {
                 onClick={() => setHitlIdx((i) => i + 1)}
                 disabled={!colaManual.length}
               >
-                Siguiente (S)
+                Siguiente (S) →
               </Button>
             </div>
           </div>
@@ -1009,7 +1329,7 @@ export function ConsolaValidat3B() {
             <div className="rounded-lg border border-border p-8 text-center">
               <p className="text-base font-semibold text-foreground">No hay capturas en revisión manual</p>
               <p className="mt-1 text-sm text-text-tertiary">
-                Ajusta los filtros superiores o carga una carpeta de datos para inspeccionar casos.
+                Ajusta los filtros superiores o carga tu lote en la pestaña 4. Cargar set ciego.
               </p>
             </div>
           ) : (
@@ -1070,7 +1390,7 @@ export function ConsolaValidat3B() {
                         ) : (
                           <div className="flex h-56 flex-col items-center justify-center rounded-md border border-dashed border-border bg-surface-2 p-4 text-center text-xs text-text-muted">
                             <ImagePlus className="mb-2 size-6" />
-                            <span>Sube la carpeta local de imágenes en la pestaña 4 para ver la foto aquí.</span>
+                            <span>Sube las imágenes o el .zip en la pestaña 4 para ver la foto aquí.</span>
                           </div>
                         )}
                       </CardContent>
@@ -1082,57 +1402,65 @@ export function ConsolaValidat3B() {
               <Card className="border border-border shadow-none">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <ChipDecision decision={casoActual.motor} />
+                    <ChipDecision decision={casoActual.motor} fallbackLabel="sin veredicto" />
                     <span className="font-mono text-xs text-text-muted">
-                      Conf: {casoActual.confidence !== null ? casoActual.confidence.toFixed(2) : "—"}
+                      Confianza: {casoActual.confidence !== null ? casoActual.confidence.toFixed(2) : "—"} · Riesgo evitar FP: 10 pts
                     </span>
                   </div>
-                  <CardTitle className="pt-2 text-base font-bold">
-                    {casoActual.brand} — {casoActual.product_name}
-                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="rounded-md border border-border bg-surface-2 p-3 text-sm">
-                    <p className="font-semibold text-foreground">
-                      Motivo: <span className="font-mono">{casoActual.reason_code || "Sin código"}</span>
-                    </p>
-                    <p className="mt-1 text-text-secondary">
-                      {casoActual.explicacion || "Caso escalado para evitar falso positivo (1 pt vs 10 pts)."}
-                    </p>
-                  </div>
-
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Campo</TableHead>
                         <TableHead>Esperado</TableHead>
-                        <TableHead>Leído</TableHead>
+                        <TableHead>Leído por modelo</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow>
                         <TableCell>Marca</TableCell>
                         <TableCell>{casoActual.brand}</TableCell>
-                        <TableCell>{casoActual.leido_marca || "—"}</TableCell>
+                        <TableCell className={diffCampoCls(casoActual.brand, casoActual.leido_marca, "marca")}>
+                          {casoActual.leido_marca || "—"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Producto</TableCell>
+                        <TableCell>{casoActual.product_name}</TableCell>
+                        <TableCell className={diffCampoCls(casoActual.product_name, casoActual.leido_desc, "producto")}>
+                          {casoActual.leido_desc || "—"}
+                        </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Contenido</TableCell>
-                        <TableCell>
-                          {casoActual.qty} {casoActual.unit}
-                        </TableCell>
-                        <TableCell>
-                          {casoActual.leido_cant ? `${casoActual.leido_cant} ${casoActual.leido_unid}` : "—"}
+                        <TableCell>{fmtCont(casoActual.qty, casoActual.unit)}</TableCell>
+                        <TableCell
+                          className={diffCampoCls(
+                            fmtCont(casoActual.qty, casoActual.unit),
+                            fmtCont(casoActual.leido_cant, casoActual.leido_unid),
+                            "contenido"
+                          )}
+                        >
+                          {fmtCont(casoActual.leido_cant, casoActual.leido_unid)}
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Precio</TableCell>
-                        <TableCell className="font-mono">${casoActual.price_ref}</TableCell>
-                        <TableCell className="font-mono">
-                          {casoActual.precio_detectado !== null ? `$${casoActual.precio_detectado}` : "—"}
+                        <TableCell className="font-mono">{fmtPrecio(casoActual.price_ref)}</TableCell>
+                        <TableCell
+                          className={`font-mono ${diffCampoCls(casoActual.price_ref, casoActual.precio_detectado, "precio")}`}
+                        >
+                          {fmtPrecio(casoActual.precio_detectado)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
+
+                  <p className="text-sm text-text-secondary">
+                    <strong className="text-foreground">Motivo / Explicación:</strong>{" "}
+                    {casoActual.reason_code || "—"} — {casoActual.explicacion || "Sin explicación"}
+                  </p>
 
                   <div className="flex flex-wrap gap-2 pt-2">
                     <Button
@@ -1153,7 +1481,7 @@ export function ConsolaValidat3B() {
                     </Button>
                     <Button type="button" variant="outline" onClick={() => abrirJson(casoActual)}>
                       <FileJson className="size-4" />
-                      JSON
+                      Ver JSON oficial
                     </Button>
                   </div>
                 </CardContent>
@@ -1163,47 +1491,45 @@ export function ConsolaValidat3B() {
         </div>
       )}
 
-      {/* MÓDULO 3: EXPLORADOR DE AUDITORÍA */}
+      {/* MÓDULO 3: EXPLORADOR AUDITORÍA (Versión original de tarjetas con 3 fotos + tabla Esperado/Leído + chips Esp/Mot) */}
       {!cargando && tab === "auditoria" && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-secondary">
-              {filtrados.length} registros en auditoría
-            </p>
-            <div className="flex gap-2">
+            <span className="text-sm font-bold text-foreground">
+              {filtrados.length} de {registros.length} capturas
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant={viewMode === "table" ? "secondary" : "outline"}
-                className={viewMode === "table" ? "border-foreground font-semibold" : undefined}
-                onClick={() => setViewMode("table")}
-              >
-                Tabla compacta (52 px)
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === "cards" ? "secondary" : "outline"}
-                className={viewMode === "cards" ? "border-foreground font-semibold" : undefined}
+                variant={viewMode === "cards" ? "destructive" : "outline"}
                 onClick={() => setViewMode("cards")}
               >
-                Tarjetas
+                Vista tarjetas
               </Button>
+              <Button
+                type="button"
+                variant={viewMode === "table" ? "destructive" : "outline"}
+                onClick={() => setViewMode("table")}
+              >
+                Vista tabla (52 px)
+              </Button>
+              <select
+                value={orden}
+                onChange={(e) => setOrden(e.target.value as OrdenId)}
+                aria-label="Ordenar"
+                className="h-11 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground"
+              >
+                <option value="original">Orden: Original</option>
+                <option value="costo-desc">Mayor costo primero</option>
+                <option value="costo-asc">Menor costo primero</option>
+              </select>
             </div>
           </div>
 
           {!filtrados.length ? (
             <div className="rounded-lg border border-border p-8 text-center">
-              <p className="font-semibold">No hay registros que coincidan con la búsqueda</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-3"
-                onClick={() => {
-                  setQuery("");
-                  setFiltroTienda("");
-                  setFiltroMotor("");
-                  setSoloErrores(false);
-                }}
-              >
+              <p className="font-semibold">Ninguna captura coincide con los filtros.</p>
+              <Button type="button" variant="outline" className="mt-3" onClick={limpiarFiltros}>
                 Limpiar filtros
               </Button>
             </div>
@@ -1213,34 +1539,42 @@ export function ConsolaValidat3B() {
                 <TableHeader>
                   <TableRow className="bg-surface-2">
                     <TableHead>ID</TableHead>
-                    <TableHead>Tienda</TableHead>
+                    <TableHead>Cadena</TableHead>
                     <TableHead>Producto</TableHead>
-                    <TableHead>Precio esp. / det.</TableHead>
-                    <TableHead>Decisión motor</TableHead>
+                    <TableHead>Precio Esp/Det</TableHead>
+                    <TableHead>Esperada</TableHead>
+                    <TableHead>Motor</TableHead>
                     <TableHead>Motivo</TableHead>
-                    <TableHead className="text-right">JSON</TableHead>
+                    <TableHead>Costo</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtrados.map((r) => (
                     <TableRow key={r.capture_id} className="h-[52px]">
-                      <TableCell className="font-mono font-semibold">{r.capture_id}</TableCell>
+                      <TableCell className="font-mono font-bold">{r.capture_id}</TableCell>
                       <TableCell>{r.store}</TableCell>
                       <TableCell className="max-w-xs truncate" title={`${r.brand} — ${r.product_name}`}>
                         {r.brand} — {r.product_name}
                       </TableCell>
                       <TableCell className="font-mono tabular-nums">
-                        ${r.price_ref} / {r.precio_detectado !== null ? `$${r.precio_detectado}` : "—"}
+                        {fmtPrecio(r.price_ref)} / {fmtPrecio(r.precio_detectado)}
                       </TableCell>
                       <TableCell>
-                        <ChipDecision decision={r.motor} />
+                        <ChipDecision decision={r.esperada} fallbackLabel="ciego" />
+                      </TableCell>
+                      <TableCell>
+                        {r.motor ? <ChipDecision decision={r.motor} /> : "—"}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-text-tertiary">
                         {r.reason_code || "—"}
                       </TableCell>
+                      <TableCell className="font-mono tabular-nums">
+                        {r.costo !== null ? `${r.costo} pts` : "—"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button type="button" variant="outline" onClick={() => abrirJson(r)}>
-                          Ver JSON
+                          JSON
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1250,127 +1584,384 @@ export function ConsolaValidat3B() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filtrados.map((r) => (
-                <Card key={r.capture_id} className="border border-border shadow-none">
-                  <CardHeader className="pb-2">
+              {filtrados.map((r) => {
+                const esError = Boolean(r.esperada && r.motor && r.esperada !== r.motor);
+                const espCont = fmtCont(r.qty, r.unit);
+                const leidoCont = fmtCont(r.leido_cant, r.leido_unid);
+                return (
+                  <article
+                    key={r.capture_id}
+                    className={`flex flex-col gap-2.5 rounded-lg border bg-background p-3.5 ${
+                      esError ? "border-danger" : "border-border"
+                    }`}
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm font-bold">{r.capture_id}</span>
-                      <ChipDecision decision={r.motor} />
+                      <span className="font-mono text-sm">
+                        <strong>{r.capture_id}</strong> · {r.store}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => abrirJson(r)}
+                        className="min-h-8 cursor-pointer rounded-md border border-border bg-background px-2.5 text-xs font-semibold text-foreground hover:bg-surface-2"
+                      >
+                        JSON · {r.costo !== null ? `${r.costo} pts` : "—"}
+                      </button>
                     </div>
-                    <CardTitle className="text-sm font-semibold">
-                      {r.brand} — {r.product_name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm">
-                    <p className="text-text-tertiary">
-                      {r.store} · Ref ${r.price_ref} · Det{" "}
-                      {r.precio_detectado !== null ? `$${r.precio_detectado}` : "—"}
-                    </p>
-                    <p className="text-xs text-text-secondary">{r.explicacion || "Sin explicación"}</p>
-                    <Button type="button" variant="outline" className="w-full" onClick={() => abrirJson(r)}>
-                      <FileJson className="size-4" />
-                      Inspeccionar JSON oficial
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(
+                        [
+                          ["Fachada", r.img_facade],
+                          ["Producto", r.img_product],
+                          ["Etiqueta", r.img_shelf],
+                        ] as const
+                      ).map(([lbl, src]) =>
+                        src ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={lbl}
+                            src={src}
+                            alt={lbl}
+                            loading="lazy"
+                            onClick={() => setFotoModal({ label: `${lbl} · ${r.capture_id}`, src })}
+                            className="h-[92px] w-full cursor-zoom-in rounded-md border border-border bg-surface-2 object-cover"
+                          />
+                        ) : (
+                          <div
+                            key={lbl}
+                            className="flex h-[92px] items-center justify-center rounded-md border border-border bg-surface-2 text-xs text-text-muted"
+                          >
+                            {lbl}
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-border bg-surface-2 text-left font-semibold text-text-secondary">
+                          <th className="px-2 py-1.5">Campo</th>
+                          <th className="px-2 py-1.5">Esperado</th>
+                          <th className="px-2 py-1.5">Leído</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border">
+                          <td className="px-2 py-1.5">Marca</td>
+                          <td className="px-2 py-1.5">{r.brand}</td>
+                          <td className={`px-2 py-1.5 ${diffCampoCls(r.brand, r.leido_marca, "marca")}`}>
+                            {r.leido_marca || "—"}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="px-2 py-1.5">Producto</td>
+                          <td className="px-2 py-1.5">{r.product_name}</td>
+                          <td className={`px-2 py-1.5 ${diffCampoCls(r.product_name, r.leido_desc, "producto")}`}>
+                            {r.leido_desc || "—"}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="px-2 py-1.5">Contenido</td>
+                          <td className="px-2 py-1.5">{espCont}</td>
+                          <td className={`px-2 py-1.5 ${diffCampoCls(espCont, leidoCont, "contenido")}`}>
+                            {leidoCont}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="px-2 py-1.5">Precio</td>
+                          <td className="px-2 py-1.5">{fmtPrecio(r.price_ref)}</td>
+                          <td className={`px-2 py-1.5 ${diffCampoCls(r.price_ref, r.precio_detectado, "precio")}`}>
+                            {fmtPrecio(r.precio_detectado)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        Esp: <ChipDecision decision={r.esperada} fallbackLabel="ciego" />
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        Mot: {r.motor ? <ChipDecision decision={r.motor} /> : "—"}
+                      </span>
+                    </div>
+
+                    {r.explicacion && (
+                      <div className="text-xs leading-relaxed text-text-secondary">{r.explicacion}</div>
+                    )}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* MÓDULO 4: CARGAR SET CIEGO / SIMULADOR EN VIVO */}
+      {/* MÓDULO 4: CARGAR SET CIEGO (Zona Única Inteligente + Checklist + Fusión incremental) */}
       {!cargando && tab === "ingesta" && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="border border-dashed border-border bg-surface-2 shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base font-bold">
-                <FolderUp className="size-5 text-primary" />
-                1. Cargar carpeta del Set Ciego o datos locales
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-text-secondary">
-              <p>
-                Selecciona la carpeta descomprimida del set ciego (detecta{" "}
-                <span className="font-mono">capturas.csv</span>, <span className="font-mono">capturas.json</span>,{" "}
-                <span className="font-mono">resultados.json</span> y las fotos locales sin subir nada a internet).
-              </p>
-              <input
-                type="file"
-                // @ts-expect-error webkitdirectory es soportado por navegadores Chromium/Edge/Firefox
-                webkitdirectory=""
-                multiple
-                onChange={(e) => manejarCarpeta(e.target.files)}
-                className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2.5 text-sm"
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-border bg-surface-2 shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base font-bold">2. Cargar archivo CSV o JSON suelto</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-text-secondary">
-              <div className="min-w-0">
-                <label className="mb-1 block font-medium text-foreground">Archivo CSV (capturas.csv)</label>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => manejarCsv(e.target.files?.[0] || null)}
-                  className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
-                />
-              </div>
-              <div className="min-w-0">
-                <label className="mb-1 block font-medium text-foreground">
-                  Archivo JSON (resultados.json o capturas.json)
-                </label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={(e) => manejarJson(e.target.files?.[0] || null)}
-                  className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-border shadow-none md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base font-bold">3. Simulador rápido de 3 fotos en vivo</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-4 md:items-end">
-              <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium">Foto de fachada</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSimFiles((s) => ({ ...s, facade: e.target.files?.[0] }))}
-                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
-                />
-              </div>
-              <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium">Foto del producto</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSimFiles((s) => ({ ...s, product: e.target.files?.[0] }))}
-                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
-                />
-              </div>
-              <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium">Foto de etiqueta</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSimFiles((s) => ({ ...s, shelf: e.target.files?.[0] }))}
-                  className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
-                />
-              </div>
-              <Button type="button" onClick={agregarCapturaSimulada} className="w-full">
-                Abrir en Cola de Revisión
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <strong className="text-sm font-bold">Estado del lote activo:</strong>
+              <Button type="button" variant="outline" onClick={limpiarLoteParaSubir}>
+                Nuevo lote vacío
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+            <Button type="button" onClick={() => setTab("auditoria")}>
+              Ver en 3. Explorador auditoría →
+            </Button>
+          </div>
+
+          {/* Checklist de 4 pasos en vivo */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div
+              className={`rounded-lg border p-3 ${
+                estadoIngesta.total > 0 ? "border-success bg-success-bg" : "border-border bg-background"
+              }`}
+            >
+              <span
+                className={`block text-xs font-bold uppercase ${
+                  estadoIngesta.total > 0 ? "text-success" : "text-text-secondary"
+                }`}
+              >
+                1. Padrón (capturas.csv)
+              </span>
+              <span className="mt-1 block text-sm font-bold text-foreground">
+                {estadoIngesta.total > 0 ? `${estadoIngesta.total} capturas cargadas` : "Pendiente de subir"}
+              </span>
+            </div>
+
+            <div
+              className={`rounded-lg border p-3 ${
+                estadoIngesta.total > 0 && estadoIngesta.conFotos === estadoIngesta.total
+                  ? "border-success bg-success-bg"
+                  : "border-border bg-background"
+              }`}
+            >
+              <span
+                className={`block text-xs font-bold uppercase ${
+                  estadoIngesta.total > 0 && estadoIngesta.conFotos === estadoIngesta.total
+                    ? "text-success"
+                    : "text-text-secondary"
+                }`}
+              >
+                2. Fotografías (3 por captura)
+              </span>
+              <span className="mt-1 block text-sm font-bold text-foreground">
+                {estadoIngesta.total > 0
+                  ? `${estadoIngesta.conFotos} de ${estadoIngesta.total} con 3 fotos`
+                  : "Pendiente de subir"}
+              </span>
+            </div>
+
+            <div
+              className={`rounded-lg border p-3 ${
+                estadoIngesta.total > 0 && estadoIngesta.conRes === estadoIngesta.total
+                  ? "border-success bg-success-bg"
+                  : "border-border bg-background"
+              }`}
+            >
+              <span
+                className={`block text-xs font-bold uppercase ${
+                  estadoIngesta.total > 0 && estadoIngesta.conRes === estadoIngesta.total
+                    ? "text-success"
+                    : "text-text-secondary"
+                }`}
+              >
+                3. Veredictos (resultados.json)
+              </span>
+              <span className="mt-1 block text-sm font-bold text-foreground">
+                {estadoIngesta.total > 0
+                  ? `${estadoIngesta.conRes} de ${estadoIngesta.total} con decisión`
+                  : "Pendiente de subir"}
+              </span>
+            </div>
+
+            <div
+              className={`rounded-lg border p-3 ${
+                estadoIngesta.total > 0 && estadoIngesta.conExt > 0
+                  ? "border-success bg-success-bg"
+                  : "border-border bg-background"
+              }`}
+            >
+              <span
+                className={`block text-xs font-bold uppercase ${
+                  estadoIngesta.total > 0 && estadoIngesta.conExt > 0 ? "text-success" : "text-text-secondary"
+                }`}
+              >
+                4. Lecturas (extracciones.json)
+              </span>
+              <span className="mt-1 block text-sm font-bold text-foreground">
+                {estadoIngesta.total > 0
+                  ? `${estadoIngesta.conExt} con lectura${tokensPromedio ? ` · ${tokensPromedio} tok` : ""}`
+                  : "Pendiente de subir"}
+              </span>
+            </div>
+          </div>
+
+          {/* Zona Única Inteligente (Drag & Drop + ZIP / Carpeta / Archivos) */}
+          <div
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              if (e.dataTransfer?.files?.length) {
+                void procesarArchivosUnificados(e.dataTransfer.files);
+              }
+            }}
+            className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+              dragOver ? "border-primary bg-danger-bg" : "border-input bg-surface-2"
+            }`}
+          >
+            <Upload className="size-6 text-primary" />
+            <p className="text-base font-bold text-foreground">
+              Carga rápida unificada (Arrastra y suelta aquí todo tu lote)
+            </p>
+            <p className="max-w-2xl text-sm text-text-secondary">
+              Suelta de una sola vez o en pasos tus archivos <span className="font-mono">.zip</span> (como{" "}
+              <span className="font-mono">Validat3B_evaluacion_imagenes.zip</span> y{" "}
+              <span className="font-mono">Validat3B_evaluacion_metadatos.zip</span>), carpetas,{" "}
+              <span className="font-mono">capturas.csv</span>, <span className="font-mono">resultados.json</span>,{" "}
+              <span className="font-mono">extracciones.json</span> o fotos sueltas. Todo se combina sin borrar lo que ya
+              subiste.
+            </p>
+            <div className="mt-1 flex flex-wrap justify-center gap-3">
+              <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+                Seleccionar archivos (.zip, .csv, .json, fotos)
+                <input
+                  type="file"
+                  multiple
+                  accept=".zip,.csv,.json,image/*"
+                  onChange={(e) => void procesarArchivosUnificados(e.target.files)}
+                  className="hidden"
+                />
+              </label>
+              <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-semibold text-foreground hover:bg-surface-2">
+                <FolderUp className="size-4" />
+                Seleccionar carpeta completa
+                <input
+                  type="file"
+                  // @ts-expect-error webkitdirectory soportado en navegadores modernos
+                  webkitdirectory=""
+                  multiple
+                  onChange={(e) => void procesarArchivosUnificados(e.target.files)}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          <details className="rounded-lg border border-border bg-background p-4">
+            <summary className="cursor-pointer text-sm font-bold text-text-secondary">
+              Opciones avanzadas: subir archivos por separado o probar 3 fotos sueltas en vivo
+            </summary>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Card className="border border-dashed border-border bg-surface-2 shadow-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base font-bold">
+                    <FolderUp className="size-5 text-primary" />
+                    1. Subir carpeta completa del Set Ciego
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-text-secondary">
+                  <p>
+                    Detecta automáticamente <span className="font-mono">capturas.csv</span>,{" "}
+                    <span className="font-mono">resultados.json</span>,{" "}
+                    <span className="font-mono">extracciones.json</span> y fotos locales.
+                  </p>
+                  <input
+                    type="file"
+                    // @ts-expect-error webkitdirectory es soportado por navegadores Chromium/Edge/Firefox
+                    webkitdirectory=""
+                    multiple
+                    onChange={(e) => void procesarArchivosUnificados(e.target.files)}
+                    className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2.5 text-sm"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="border border-border bg-surface-2 shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-base font-bold">2. Subir CSV, JSON o ZIP individual</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-text-secondary">
+                  <div className="min-w-0">
+                    <label className="mb-1 block font-medium text-foreground">
+                      Archivo CSV o ZIP (capturas.csv / tokens.csv)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv,.zip"
+                      multiple
+                      onChange={(e) => void procesarArchivosUnificados(e.target.files)}
+                      className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="mb-1 block font-medium text-foreground">
+                      Archivo JSON (resultados.json / extracciones.json)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".json,.zip"
+                      multiple
+                      onChange={(e) => void procesarArchivosUnificados(e.target.files)}
+                      className="block min-h-11 w-full max-w-full cursor-pointer overflow-hidden rounded-md border border-input bg-background p-2 text-sm"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-border shadow-none md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base font-bold">3. Probar 3 fotos sueltas en vivo</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-4 md:items-end">
+                  <div className="min-w-0">
+                    <label className="mb-1 block text-sm font-medium">Foto de fachada</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSimFiles((s) => ({ ...s, facade: e.target.files?.[0] }))}
+                      className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="mb-1 block text-sm font-medium">Foto del producto</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSimFiles((s) => ({ ...s, product: e.target.files?.[0] }))}
+                      className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="mb-1 block text-sm font-medium">Foto de etiqueta</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSimFiles((s) => ({ ...s, shelf: e.target.files?.[0] }))}
+                      className="block min-h-11 w-full max-w-full overflow-hidden rounded-md border border-input bg-input-bg p-2 text-sm"
+                    />
+                  </div>
+                  <Button type="button" onClick={agregarCapturaSimulada} className="w-full">
+                    Cargar captura al explorador
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </details>
         </div>
       )}
 
