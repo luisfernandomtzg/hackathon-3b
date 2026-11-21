@@ -1,9 +1,25 @@
 # Contexto vigente — Hackathon Tiendas 3B
 
 > Una página. Se actualiza al cerrar **cada fase**. Fuente: copia del proyecto de claude.ai; espejos en `documentacion/` y en `repo/docs/`.
-> Última actualización: **2026-11-21 14:41 · S005 (en curso)** · siguiente **S006 si hace falta (set ciego y pitch)**.
+> Última actualización: **2026-11-21 15:58 · S005 (cierre)** · siguiente **S006 si hace falta (set ciego y pitch)**.
 
-## 🟢 S005 en curso — estado y relevo (escrito 2026-11-21 13:43; lo confirma S005 al cerrar)
+## 🟢 Cierre de S005 — estado final y relevo (escrito 2026-11-21 15:58)
+
+**Si abres sesión nueva:** `S006 3B. Lee el prompt inicial` → instrucciones → este bloque. Lo de abajo es historia.
+
+- **Set ciego corrido y validado** `[MEDIDO 15:16 por el arquitecto]`: `repo\entrega\ciego\resultados.json` (26 KB) · 50 resultados, 50 `capture_id` únicos e iguales a los del `capturas.csv` ciego · 8 campos en todos · **7 aprobadas · 23 rechazadas · 20 revisión manual** · 0 errores · VALIDACIÓN OK · **147,452 tokens en 67 llamadas, 2,949 por captura, 46.7 s**. Códigos: CAPTURA_LEJANA 16 · DESCRIPCION_INCOMPLETA 6 · CAPTURA_BORROSA 1 · ETIQUETA_NO_CORRESPONDE 2 (rev.) · PRODUCTO_NO_COINCIDE 2 (rev.) · sin código 23. Las 7 aprobadas: precio leído = precio del promotor, dentro del rango del catálogo, y código de barras leído = catálogo = promotor, 7 de 7 `[MEDIDO 15:20 contra los metadatos; el arquitecto no abrió las fotos ciegas]`.
+- **Entrega:** un solo archivo, `resultados.json`, por correo a `ver@tiendas3b.com` y `dcov@tiendas3b.com` con el nombre del equipo en el asunto, antes de las **16:50**. **Lo envía Fer. A las 15:58 NO estaba enviado.** Vía de entrega de la ficha y del código: **no verificada** (preguntar a un organizador). Ficha: `docs/entrega/ficha-tecnica.pdf`. Código: `main`, instrucciones en `README.md`.
+- **Motor final = `c8c5f61`** (v3 + N8 + fachada). La fachada (`fachada.py`) se midió en `salidas/sp14`: idéntico a sp13 captura por captura (16 aprobadas · 0 falsas · 84/27), 6 llamadas nuevas. **Cifras del pitch = sp13**, sin cambio. `main` = `eebc420` (merge del PR #35 de Alan: guion y cifras mencionan la fachada; aprobado, solo `docs/pitch/`) `[MEDIDO 15:40 en GitHub]`.
+- **Dos corridas del ciego en el equipo:** Sergio corrió por su lado (PR #18: 2 aprobadas · 20 rechazadas · 28 revisión · 1,913 tokens). **Se manda la de `repo\entrega\ciego\`** (motor final). El PR #18 aparece cerrado; no se verificó si se integró.
+- **Juego limpio:** no se cambió ninguna regla ni se volvió a correr después de ver el ciego. 3B autorizó (dicho por Fer 15:20) validar con medios automáticos: quedó `repo\salidas\validacion-ocr\validar_ocr.py` (OCR local, cero tokens, carpeta ignorada por git), lanzado en Code 15:23; **resultado no recibido al cierre**. Es prueba interna: no cambia la entrega.
+- **S2 anotados, no se arreglan hoy:** explicación «muy lejos» con letrero al 25–35 % · 16 de revisión con `reason_code` nulo · la regla 7a decide con la palabra «total» de su propio texto · los 3,192 tokens de desarrollo no incluyen las 6 llamadas de fachada · rechazos por producto distinto salen como `CAPTURA_LEJANA`.
+- **Rama alterna `alt/campo-app`** (`cbdff5d`, idea de Mau): no va a `main`, sin PR. Regla de firewall «Validat3B campo» (puerto 8443) sigue en la laptop de Fer: `Remove-NetFirewallRule -DisplayName "Validat3B campo"`.
+- **Limpieza pendiente:** archivos de desarrollo duplicados sueltos en la raíz de `repo\datos\privado\`.
+- **No verificado:** que el correo salió · precisión en el ciego (la mide 3B) · resultado del OCR · video de respaldo · que Alan ensayó con el guion de #35 · que `repo-docs` local ya tiene `eebc420` (lo trae el bloque de git de cierre).
+- **Regla de sesiones (Fer, 10:33 · rige todo el día):** **una sesión de claude.ai por sprint del equipo, no por tarea.** La sesión audita e integra las entregas de ese sprint y escribe la misión siguiente de Fer; cuando el sprint cierra se cierra con el **protocolo completo** de §4: relevo aquí (carpeta `documentacion/` + `repo/docs/` + copia del proyecto, verificado por contenido), `ESTADO` de cada carril tocado, bloque de git flanqueado por `git status --short` y la línea «Abre S00N+1 con: `S00N+1 3B. Lee el prompt inicial`». **Todo relevo nuevo copia esta regla tal cual.**
+- **Primera acción de la sesión siguiente:** medir que el bloque de git de cierre corrió (`git log --oneline -3` en `repo-docs`: commit «docs: cierre de S005» encima de `eebc420`) y confirmar con Fer que el correo salió antes de las 16:50.
+
+## S005 en curso (histórico) — estado y relevo (escrito 2026-11-21 13:43; lo confirma S005 al cerrar)
 
 **Si abres sesión nueva:** `S006 3B. Lee el prompt inicial` → instrucciones → este bloque. Lo de abajo es historia.
 

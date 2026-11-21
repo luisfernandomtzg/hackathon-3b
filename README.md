@@ -15,11 +15,18 @@ explicación en español. El modelo solo **lee**; las decisiones las toman regla
    sin letrero cerca y nítido no se aprueba.
 4. **Compuertas** (`compuerta.py`): código de barras que no coincide o etiqueta poco nítida → revisión.
 5. **Consenso** (`consenso.py`): solo se aprueba si tres lecturas independientes coinciden.
+6. **Fachada** (`fachada.py`): solo en las que se van a aprobar, una lectura del letrero de la tienda; si contradice la
+   cadena registrada, la captura baja a revisión.
 
 ## Resultado medido (100 capturas de desarrollo)
 
 16 aprobadas · 0 aprobadas falsas · costo operativo 84 (pesimista) / 27 (optimista) contra 100 / 67 de revisar todo ·
 55 de 100 sin persona · 3,192 tokens por captura · JSON válido 100 de 100. Fuentes en `docs/pitch/cifras.md`.
+
+## Corrida del set ciego (50 capturas, 21-nov-2026 15:11)
+
+50 de 50 resultados con formato válido · 7 aprobadas · 23 rechazadas · 20 a revisión manual · 2,949 tokens por captura
+(147,452 en 67 llamadas) · 46.7 segundos. El set ciego no trae etiquetas: su precisión la mide 3B, no el equipo.
 
 ## Instalar
 
@@ -53,7 +60,7 @@ Prueba de humo sin gastar tokens: agrega `--sin-modelo` a `correr`. Pruebas: `py
 ## Qué hay en el repositorio
 
 - `ml/validat3b/` — el motor (Python). Es lo que se entrega.
-- `docs/entrega/ficha-tecnica.html` — ficha técnica de una página.
+- `docs/entrega/ficha-tecnica.pdf` (y `.html`) — ficha técnica de una página.
 - `docs/pitch/` — guion, láminas y tabla de cifras con su fuente.
 - `app/`, `components/`, `lib/`, `supabase/` — andamiaje web previo al evento (Next.js). **No forma parte del motor** ni de la demo.
 

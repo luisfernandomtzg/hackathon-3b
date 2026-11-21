@@ -1,14 +1,14 @@
 # Misiones — carril INTEGRADOR
 
-## ESTADO · 2026-11-21 14:46
-Carril integrador · dueño Fer (Claude Code) · misiones 14 · hechas 12 · siguiente **I11**
-Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~ ~~I9~~ ~~I10~~ (descartada) → **I11**
-siguiente: **I11** — BLOQUEADA hasta que Fer pegue en el chat cómo llegó el set ciego y la lista oficial de reason_code (15:00–16:00); el arquitecto ajusta `mapa_codigos.json` y sube el sello
-Última auditoría: sp11–sp13 (fuera de cola, corridas de Code) → Aprobado ([MEDIDO 14:44 por el arquitecto: `salidas/sp13/pitch.html` en navegador, 0 falsas · 16 aprobadas · 55 de 100 · 84/27 · 3,192 tokens] · `main` = `e44e52e`)
-Qué cambió por esa auditoría: motor final = lectura v3 + N8; `APROBAR_REDACCION_DISTINTA = True` (decisión de Fer 14:45, recomendada por el arquitecto); I10 (consenso de 5) descartada
-Reescrituras de este documento: 17
-Siguiente con modelo: Sonnet 5.5 · esfuerzo medium (recomendado) · clasificación requiere compuerta
-Main: e44e52e [MEDIDO 14:43 en la terminal de Fer]
+## ESTADO · 2026-11-21 15:58
+Carril integrador · dueño Fer (Claude Code) · misiones 14 · hechas 13 · siguiente **NINGUNO**
+Cola: ~~I0~~ ~~I0.1~~ ~~I1~~ ~~I2~~ ~~I3~~ (Devuelto) ~~I3.1~~ ~~I4~~ ~~I5~~ ~~I6~~ ~~I7~~ ~~I8~~ ~~I9~~ ~~I10~~ (descartada) ~~I11~~
+siguiente: NINGUNO — el set ciego ya corrió y la entrega está validada; falta que Fer envíe `entrega/ciego/resultados.json` por correo antes de las 16:50
+Última auditoría: I11 → Aprobado ([MEDIDO 15:16 por el arquitecto sobre `repo/entrega/ciego/resultados.json`: 50 resultados · 50 `capture_id` únicos e iguales a los de `capturas.csv` · 8 campos en todos · 7 aprobadas · 23 rechazadas · 20 revisión · 0 errores · VALIDACIÓN OK · 147,452 tokens, 2,949 por captura]; paso A `salidas/sp14` idéntico a sp13 captura por captura: la fachada no cambió ninguna decisión en desarrollo)
+Qué cambió por esa auditoría: nada en el motor. Anotaciones S2: tres explicaciones dicen «muy lejos» con el letrero al 25–35 % del ancho (decide `encuadre`, el texto cita `ancho_pct`); 16 de revisión manual van con `reason_code` nulo; la orden se corrió pegada en Code con los pasos A y B, no con el texto de I11 de abajo (que quedó como historia)
+Reescrituras de este documento: 18
+Siguiente con modelo: no aplica
+Main: `eebc420` (merge del PR #35 de Alan) [MEDIDO 15:40 en GitHub]; motor = `c8c5f61`
 
 ---
 
