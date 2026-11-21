@@ -63,7 +63,8 @@ def sin_modelo(captura: Captura) -> Extraccion:
     return _vacia(captura.capture_id, "sin_modelo")
 
 
-def extraer(captura: Captura, dir_datos, cliente: Cliente | None = None) -> Extraccion:
+def extraer(captura: Captura, dir_datos, cliente: Cliente | None = None, variante: str = "") -> Extraccion:
+    """`variante` cambia la llave de caché: una segunda lectura independiente de la misma foto (consenso)."""
     rutas = [resolver_imagen(dir_datos, captura.product_file), resolver_imagen(dir_datos, captura.shelf_file)]
     if None in rutas:
         raise FileNotFoundError("falta la foto de producto o de etiqueta")
@@ -72,7 +73,7 @@ def extraer(captura: Captura, dir_datos, cliente: Cliente | None = None) -> Extr
     t_in = t_out = 0
     for intento in range(2):  # un reintento si el JSON no valida
         # el reintento cambia la versión para no leer del caché la misma respuesta mala
-        version = _VERSION if intento == 0 else _VERSION + "-r"
+        version = (_VERSION if intento == 0 else _VERSION + "-r") + variante
         texto, a, b, origen = cliente.consultar(captura.capture_id, version, PROMPT, imgs, max_tokens=400)
         t_in += a
         t_out += b

@@ -16,6 +16,7 @@ except ImportError:  # Núcleo aún no entrega decidir.py
 from .extraer import extraer, sin_modelo
 from .local import senales_locales
 from .compuerta import compuerta
+from .consenso import aplicar_consenso
 from .verificar import aplicar_verificacion
 
 COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda_fachada", "producto",
@@ -46,8 +47,9 @@ def _senales(captura: Captura, dir_datos) -> dict:
 
 
 def _cerrar(captura, ext, res, dir_datos, cliente, verificar):
-    """decidir() -> compuertas locales (sin tokens) -> verificador solo con --verificar."""
+    """decidir() -> compuertas locales -> consenso con 2ª lectura (solo aprobadas) -> verificador solo con --verificar."""
     res = compuerta(res, ext.senales, captura.capture_barcode)
+    res = aplicar_consenso(captura, ext, res, dir_datos, cliente, decidir)  # 2ª lectura solo a las aprobadas
     return aplicar_verificacion(captura, ext, res, dir_datos, cliente) if verificar else res
 
 
