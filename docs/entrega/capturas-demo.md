@@ -1,16 +1,17 @@
-# Capturas seleccionadas para el Pitch (U1 · tarea de espera)
+# Capturas seleccionadas para el Pitch (U4 · datos reales SP2)
 
-Selección de 3 capturas representativas para demostrar el flujo de decisión en `salidas/pitch.html`:
+Marcador actual (`salidas-sp2.zip`): **16 aprobadas · 14 correctas · 87.5% precisión · costo total 84 pts**.
 
-1. **`CAP-645667` — Aprobada clara**
-   - **Producto esperado:** Selecto Brand · Frijoles negros refritos · 400 g (Chedraui)
-   - **Por qué en el pitch:** Demuestra el caso ideal donde marca, descripción, contenido y etiqueta de precio son legibles y consistentes, aprobándose automáticamente con costo `0 pts`.
+## Candidatas por categoría (2 por cada una, todas aciertos)
 
-2. **`CAP-305088` — Rechazada evidente**
-   - **Producto esperado:** McCormick · Mostaza preparada · 220 g (Bara)
-   - **Motivo:** `Capturas borrosas`
-   - **Por qué en el pitch:** Demuestra cómo las señales locales sin tokens (nitidez) y la validación de evidencia frenan capturas ilegibles antes de contaminar el sistema de precios.
+### 1. Aprobada correcta
+- **`CAP-763258`** (Soriana · Precissimo · canela molida): lectura limpia de marca, producto, contenido y precio; aprobada con `0 pts`.
+- **`CAP-726347`** (Soriana · Precissimo · Harina para hot cakes 1000g): respaldo claro con empaque grande y etiqueta legible.
 
-3. **`CAP-350077` — Revisión manual interesante**
-   - **Producto esperado:** SOS · Arroz grano largo super extra · 1000 g (Walmart)
-   - **Por qué en el pitch:** Ilustra la zona de duda: en lugar de arriesgar un falso positivo (`10 pts` y riesgo de descalificación por `< 97%` precisión), el motor escala a `revision_manual` (`1 pt`) protegiendo la calidad del dato.
+### 2. Rechazada correcta (lejana / borrosa)
+- **`CAP-748989`** (Walmart · La Sierra · Frijol refrito bayo): rechazada correctamente como `CAPTURA_LEJANA` (coincide decisión y `reason_code`).
+- **`CAP-111555`** (Bodega Aurrera · Great Value · Pan para hamburguesa): captura lejana donde no se distingue el producto esperado.
+
+### 3. Revisión manual correcta
+- **`CAP-350077`** (Walmart · SOS · Arroz grano largo super extra 1000g): caso en zona de duda escalado a revisión manual (`1 pt`) para evitar falso positivo (`10 pts`).
+- **`CAP-975327`** (Walmart · Aurrera · Servilletas): segunda opción en revisión manual correcta.
