@@ -28,6 +28,7 @@ class Cliente:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.tokens_csv = self.dir / "tokens.csv"
         self._api = None
+        self.tokens_verificar = 0  # tokens gastados por el verificador en esta corrida
 
     def _cliente_api(self):
         if self._api is None:
@@ -55,13 +56,15 @@ class Cliente:
                     w.writerow(["capture_id", "tokens_entrada", "tokens_salida", "segundos", "origen"])
                 w.writerow([capture_id, t_in, t_out, round(seg, 2), origen])
 
-    def consultar(self, capture_id, prompt_version, prompt, imagenes_jpeg: list[bytes], max_tokens=400):
-        """Devuelve (texto, tokens_in, tokens_out, origen). Caché: tokens 0 y origen 'cache'."""
+    def consultar(self, capture_id, prompt_version, prompt, imagenes_jpeg: list[bytes], max_tokens=400,
+                  etiqueta=None):
+        """Devuelve (texto, tokens_in, tokens_out, origen). Caché: tokens 0 y origen 'cache'.
+        `etiqueta` rotula la fila de tokens.csv (p. ej. 'verificar'); el origen devuelto no cambia."""
         t0 = time.time()
         archivo = self.cache_dir / f"{self.clave(prompt_version, imagenes_jpeg)}.json"
         if archivo.exists():
             texto = json.loads(archivo.read_text(encoding="utf-8"))["texto"]
-            self._registrar(capture_id, 0, 0, time.time() - t0, "cache")
+            self._registrar(capture_id, 0, 0, time.time() - t0, (etiqueta + "_cache") if etiqueta else "cache")
             return texto, 0, 0, "cache"
 
         contenido = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
@@ -77,7 +80,10 @@ class Cliente:
                 t_in, t_out = r.usage.input_tokens, r.usage.output_tokens
                 archivo.write_text(json.dumps({"texto": texto, "tokens_entrada": t_in, "tokens_salida": t_out}),
                                    encoding="utf-8")
-                self._registrar(capture_id, t_in, t_out, time.time() - t0, "modelo")
+                if etiqueta == "verificar":
+                    with _lock:
+                        self.tokens_verificar += t_in + t_out
+                self._registrar(capture_id, t_in, t_out, time.time() - t0, etiqueta or "modelo")
                 return texto, t_in, t_out, "modelo"
             except Exception as e:  # reintenta solo 429/5xx y fallas de red
                 ultimo = e
