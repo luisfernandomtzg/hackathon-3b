@@ -15,6 +15,8 @@ except ImportError:  # Núcleo aún no entrega decidir.py
     from .decidir_provisional import decidir
 from .extraer import extraer, sin_modelo
 from .local import senales_locales
+from .compuerta import compuerta
+from .verificar import aplicar_verificacion
 
 COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda_fachada", "producto",
             "codigo_barras", "evidencia_precio", "precio_detectado", "codigo_barras_detectado", "explicacion"]
@@ -33,24 +35,32 @@ def _senales(captura: Captura, dir_datos) -> dict:
         return {}
 
 
-def redecidir(captura: Captura, ext: Extraccion, dir_datos):
+def _cerrar(captura, ext, res, dir_datos, cliente, verificar):
+    """decidir() -> compuertas locales (sin tokens) -> verificador solo con --verificar."""
+    res = compuerta(res, ext.senales, captura.capture_barcode)
+    return aplicar_verificacion(captura, ext, res, dir_datos, cliente) if verificar else res
+
+
+def redecidir(captura: Captura, ext: Extraccion, dir_datos, cliente=None, verificar=False):
     """Re-decide sobre una lectura guardada, sin endpoint. Calcula señales si faltan."""
     try:
         if not ext.senales:
             ext.senales = _senales(captura, dir_datos)
         res = Resultado.model_validate(decidir(captura, ext).model_dump())
+        res = _cerrar(captura, ext, res, dir_datos, cliente, verificar)
     except Exception as e:
         res = _respaldo(captura, f"{type(e).__name__}: {e}")
     return ext, res
 
 
-def procesar(captura: Captura, dir_datos, cliente, usar_modelo: bool):
+def procesar(captura: Captura, dir_datos, cliente, usar_modelo: bool, verificar=False):
     """Nunca lanza: cualquier falla deja la captura en revision_manual."""
     ext = None
     try:
         ext = extraer(captura, dir_datos, cliente) if usar_modelo else sin_modelo(captura)
         ext.senales = _senales(captura, dir_datos)
         res = Resultado.model_validate(decidir(captura, ext).model_dump())
+        res = _cerrar(captura, ext, res, dir_datos, cliente if usar_modelo else None, verificar)
     except Exception as e:
         res = _respaldo(captura, f"{type(e).__name__}: {e}")
     return ext, res
@@ -64,6 +74,7 @@ def main(argv=None):
     p.add_argument("--sin-modelo", action="store_true")
     p.add_argument("--hilos", type=int, default=4)
     p.add_argument("--mapa-codigos")
+    p.add_argument("--verificar", action="store_true", help="activa el verificador con modelo (apagado por omisión)")
     p.add_argument("--desde-extracciones", help="re-decide sobre extracciones.json sin llamar al endpoint")
     a = p.parse_args(argv)
 
@@ -80,12 +91,15 @@ def main(argv=None):
         guardadas = {e["capture_id"]: Extraccion.model_validate(e)
                      for e in json.loads(Path(a.desde_extracciones).read_text(encoding="utf-8"))}
         capturas = [c for c in capturas if c.capture_id in guardadas]
-        pares = [redecidir(c, guardadas[c.capture_id], datos) for c in capturas]
+        cliente = Cliente(salida.parent)
+        pares = [redecidir(c, guardadas[c.capture_id], datos, cliente, a.verificar) for c in capturas]
     else:
         cliente = None if a.sin_modelo else Cliente(salida.parent)
         with ThreadPoolExecutor(max_workers=max(1, a.hilos)) as ex:
-            pares = list(ex.map(lambda c: procesar(c, datos, cliente, not a.sin_modelo), capturas))
+            pares = list(ex.map(lambda c: procesar(c, datos, cliente, not a.sin_modelo, a.verificar), capturas))
 
+    cli = cliente
+    tok_verif = getattr(cli, "tokens_verificar", 0)
     resultados, extracciones = [], []
     for ext, res in pares:
         if res.reason_code in mapa:
@@ -107,12 +121,13 @@ def main(argv=None):
             fila.update(r["validaciones"])
             w.writerow(fila)
 
-    tok = 0 if a.desde_extracciones else sum(e["tokens_entrada"] + e["tokens_salida"] for e in extracciones)
+    tok = (0 if a.desde_extracciones else sum(e["tokens_entrada"] + e["tokens_salida"] for e in extracciones)) + tok_verif
     n = len(capturas)
     origenes = {}
     for e in extracciones:
         origenes[e["origen"]] = origenes.get(e["origen"], 0) + 1
     print(f"{n} capturas · {validas} válidas · {tok} tokens")
+    print(f"(de los tokens, verificador: {tok_verif})")
     print(f"tokens/captura: {tok / n if n else 0:.0f} · origenes: {origenes} · {time.time() - t0:.1f} s")
     return 0
 
