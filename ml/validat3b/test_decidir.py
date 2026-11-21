@@ -38,7 +38,7 @@ def lectura_producto(**cambios):
 
 def lectura_etiqueta(**cambios):
     datos = dict(hay_etiqueta=True, texto_producto="Aceite Nutrioli 900 ml",
-                 precio=45.5, legible=True)
+                 precio=45.5, legible=True, encuadre="cercano", nitidez="nitida", ancho_pct=60)
     datos.update(cambios)
     return LecturaEtiqueta(**datos)
 
@@ -109,7 +109,9 @@ class DecidirTest(unittest.TestCase):
     def test_09_zona_gris_va_a_revision(self):
         cap = captura()
         # la descripción coincide a medias con el nombre del producto (1 de 2 palabras)
-        r = decidir(cap, extraccion(cap, producto=lectura_producto(descripcion="aceite de oliva extra")))
+        # el letrero no trae el contenido: nada confirma que sea el mismo producto
+        r = decidir(cap, extraccion(cap, producto=lectura_producto(descripcion="aceite de oliva extra"),
+                                    etiqueta=lectura_etiqueta(texto_producto="Aceite Nutrioli")))
         self.assertEqual((r.decision, r.reason_code), ("revision_manual", RC_NO_COINCIDE))
 
     def test_10_sin_etiqueta_legible_se_rechaza(self):
@@ -196,6 +198,57 @@ class DecidirTest(unittest.TestCase):
         x = extraccion(cap, producto=lectura_producto(marca="Mar", descripcion="Atún en agua",
                                                       contenido_cantidad=130.0, contenido_unidad="g"))
         self.assertNotEqual(decidir(cap, x).decision, "aprobada")
+
+    # --- S005 (lectura v3): la FOTO DE LA ETIQUETA decide lejana/borrosa y es requisito para aprobar ---
+    def test_23_etiqueta_lejana_se_rechaza(self):
+        cap = captura()
+        for etq in (lectura_etiqueta(ancho_pct=12), lectura_etiqueta(encuadre="lejano", ancho_pct=40)):
+            r = decidir(cap, extraccion(cap, etiqueta=etq))
+            self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_LEJANA))
+
+    def test_24_etiqueta_borrosa_se_rechaza(self):
+        cap = captura()
+        r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(nitidez="borrosa")))
+        self.assertEqual((r.decision, r.reason_code), ("rechazada", RC_BORROSA))
+
+    def test_25_sin_etiqueta_cerca_y_nitida_no_se_aprueba(self):
+        cap = captura()
+        for cambios in (dict(nitidez="dudosa"), dict(ancho_pct=25), dict(ancho_pct=None),
+                        dict(encuadre=None, nitidez=None, ancho_pct=None)):  # el último: lectura v2, sin campos
+            r = decidir(cap, extraccion(cap, etiqueta=lectura_etiqueta(**cambios)))
+            self.assertEqual(r.decision, "revision_manual", cambios)
+
+    def test_26_redaccion_distinta_se_aprueba_si_el_letrero_confirma_el_contenido(self):
+        cap = captura(product_name="Jabon rosa Flor", capture_brand="Flor", unit_product="gramo", unit_quantity_product=150.0)
+        prod = lectura_producto(marca="Flor", descripcion="Jabón de tocador rosa", contenido_cantidad=150.0, contenido_unidad="g")
+        ok = lectura_etiqueta(texto_producto="JABON FLOR ROSA 150 G")
+        self.assertEqual(decidir(cap, extraccion(cap, producto=prod, etiqueta=ok)).decision, "aprobada")
+        for etq in (lectura_etiqueta(texto_producto="JABON FLOR ROSA"),            # el letrero no dice el contenido
+                    lectura_etiqueta(texto_producto="JABON FLOR ROSA 90 G"),        # dice otro contenido
+                    lectura_etiqueta(texto_producto="JABON FLOR ROSA 150 G", ancho_pct=25)):  # letrero no tan cerca
+            self.assertEqual(decidir(cap, extraccion(cap, producto=prod, etiqueta=etq)).decision, "revision_manual")
+        otra_marca = lectura_producto(marca="Otra", descripcion="Jabón de tocador rosa", contenido_cantidad=150.0, contenido_unidad="g")
+        self.assertNotEqual(decidir(cap, extraccion(cap, producto=otra_marca, etiqueta=ok)).decision, "aprobada")
+
+    def test_27_con_el_interruptor_apagado_la_redaccion_distinta_va_a_revision(self):
+        import ml.validat3b.decidir as modulo
+        cap = captura(product_name="Jabon rosa Flor", capture_brand="Flor", unit_product="gramo", unit_quantity_product=150.0)
+        x = extraccion(cap, producto=lectura_producto(marca="Flor", descripcion="Jabón de tocador rosa",
+                                                      contenido_cantidad=150.0, contenido_unidad="g"),
+                       etiqueta=lectura_etiqueta(texto_producto="JABON FLOR ROSA 150 G"))
+        previo = modulo.APROBAR_REDACCION_DISTINTA
+        try:
+            modulo.APROBAR_REDACCION_DISTINTA = False
+            self.assertEqual(decidir(cap, x).decision, "revision_manual")
+        finally:
+            modulo.APROBAR_REDACCION_DISTINTA = previo
+
+    def test_28_empaque_y_letrero_coinciden_pero_no_con_el_catalogo_va_a_revision(self):
+        cap = captura(product_name="Frijoles enteros", capture_brand="Olla", unit_product="gramo", unit_quantity_product=290.0)
+        x = extraccion(cap, producto=lectura_producto(marca="Olla", descripcion="Frijoles enteros",
+                                                      contenido_cantidad=560.0, contenido_unidad="g"),
+                       etiqueta=lectura_etiqueta(texto_producto="FRIJOL ENT OLLA 560 GR LAT"))
+        self.assertEqual(decidir(cap, x).decision, "revision_manual")
 
 
 if __name__ == "__main__":
