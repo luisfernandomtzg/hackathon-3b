@@ -1,4 +1,5 @@
 """Extracción v1: UNA llamada por captura (foto de producto + foto de etiqueta), lectura a ciegas."""
+import hashlib
 import io
 import json
 import re
@@ -9,14 +10,20 @@ from PIL import Image
 from .cliente import Cliente
 from .contrato import Captura, Extraccion, LecturaEtiqueta, LecturaProducto
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
-PROMPT = """Recibes dos fotos de una tienda: la 1ª es el PRODUCTO en anaquel, la 2ª es la ETIQUETA de precio.
-Solo LEE lo que se ve; no juzgues ni adivines. Si algo no se alcanza a leer, usa null.
-Responde SOLO un JSON, sin texto extra, con esta forma:
-{"producto":{"hay_producto":bool,"marca":str|null,"descripcion":str|null,"contenido_cantidad":número|null,"contenido_unidad":"g"|"kg"|"ml"|"l"|"pza"|null,"nitidez":"nitida"|"dudosa"|"borrosa","encuadre":"cercano"|"medio"|"lejano","varios_productos":bool,"foto_de_pantalla":bool},
+PROMPT = """Fotos de tienda: 1ª = PRODUCTO en anaquel, 2ª = ETIQUETA de precio. Solo LEE; no juzgues. Lo ilegible va null.
+Responde SOLO JSON:
+{"producto":{"hay_producto":bool,"marca":str|null,"descripcion":str|null,"contenido_cantidad":número|null,"contenido_unidad":"g"|"kg"|"ml"|"l"|"pza"|null,"contenido_legible":bool,"nitidez":"nitida"|"dudosa"|"borrosa","encuadre":"cercano"|"medio"|"lejano","varios_productos":bool,"foto_de_pantalla":bool},
 "etiqueta":{"hay_etiqueta":bool,"texto_producto":str|null,"precio":número|null,"tipo_precio":"regular"|"oferta"|"volumen"|null,"otros_precios":[números],"legible":bool}}
-Reglas: "contenido" es el peso/volumen impreso en el empaque (p. ej. 400 g). "encuadre" lejano = el texto del empaque es muy pequeño para leerse. "foto_de_pantalla" = es foto de un monitor o celular. "precio" es el precio unitario vigente de la etiqueta."""
+encuadre: "lejano" si el texto del frente (marca, descripción, contenido) no se lee con claridad aunque la foto sea nítida; "cercano" si se lee sin esfuerzo; si no, "medio".
+contenido_legible: true solo si lees el número de contenido impreso (p. ej. 400 g).
+descripcion: nombre corto del frente, máx. 6 palabras, sin ingredientes.
+marca: la principal; con submarca, "Marca Submarca".
+contenido: el neto del frente; si hay drenado y total, el drenado (el otro en descripcion).
+precio: el unitario vigente de la etiqueta."""
+
+_VERSION = PROMPT_VERSION + "-" + hashlib.sha1(PROMPT.encode()).hexdigest()[:6]  # editar el prompt invalida el caché
 
 
 def _jpeg(ruta: Path, lado=768, calidad=80) -> bytes:
@@ -51,7 +58,7 @@ def extraer(captura: Captura, dir_datos, cliente: Cliente | None = None) -> Extr
     t_in = t_out = 0
     for intento in range(2):  # un reintento si el JSON no valida
         # el reintento cambia la versión para no leer del caché la misma respuesta mala
-        version = PROMPT_VERSION if intento == 0 else PROMPT_VERSION + "-r"
+        version = _VERSION if intento == 0 else _VERSION + "-r"
         texto, a, b, origen = cliente.consultar(captura.capture_id, version, PROMPT, imgs, max_tokens=400)
         t_in += a
         t_out += b

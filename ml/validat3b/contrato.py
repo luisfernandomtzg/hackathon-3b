@@ -1,5 +1,5 @@
 """Contrato v1 entre carriles (Validat3B). Dueño: Fer. No se edita sin compuerta."""
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 Decision = Literal["aprobada", "rechazada", "revision_manual"]
@@ -28,6 +28,7 @@ class LecturaProducto(BaseModel):              # lo que el modelo LEE en la foto
     nitidez: Literal["nitida", "dudosa", "borrosa"] = "dudosa"
     encuadre: Literal["cercano", "medio", "lejano"] = "medio"
     varios_productos: bool = False; foto_de_pantalla: bool = False
+    contenido_legible: Optional[bool] = None   # v1.1: ¿se alcanza a leer el número de contenido impreso?
 
 class LecturaEtiqueta(BaseModel):              # lo que el modelo LEE en la foto de la etiqueta
     hay_etiqueta: bool
@@ -42,6 +43,7 @@ class Extraccion(BaseModel):
     producto: LecturaProducto; etiqueta: LecturaEtiqueta
     codigo_barras_leido: Optional[str] = None; cadena_en_fachada: Optional[str] = None
     tokens_entrada: int = 0; tokens_salida: int = 0
+    senales: dict[str, Any] = Field(default_factory=dict)   # v1.1: señales de local.senales_locales
     origen: Literal["modelo", "cache", "sin_modelo", "error"] = "sin_modelo"
 
 class Validaciones(BaseModel):

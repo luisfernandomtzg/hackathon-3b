@@ -14,6 +14,7 @@ try:
 except ImportError:  # Núcleo aún no entrega decidir.py
     from .decidir_provisional import decidir
 from .extraer import extraer, sin_modelo
+from .local import senales_locales
 
 COLUMNAS = ["capture_id", "decision", "confidence_score", "reason_code", "tienda_fachada", "producto",
             "codigo_barras", "evidencia_precio", "precio_detectado", "codigo_barras_detectado", "explicacion"]
@@ -25,11 +26,30 @@ def _respaldo(captura: Captura, motivo: str) -> Resultado:
                      explicacion=f"Error al procesar la captura; a revisión manual. ({motivo[:120]})")
 
 
+def _senales(captura: Captura, dir_datos) -> dict:
+    try:
+        return senales_locales(captura, dir_datos)
+    except Exception:
+        return {}
+
+
+def redecidir(captura: Captura, ext: Extraccion, dir_datos):
+    """Re-decide sobre una lectura guardada, sin endpoint. Calcula señales si faltan."""
+    try:
+        if not ext.senales:
+            ext.senales = _senales(captura, dir_datos)
+        res = Resultado.model_validate(decidir(captura, ext).model_dump())
+    except Exception as e:
+        res = _respaldo(captura, f"{type(e).__name__}: {e}")
+    return ext, res
+
+
 def procesar(captura: Captura, dir_datos, cliente, usar_modelo: bool):
     """Nunca lanza: cualquier falla deja la captura en revision_manual."""
     ext = None
     try:
         ext = extraer(captura, dir_datos, cliente) if usar_modelo else sin_modelo(captura)
+        ext.senales = _senales(captura, dir_datos)
         res = Resultado.model_validate(decidir(captura, ext).model_dump())
     except Exception as e:
         res = _respaldo(captura, f"{type(e).__name__}: {e}")
@@ -44,6 +64,7 @@ def main(argv=None):
     p.add_argument("--sin-modelo", action="store_true")
     p.add_argument("--hilos", type=int, default=4)
     p.add_argument("--mapa-codigos")
+    p.add_argument("--desde-extracciones", help="re-decide sobre extracciones.json sin llamar al endpoint")
     a = p.parse_args(argv)
 
     t0 = time.time()
@@ -55,9 +76,15 @@ def main(argv=None):
     capturas = cargar_capturas(datos / "metadatos")
     if a.limite:
         capturas = capturas[: a.limite]
-    cliente = None if a.sin_modelo else Cliente(salida.parent)
-    with ThreadPoolExecutor(max_workers=max(1, a.hilos)) as ex:
-        pares = list(ex.map(lambda c: procesar(c, datos, cliente, not a.sin_modelo), capturas))
+    if a.desde_extracciones:
+        guardadas = {e["capture_id"]: Extraccion.model_validate(e)
+                     for e in json.loads(Path(a.desde_extracciones).read_text(encoding="utf-8"))}
+        capturas = [c for c in capturas if c.capture_id in guardadas]
+        pares = [redecidir(c, guardadas[c.capture_id], datos) for c in capturas]
+    else:
+        cliente = None if a.sin_modelo else Cliente(salida.parent)
+        with ThreadPoolExecutor(max_workers=max(1, a.hilos)) as ex:
+            pares = list(ex.map(lambda c: procesar(c, datos, cliente, not a.sin_modelo), capturas))
 
     resultados, extracciones = [], []
     for ext, res in pares:
@@ -80,7 +107,7 @@ def main(argv=None):
             fila.update(r["validaciones"])
             w.writerow(fila)
 
-    tok = sum(e["tokens_entrada"] + e["tokens_salida"] for e in extracciones)
+    tok = 0 if a.desde_extracciones else sum(e["tokens_entrada"] + e["tokens_salida"] for e in extracciones)
     n = len(capturas)
     origenes = {}
     for e in extracciones:
